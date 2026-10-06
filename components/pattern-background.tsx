@@ -1,11 +1,17 @@
-import { useId } from 'react';
+import { useId, useSyncExternalStore } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
 
 import { useTheme } from '../hooks/use-theme';
 
-const forcedColors =
-  Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia?.('(forced-colors: active)').matches;
+const forcedQuery =
+  Platform.OS === 'web' && typeof window !== 'undefined' ? window.matchMedia?.('(forced-colors: active)') : undefined;
+
+const subscribe = (onChange: () => void) => {
+  forcedQuery?.addEventListener('change', onChange);
+  return () => forcedQuery?.removeEventListener('change', onChange);
+};
+const getForcedColors = () => forcedQuery?.matches ?? false;
 
 /**
  * Static decorative texture behind a screen (design.md#components): `dots` app-wide,
@@ -15,6 +21,7 @@ const forcedColors =
 export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'contours' }) {
   const theme = useTheme();
   const id = `pattern${useId().replace(/:/g, '')}`;
+  const forcedColors = useSyncExternalStore(subscribe, getForcedColors, () => false);
 
   if (forcedColors) return null;
 

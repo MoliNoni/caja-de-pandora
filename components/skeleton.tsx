@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolateColor,
   useAnimatedStyle,
@@ -28,7 +29,10 @@ export function Skeleton({ width = '100%', height, aspectRatio, radius = Radius.
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      cancelAnimation(progress);
+      return;
+    }
     progress.value = withRepeat(withTiming(1, { duration: 1200, easing: Easing.linear }), -1, true);
   }, [progress, reducedMotion]);
 
