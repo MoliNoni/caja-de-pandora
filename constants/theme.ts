@@ -1,31 +1,42 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens. Source of truth: design.md#tokens.
+ * Read colors through `useTheme()` / `useThemedStyles()` so light and dark both work.
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#ffd700';
-const tintColorDark = '#ffd700';
-
 export const Colors = {
   light: {
-    text: '#333333',
-    background: '#f9f9f9',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    bg: '#F6F1E7',
+    surface: '#FFFFFF',
+    ink: '#1B1714',
+    inkMuted: '#5C534B',
+    accent: '#B4361F',
+    onAccent: '#FFFFFF',
+    border: '#E2D8C8',
+    danger: '#B42318',
+    success: '#1F7A4D',
+    scrim: 'rgba(0, 0, 0, 0.5)',
   },
   dark: {
-    text: '#f5f5f5',
-    background: '#1a1a1a',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    bg: '#14110F',
+    surface: '#1E1A17',
+    ink: '#F2ECE2',
+    inkMuted: '#B5ABA0',
+    accent: '#E2654B',
+    onAccent: '#14110F',
+    border: '#332C26',
+    danger: '#F97066',
+    success: '#4ADE80',
+    scrim: 'rgba(0, 0, 0, 0.6)',
   },
 };
+
+export type Theme = typeof Colors.light;
+
+export const Spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
+
+export const Radius = { card: 8, pill: 999 } as const;
 
 export const Fonts = Platform.select({
   ios: {
