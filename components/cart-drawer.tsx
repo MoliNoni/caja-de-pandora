@@ -56,7 +56,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose}>
+        <TouchableOpacity onPress={onClose} disabled={loading}>
           <Ionicons name="arrow-back" size={24} color={theme.ink} />
         </TouchableOpacity>
         <Text style={styles.title}>Carrito</Text>
@@ -86,6 +86,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                   <View style={styles.quantityContainer}>
                     <TouchableOpacity
                       onPress={() => updateQuantity(item.id, item.cantidad - 1)}
+                      disabled={loading}
                       style={styles.quantityButton}
                     >
                       <Text style={styles.quantityButtonText}>-</Text>
@@ -93,6 +94,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     <Text style={styles.quantity}>{item.cantidad}</Text>
                     <TouchableOpacity
                       onPress={() => updateQuantity(item.id, item.cantidad + 1)}
+                      disabled={loading}
                       style={styles.quantityButton}
                     >
                       <Text style={styles.quantityButtonText}>+</Text>
@@ -106,6 +108,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                   </Text>
                   <TouchableOpacity
                     onPress={() => removeItem(item.id)}
+                    disabled={loading}
                     style={styles.deleteButton}
                   >
                     <Text style={styles.deleteButtonText}>Eliminar</Text>
@@ -138,11 +141,12 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
               variant="ghost"
               size="lg"
               fullWidth
+              disabled={loading}
               onPress={handleClearCart}
             />
 
             {onClose && (
-              <Button label="Cerrar" variant="outline" size="lg" fullWidth onPress={onClose} />
+              <Button label="Cerrar" variant="outline" size="lg" fullWidth disabled={loading} onPress={onClose} />
             )}
           </View>
         </>

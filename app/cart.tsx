@@ -23,6 +23,7 @@ import { procesarCompra, PurchaseReceipt } from '../lib/database';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { CartDrawer } from '../components/cart-drawer';
+import { ClickSpark } from '../components/click-spark';
 import { showAlert, showConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
@@ -56,7 +57,7 @@ export default function CartScreen() {
 
       const receipt = await procesarCompra(user.id, items, total, user.email);
       setPurchaseReceipt(receipt);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       clearCart();
     } catch (error) {
       console.error('Error processing order:', error);
@@ -144,7 +145,12 @@ export default function CartScreen() {
               contentContainerStyle={styles.receiptContent}
               showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.receiptEyebrow}>Compra confirmada</Text>
+              <View style={styles.eyebrowRow}>
+                <Text style={styles.receiptEyebrow}>Compra confirmada</Text>
+                <View style={styles.sparkAnchor}>
+                  <ClickSpark play={!!purchaseReceipt} />
+                </View>
+              </View>
               <Text style={styles.receiptTitle}>Detalle de compra</Text>
               <Text style={styles.receiptMessage}>
                 Tu pedido fue registrado correctamente. Aqui tienes el resumen.
@@ -382,6 +388,15 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   receiptContent: {
     padding: 24,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sparkAnchor: {
+    width: 0,
+    height: 0,
+    marginLeft: 24,
   },
   receiptEyebrow: {
     fontSize: 12,

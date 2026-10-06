@@ -8,6 +8,7 @@ import {
 import { Product } from '../lib/database';
 import { Button } from './button';
 import { ProductCard } from './product-card';
+import { Fonts } from '../constants/theme';
 import { useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
@@ -16,6 +17,7 @@ interface SectionCarouselProps {
   subtitle?: string;
   products: Product[];
   isBestSeller?: boolean;
+  featuredFirst?: boolean;
   onSeeAll?: () => void;
 }
 
@@ -24,6 +26,7 @@ export const SectionCarousel = ({
   subtitle,
   products,
   isBestSeller = false,
+  featuredFirst = false,
   onSeeAll,
 }: SectionCarouselProps) => {
   const styles = useThemedStyles(makeStyles);
@@ -44,12 +47,13 @@ export const SectionCarousel = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <View style={styles.itemWrapper}>
             <ProductCard
               product={item}
               compact
               isBestSeller={isBestSeller}
+              featured={featuredFirst && index === 0}
             />
           </View>
         )}
@@ -77,6 +81,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: Fonts.serif,
     color: t.ink,
   },
   subtitle: {

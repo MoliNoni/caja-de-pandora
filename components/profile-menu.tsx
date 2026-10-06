@@ -18,7 +18,7 @@ export const ProfileMenu = () => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -88,6 +88,20 @@ export const ProfileMenu = () => {
               <Ionicons name="receipt-outline" size={20} color={theme.accent} />
               <Text style={styles.menuItemText}>Mis ordenes</Text>
             </TouchableOpacity>
+
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setOpen(false);
+                  router.push('/admin' as any);
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="settings-outline" size={20} color={theme.accent} />
+                <Text style={styles.menuItemText}>Administracion</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.menuItem, signingOut && styles.menuItemDisabled]}

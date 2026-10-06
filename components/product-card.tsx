@@ -28,6 +28,7 @@ interface ProductCardProps {
   onPress?: () => void;
   isBestSeller?: boolean;
   compact?: boolean;
+  featured?: boolean;
 }
 
 // Product card component
@@ -36,6 +37,7 @@ export const ProductCard = ({
   onPress,
   isBestSeller = false,
   compact = false,
+  featured = false,
 }: ProductCardProps) => {
   const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
@@ -64,6 +66,7 @@ export const ProductCard = ({
       style={[
         styles.container,
         compact && styles.compactContainer,
+        featured && styles.featuredContainer,
       ]}
     >
       <TouchableOpacity
@@ -147,6 +150,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   compactContainer: {
     width: 180,
     marginBottom: 12,
+  },
+  featuredContainer: {
+    borderWidth: 2,
+    borderColor: t.accent,
   },
   imageContainer: {
     position: 'relative',

@@ -21,7 +21,7 @@ import { PatternBackground } from '../components/pattern-background';
 import { ProfileMenu } from '../components/profile-menu';
 import { Skeleton, SkeletonRegion } from '../components/skeleton';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 
 interface OrdenDetalleRaw {
   id?: string;
@@ -279,6 +279,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: Fonts.serif,
     color: t.ink,
   },
   subtitle: {

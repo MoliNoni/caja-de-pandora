@@ -17,7 +17,7 @@ import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useThemedStyles } from '../../hooks/use-theme';
-import type { Theme } from '../../constants/theme';
+import { Fonts, type Theme } from '../../constants/theme';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -126,7 +126,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
   image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: t.surface, marginBottom: 20 },
   placeholder: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: t.ink },
+  title: { fontSize: 22, fontWeight: '700', fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
   price: { fontSize: 24, fontWeight: 'bold', color: t.accent, marginTop: 16 },
   stock: { fontSize: 13, color: t.success, fontWeight: '600', marginTop: 4, marginBottom: 12 },
