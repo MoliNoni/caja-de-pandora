@@ -34,11 +34,11 @@ export const SectionCarousel = ({
     <View style={styles.section}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} accessibilityRole="header">{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {onSeeAll ? (
-          <Button label="Ver todo" variant="ghost" onPress={onSeeAll} />
+          <Button label="Ver todo" accessibilityLabel={`Ver todo: ${title}`} variant="ghost" onPress={onSeeAll} />
         ) : null}
       </View>
 

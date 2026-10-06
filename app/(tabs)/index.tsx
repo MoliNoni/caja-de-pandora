@@ -73,17 +73,20 @@ export default function HomeScreen() {
       <PatternBackground />
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>Librería Caja de Pandora</Text>
+          <Text style={styles.logo} accessibilityRole="header">Librería Caja de Pandora</Text>
         </View>
         <View style={styles.headerActions}>
           <ProfileMenu />
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => router.push('/cart')}
+            accessibilityRole="link"
+            accessibilityLabel={itemCount > 0 ? `Carrito, ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}` : 'Carrito'}
+            hitSlop={4}
           >
             <Ionicons name="cart" size={24} color={theme.accent} />
             {itemCount > 0 && (
-              <View style={styles.cartBadge}>
+              <View style={styles.cartBadge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
               </View>
             )}

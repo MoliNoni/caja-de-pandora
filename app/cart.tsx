@@ -4,7 +4,7 @@
 // Checks user authentication
 // Processes orders
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,25 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(false);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [purchaseReceipt, setPurchaseReceipt] = useState<PurchaseReceipt | null>(null);
+
+  const closeReceipt = () => {
+    setPurchaseReceipt(null);
+    router.push('/');
+  };
+
+  // Web: Escape dismisses the topmost custom overlay (RN Modal handles it natively elsewhere).
+  const overlayOpen = showCheckoutConfirm || purchaseReceipt !== null;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !overlayOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (purchaseReceipt) closeReceipt();
+      else setShowCheckoutConfirm(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayOpen, purchaseReceipt]);
 
   // Handle checkout process
   const processCheckout = async () => {
@@ -101,10 +120,17 @@ export default function CartScreen() {
             style={styles.confirmBackdrop}
             onPress={() => setShowCheckoutConfirm(false)}
             activeOpacity={1}
+            accessible={false}
           />
-          <View style={styles.confirmCard}>
+          <View
+            style={styles.confirmCard}
+            role="dialog"
+            aria-modal
+            aria-label="Confirmar compra"
+            accessibilityViewIsModal
+          >
             <Text style={styles.confirmEyebrow}>Confirmacion</Text>
-            <Text style={styles.confirmTitle}>Revisa tu compra</Text>
+            <Text style={styles.confirmTitle} accessibilityRole="header">Revisa tu compra</Text>
             <Text style={styles.confirmMessage}>
               Vas a comprar {itemCount} producto(s) por un total de $
               {total.toFixed(2)}.
@@ -129,7 +155,7 @@ export default function CartScreen() {
         </View>
       )}
       {loading && (
-        <View style={styles.loadingOverlay}>
+        <View style={styles.loadingOverlay} accessibilityLiveRegion="polite">
           <View style={styles.loadingCard}>
             <ActivityIndicator size="large" color={theme.accent} />
             <Text style={styles.loadingText}>Procesando tu compra...</Text>
@@ -139,7 +165,13 @@ export default function CartScreen() {
       {purchaseReceipt && (
         <View style={styles.receiptOverlay}>
           <View style={styles.receiptBackdrop} />
-          <View style={styles.receiptCard}>
+          <View
+            style={styles.receiptCard}
+            role="dialog"
+            aria-modal
+            aria-label="Detalle de compra"
+            accessibilityViewIsModal
+          >
             <ScrollView
               style={styles.receiptScroll}
               contentContainerStyle={styles.receiptContent}
@@ -151,7 +183,7 @@ export default function CartScreen() {
                   <ClickSpark play={!!purchaseReceipt} />
                 </View>
               </View>
-              <Text style={styles.receiptTitle}>Detalle de compra</Text>
+              <Text style={styles.receiptTitle} accessibilityRole="header">Detalle de compra</Text>
               <Text style={styles.receiptMessage}>
                 Tu pedido fue registrado correctamente. Aqui tienes el resumen.
               </Text>
@@ -160,7 +192,7 @@ export default function CartScreen() {
               ) : null}
 
               <View style={styles.receiptSection}>
-                <Text style={styles.sectionTitle}>Encabezado</Text>
+                <Text style={styles.sectionTitle} accessibilityRole="header">Encabezado</Text>
                 <View style={styles.dataRow}>
                   <Text style={styles.dataLabel}>Id</Text>
                   <Text style={styles.dataValue}>{purchaseReceipt.encabezado.id}</Text>
@@ -198,7 +230,7 @@ export default function CartScreen() {
               </View>
 
               <View style={styles.receiptSection}>
-                <Text style={styles.sectionTitle}>Detalle compra</Text>
+                <Text style={styles.sectionTitle} accessibilityRole="header">Detalle compra</Text>
                 {purchaseReceipt.detalles.map((detalle) => (
                   <View key={detalle.id} style={styles.detailCard}>
                     <Text style={styles.detailTitle}>{detalle.titulo}</Text>
@@ -252,10 +284,7 @@ export default function CartScreen() {
               <Button
                 label="Seguir comprando"
                 style={styles.receiptButton}
-                onPress={() => {
-                  setPurchaseReceipt(null);
-                  router.push('/');
-                }}
+                onPress={closeReceipt}
               />
             </View>
           </View>

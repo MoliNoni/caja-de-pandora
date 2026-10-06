@@ -20,6 +20,8 @@ import { showAlert, showDestructiveConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
+const QTY_HIT_SLOP = { top: 10, bottom: 10, left: 6, right: 6 };
+
 interface CartDrawerProps {
   onCheckout?: () => void;
   onClose?: () => void;
@@ -56,10 +58,17 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} disabled={loading}>
+        <TouchableOpacity
+          onPress={onClose}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar carrito"
+          accessibilityState={{ disabled: loading }}
+          hitSlop={10}
+        >
           <Ionicons name="arrow-back" size={24} color={theme.ink} />
         </TouchableOpacity>
-        <Text style={styles.title}>Carrito</Text>
+        <Text style={styles.title} accessibilityRole="header">Carrito</Text>
         <Text style={styles.itemCount}>{itemCount} items</Text>
       </View>
 
@@ -88,6 +97,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                       onPress={() => updateQuantity(item.id, item.cantidad - 1)}
                       disabled={loading}
                       style={styles.quantityButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Disminuir cantidad de ${item.titulo}`}
+                      accessibilityState={{ disabled: loading }}
+                      hitSlop={QTY_HIT_SLOP}
                     >
                       <Text style={styles.quantityButtonText}>-</Text>
                     </TouchableOpacity>
@@ -96,6 +109,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                       onPress={() => updateQuantity(item.id, item.cantidad + 1)}
                       disabled={loading}
                       style={styles.quantityButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Aumentar cantidad de ${item.titulo}`}
+                      accessibilityState={{ disabled: loading }}
+                      hitSlop={QTY_HIT_SLOP}
                     >
                       <Text style={styles.quantityButtonText}>+</Text>
                     </TouchableOpacity>
@@ -110,6 +127,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     onPress={() => removeItem(item.id)}
                     disabled={loading}
                     style={styles.deleteButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Eliminar ${item.titulo}`}
+                    accessibilityState={{ disabled: loading }}
+                    hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
                   >
                     <Text style={styles.deleteButtonText}>Eliminar</Text>
                   </TouchableOpacity>

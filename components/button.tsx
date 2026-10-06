@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type Vi
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Radius, Spacing, type Theme } from '../constants/theme';
+import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 
 type Variant = 'accent' | 'outline' | 'ghost' | 'default';
@@ -58,7 +59,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: inactive, busy: loading }}
-      style={[fullWidth && styles.fullWidth, style]}
+      style={(state) => [fullWidth && styles.fullWidth, style, isFocused(state) && styles.focusRing]}
     >
       <Animated.View
         style={[styles.base, styles[size], styles[variant], inactive && styles.inactive, animated]}
@@ -79,6 +80,7 @@ export function Button({
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     fullWidth: { alignSelf: 'stretch' },
+    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
     base: {
       flexDirection: 'row',
       alignItems: 'center',

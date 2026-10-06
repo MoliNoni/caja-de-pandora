@@ -116,16 +116,19 @@ export const CatalogScreen = ({
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title} accessibilityRole="header">{title}</Text>
         <View style={styles.headerActions}>
           <ProfileMenu />
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => router.push('/cart')}
+            accessibilityRole="link"
+            accessibilityLabel={itemCount > 0 ? `Carrito, ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}` : 'Carrito'}
+            hitSlop={4}
           >
             <Ionicons name="cart" size={24} color={theme.accent} />
             {itemCount > 0 && (
-              <View style={styles.cartBadge}>
+              <View style={styles.cartBadge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
               </View>
             )}
@@ -139,6 +142,7 @@ export const CatalogScreen = ({
           style={styles.searchInput}
           placeholder={searchPlaceholder}
           placeholderTextColor={theme.inkMuted}
+          accessibilityLabel="Buscar"
           value={searchQuery}
           onChangeText={handleSearch}
           ref={searchRef}
@@ -153,7 +157,7 @@ export const CatalogScreen = ({
         </SkeletonRegion>
       ) : filteredProductos.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">{emptyTitle}</Text>
           <Text style={styles.emptySubtitle}>{emptySubtitle}</Text>
         </View>
       ) : (
@@ -242,7 +246,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: t.border,
+    borderColor: t.inkMuted,
   },
   searchLabel: {
     fontSize: 14,

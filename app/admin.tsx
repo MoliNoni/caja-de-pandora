@@ -240,7 +240,7 @@ export default function AdminScreen() {
       <SafeAreaView style={styles.container}>
         <PatternBackground />
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Inicia sesion</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">Inicia sesion</Text>
           <Text style={styles.emptySubtitle}>Necesitas autenticarte para administrar productos.</Text>
           <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
         </View>
@@ -253,7 +253,7 @@ export default function AdminScreen() {
       <SafeAreaView style={styles.container}>
         <PatternBackground />
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Acceso restringido</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">Acceso restringido</Text>
           <Text style={styles.emptySubtitle}>Tu usuario no esta habilitado como administrador.</Text>
           <Button label="Volver" variant="outline" onPress={() => router.back()} />
         </View>
@@ -269,11 +269,16 @@ export default function AdminScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
             <Ionicons name="arrow-back" size={22} color={theme.ink} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={styles.title}>Administracion</Text>
+            <Text style={styles.title} accessibilityRole="header">Administracion</Text>
             <Text style={styles.subtitle}>Añadir productos al catalogo</Text>
           </View>
         </View>
@@ -339,6 +344,8 @@ export default function AdminScreen() {
                       formData.categoria_id === categoria.id && styles.activeCategoryChip,
                     ]}
                     onPress={() => handleCategoriaSelect(categoria)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: formData.categoria_id === categoria.id }}
                   >
                     <Text
                       style={[
@@ -436,6 +443,7 @@ const Input = ({
     <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         style={[styles.input, multiline && styles.textArea, error && styles.inputError]}
         value={value}
         onChangeText={onChangeText}
@@ -444,7 +452,7 @@ const Input = ({
         autoCapitalize={autoCapitalize}
         placeholderTextColor={theme.inkMuted}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={styles.errorText} accessibilityLiveRegion="polite" aria-live="polite">{error}</Text> : null}
     </View>
   );
 };
@@ -468,8 +476,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderBottomColor: t.border,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -521,8 +529,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     gap: 8,
   },
   categoryChip: {
+    minHeight: 44,
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: t.border,
+    borderColor: t.inkMuted,
     backgroundColor: t.surface,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -543,7 +553,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   input: {
     minHeight: 46,
     borderWidth: 1,
-    borderColor: t.border,
+    borderColor: t.inkMuted,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

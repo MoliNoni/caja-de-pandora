@@ -119,6 +119,7 @@ export const ProductCard = ({
 
         <Button
           label={product.stock > 0 ? 'Agregar' : 'Agotado'}
+          accessibilityLabel={product.stock > 0 ? `Agregar ${product.titulo} al carrito` : `${product.titulo}, agotado`}
           variant="outline"
           fullWidth
           disabled={product.stock <= 0}

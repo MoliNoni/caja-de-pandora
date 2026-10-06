@@ -63,7 +63,7 @@ export default function ProductDetailScreen() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ title: 'Producto' }} />
-        <Text style={styles.errorText}>Producto no encontrado.</Text>
+        <Text style={styles.errorText} accessibilityRole="alert">Producto no encontrado.</Text>
       </View>
     );
   }

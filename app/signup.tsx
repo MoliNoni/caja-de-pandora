@@ -104,7 +104,7 @@ export default function SignUpScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>📚 LibreríaShop</Text>
-          <Text style={styles.title}>Crear Cuenta</Text>
+          <Text style={styles.title} accessibilityRole="header">Crear Cuenta</Text>
         </View>
 
         {/* Form */}
@@ -113,6 +113,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Nombre *</Text>
             <TextInput
+              accessibilityLabel="Nombre"
               style={styles.input}
               placeholder="Tu nombre"
               placeholderTextColor={theme.inkMuted}
@@ -123,7 +124,7 @@ export default function SignUpScreen() {
               editable={!loading}
             />
             {errors.nombre && (
-              <Text style={styles.error}>{errors.nombre}</Text>
+              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.nombre}</Text>
             )}
           </View>
 
@@ -131,6 +132,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Apellido *</Text>
             <TextInput
+              accessibilityLabel="Apellido"
               style={styles.input}
               placeholder="Tu apellido"
               placeholderTextColor={theme.inkMuted}
@@ -141,7 +143,7 @@ export default function SignUpScreen() {
               editable={!loading}
             />
             {errors.apellido && (
-              <Text style={styles.error}>{errors.apellido}</Text>
+              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.apellido}</Text>
             )}
           </View>
 
@@ -149,6 +151,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email *</Text>
             <TextInput
+              accessibilityLabel="Email"
               style={styles.input}
               placeholder="tu@email.com"
               placeholderTextColor={theme.inkMuted}
@@ -161,7 +164,7 @@ export default function SignUpScreen() {
               editable={!loading}
             />
             {errors.email && (
-              <Text style={styles.error}>{errors.email}</Text>
+              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.email}</Text>
             )}
           </View>
 
@@ -169,6 +172,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Contraseña *</Text>
             <TextInput
+              accessibilityLabel="Contraseña"
               style={styles.input}
               placeholder="Contraseña"
               placeholderTextColor={theme.inkMuted}
@@ -180,7 +184,7 @@ export default function SignUpScreen() {
               editable={!loading}
             />
             {errors.password && (
-              <Text style={styles.error}>{errors.password}</Text>
+              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.password}</Text>
             )}
           </View>
 
@@ -188,6 +192,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirmar Contraseña *</Text>
             <TextInput
+              accessibilityLabel="Confirmar Contraseña"
               style={styles.input}
               placeholder="Confirma tu contraseña"
               placeholderTextColor={theme.inkMuted}
@@ -199,7 +204,7 @@ export default function SignUpScreen() {
               editable={!loading}
             />
             {errors.confirmPassword && (
-              <Text style={styles.error}>{errors.confirmPassword}</Text>
+              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.confirmPassword}</Text>
             )}
           </View>
 
@@ -207,6 +212,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Teléfono</Text>
             <TextInput
+              accessibilityLabel="Teléfono"
               style={styles.input}
               placeholder="Tu teléfono"
               placeholderTextColor={theme.inkMuted}
@@ -223,6 +229,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Dirección</Text>
             <TextInput
+              accessibilityLabel="Dirección"
               style={styles.input}
               placeholder="Tu dirección"
               placeholderTextColor={theme.inkMuted}
@@ -238,6 +245,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Ciudad</Text>
             <TextInput
+              accessibilityLabel="Ciudad"
               style={styles.input}
               placeholder="Tu ciudad"
               placeholderTextColor={theme.inkMuted}
@@ -253,6 +261,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Código Postal</Text>
             <TextInput
+              accessibilityLabel="Código Postal"
               style={styles.input}
               placeholder="Tu código postal"
               placeholderTextColor={theme.inkMuted}
@@ -278,6 +287,9 @@ export default function SignUpScreen() {
             <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
             <TouchableOpacity
               onPress={() => router.push('/signin')}
+              accessibilityRole="link"
+              accessibilityLabel="Iniciar sesión"
+              hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
             >
               <Text style={styles.footerLink}>Inicia sesión</Text>
             </TouchableOpacity>
@@ -325,7 +337,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: t.border,
+    borderColor: t.inkMuted,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

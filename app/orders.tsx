@@ -143,7 +143,7 @@ export default function OrdersScreen() {
       <SafeAreaView style={styles.container}>
       <PatternBackground />
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Necesitas iniciar sesion</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">Necesitas iniciar sesion</Text>
           <Text style={styles.emptySubtitle}>Para ver tus ordenes</Text>
           <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
         </View>
@@ -158,7 +158,7 @@ export default function OrdersScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.title}>Mis ordenes</Text>
+            <Text style={styles.title} accessibilityRole="header">Mis ordenes</Text>
             <Text style={styles.subtitle}>
               Total: {ordenes.length} orden{ordenes.length !== 1 ? 'es' : ''}
             </Text>
@@ -175,7 +175,7 @@ export default function OrdersScreen() {
         </SkeletonRegion>
       ) : ordenes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No tienes ordenes</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">No tienes ordenes</Text>
           <Text style={styles.emptySubtitle}>
             Realiza tu primera compra en el catalogo
           </Text>

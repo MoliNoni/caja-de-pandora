@@ -81,7 +81,7 @@ export default function SignInScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>LibreriaShop</Text>
-        <Text style={styles.title}>Iniciar sesion</Text>
+        <Text style={styles.title} accessibilityRole="header">Iniciar sesion</Text>
       </View>
 
       {/* Form */}
@@ -91,6 +91,7 @@ export default function SignInScreen() {
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
+            accessibilityLabel="Email"
             placeholder="tu@email.com"
             placeholderTextColor={theme.inkMuted}
             value={email}
@@ -100,7 +101,7 @@ export default function SignInScreen() {
             editable={!loading}
           />
           {errors.email && (
-            <Text style={styles.error}>{errors.email}</Text>
+            <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.email}</Text>
           )}
         </View>
 
@@ -109,6 +110,7 @@ export default function SignInScreen() {
           <Text style={styles.label}>Contrasena</Text>
           <TextInput
             style={styles.input}
+            accessibilityLabel="Contrasena"
             placeholder="Tu contrasena"
             placeholderTextColor={theme.inkMuted}
             value={password}
@@ -117,7 +119,7 @@ export default function SignInScreen() {
             editable={!loading}
           />
           {errors.password && (
-            <Text style={styles.error}>{errors.password}</Text>
+            <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.password}</Text>
           )}
         </View>
 
@@ -138,6 +140,9 @@ export default function SignInScreen() {
           <Text style={styles.signUpText}>No tienes cuenta?</Text>
           <TouchableOpacity
             onPress={() => router.push('/signup')}
+            accessibilityRole="link"
+            accessibilityLabel="Crear cuenta"
+            hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
           >
             <Text style={styles.signUpLink}>Crea una ahora</Text>
           </TouchableOpacity>
@@ -194,7 +199,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: t.border,
+    borderColor: t.inkMuted,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,

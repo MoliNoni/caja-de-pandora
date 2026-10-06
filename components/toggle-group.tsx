@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radius, Spacing, type Theme } from '../constants/theme';
+import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 
 type Option<T extends string> = {
@@ -34,8 +35,9 @@ export function ToggleGroup<T extends string>({ options, value, onChange, access
             key={option.value}
             onPress={() => onChange(option.value)}
             accessibilityRole="radio"
+            accessibilityLabel={option.label}
             accessibilityState={{ checked: selected }}
-            style={[styles.item, selected && styles.selected]}
+            style={(state) => [styles.item, selected && styles.selected, isFocused(state) && styles.focusRing]}
           >
             {option.icon ? <Ionicons name={option.icon} size={18} color={fg} /> : null}
             <Text style={[styles.label, { color: fg }]}>{option.label}</Text>
@@ -67,5 +69,6 @@ const makeStyles = (theme: Theme) =>
       borderRadius: Radius.pill,
     },
     selected: { backgroundColor: theme.accent },
+    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
     label: { fontSize: 15, fontWeight: '600' },
   });

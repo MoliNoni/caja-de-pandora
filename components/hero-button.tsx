@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Radius, type Theme } from '../constants/theme';
+import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 
 type HeroButtonProps = { label: string; onPress: () => void };
@@ -32,7 +33,7 @@ export function HeroButton({ label, onPress }: HeroButtonProps) {
       onPressOut={() => press(false)}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={styles.wrapper}
+      style={(state) => [styles.wrapper, isFocused(state) && styles.focusRing]}
     >
       <Animated.View style={[styles.pill, pill]}>
         <Text style={styles.label}>{label}</Text>
@@ -47,6 +48,7 @@ export function HeroButton({ label, onPress }: HeroButtonProps) {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     wrapper: { alignSelf: 'flex-start' },
+    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
     pill: {
       flexDirection: 'row',
       alignItems: 'center',

@@ -50,6 +50,10 @@ export const ProfileMenu = () => {
         style={[styles.iconButton, open && styles.iconButtonActive]}
         onPress={handleProfilePress}
         activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={user ? 'Menú de cuenta' : 'Iniciar sesión'}
+        accessibilityState={{ expanded: open }}
+        hitSlop={4}
       >
         <Ionicons
           name={user ? 'person-circle' : 'person-circle-outline'}
@@ -64,8 +68,18 @@ export const ProfileMenu = () => {
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.menu} onPress={(event) => event.stopPropagation()}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setOpen(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar menú"
+        >
+          <Pressable
+            style={styles.menu}
+            onPress={(event) => event.stopPropagation()}
+            accessible={false}
+            accessibilityViewIsModal
+          >
             <View style={styles.accountBlock}>
               <Text style={styles.accountTitle} numberOfLines={1}>
                 {profile?.nombre ? `Hola, ${profile.nombre}` : 'Mi cuenta'}
@@ -79,6 +93,7 @@ export const ProfileMenu = () => {
 
             <TouchableOpacity
               style={styles.menuItem}
+              accessibilityRole="link"
               onPress={() => {
                 setOpen(false);
                 router.push('/orders');
@@ -92,6 +107,7 @@ export const ProfileMenu = () => {
             {isAdmin && (
               <TouchableOpacity
                 style={styles.menuItem}
+                accessibilityRole="link"
                 onPress={() => {
                   setOpen(false);
                   router.push('/admin' as any);
@@ -107,6 +123,8 @@ export const ProfileMenu = () => {
               style={[styles.menuItem, signingOut && styles.menuItemDisabled]}
               onPress={handleSignOut}
               disabled={signingOut}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: signingOut, busy: signingOut }}
               activeOpacity={0.75}
             >
               {signingOut ? (
