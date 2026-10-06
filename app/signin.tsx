@@ -12,8 +12,9 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
 } from 'react-native';
+import { Button } from '../components/button';
+import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
@@ -76,6 +77,7 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>LibreriaShop</Text>
@@ -120,17 +122,13 @@ export default function SignInScreen() {
         </View>
 
         {/* Sign In Button */}
-        <TouchableOpacity
-          style={[styles.button, (loading || isSubmitting) && styles.disabledButton]}
+        <Button
+          label="Iniciar sesion"
+          fullWidth
+          loading={loading || isSubmitting}
           onPress={handleSignIn}
-          disabled={loading || isSubmitting}
-        >
-          {loading || isSubmitting ? (
-            <ActivityIndicator color={theme.onAccent} />
-          ) : (
-            <Text style={styles.buttonText}>Iniciar sesion</Text>
-          )}
-        </TouchableOpacity>
+          style={styles.submit}
+        />
 
         {/* Divider */}
         <View style={styles.divider} />
@@ -146,12 +144,12 @@ export default function SignInScreen() {
         </View>
 
         {/* Guest Button */}
-        <TouchableOpacity
-          style={styles.guestButton}
+        <Button
+          label="Continuar como invitado"
+          variant="outline"
+          fullWidth
           onPress={() => router.push('/')}
-        >
-          <Text style={styles.guestButtonText}>Continuar como invitado</Text>
-        </TouchableOpacity>
+        />
       </View>
     </SafeAreaView>
   );
@@ -209,21 +207,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  button: {
-    backgroundColor: t.accent,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  submit: {
     marginTop: 8,
-  },
-  disabledButton: {
-    backgroundColor: t.inkMuted,
-  },
-  buttonText: {
-    color: t.onAccent,
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   divider: {
     height: 1,
@@ -244,17 +229,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     color: t.accent,
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  guestButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: t.accent,
-    alignItems: 'center',
-  },
-  guestButtonText: {
-    color: t.accent,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });

@@ -23,7 +23,10 @@ import {
 } from '../lib/database';
 import { showAlert } from '../lib/dialog';
 import { useAuth } from '../lib/auth-context';
+import { Button } from '../components/button';
+import { PatternBackground } from '../components/pattern-background';
 import { Skeleton, SkeletonRegion } from '../components/skeleton';
+import { ToggleGroup } from '../components/toggle-group';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
@@ -222,6 +225,7 @@ export default function AdminScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <PatternBackground />
         <SkeletonRegion style={styles.form}>
           {[0, 1, 2, 3, 4].map((i) => (
             <Skeleton key={i} height={46} />
@@ -234,12 +238,11 @@ export default function AdminScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
+        <PatternBackground />
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Inicia sesion</Text>
           <Text style={styles.emptySubtitle}>Necesitas autenticarte para administrar productos.</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/signin')}>
-            <Text style={styles.primaryButtonText}>Iniciar sesion</Text>
-          </TouchableOpacity>
+          <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
         </View>
       </SafeAreaView>
     );
@@ -248,12 +251,11 @@ export default function AdminScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView style={styles.container}>
+        <PatternBackground />
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Acceso restringido</Text>
           <Text style={styles.emptySubtitle}>Tu usuario no esta habilitado como administrador.</Text>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
-            <Text style={styles.secondaryButtonText}>Volver</Text>
-          </TouchableOpacity>
+          <Button label="Volver" variant="outline" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -261,6 +263,7 @@ export default function AdminScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -276,50 +279,15 @@ export default function AdminScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
-          <View style={styles.segmentedControl}>
-            <TouchableOpacity
-              style={[
-                styles.segmentButton,
-                formData.category === 'book' && styles.activeSegmentButton,
-              ]}
-              onPress={() => handleCategoryTypeChange('book')}
-            >
-              <Ionicons
-                name="book"
-                size={18}
-                color={formData.category === 'book' ? theme.onAccent : theme.inkMuted}
-              />
-              <Text
-                style={[
-                  styles.segmentText,
-                  formData.category === 'book' && styles.activeSegmentText,
-                ]}
-              >
-                Libro
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.segmentButton,
-                formData.category === 'vinyl' && styles.activeSegmentButton,
-              ]}
-              onPress={() => handleCategoryTypeChange('vinyl')}
-            >
-              <Ionicons
-                name="disc"
-                size={18}
-                color={formData.category === 'vinyl' ? theme.onAccent : theme.inkMuted}
-              />
-              <Text
-                style={[
-                  styles.segmentText,
-                  formData.category === 'vinyl' && styles.activeSegmentText,
-                ]}
-              >
-                Vinilo
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ToggleGroup
+            accessibilityLabel="Tipo de producto"
+            value={formData.category}
+            onChange={handleCategoryTypeChange}
+            options={[
+              { value: 'book', label: 'Libro', icon: 'book' },
+              { value: 'vinyl', label: 'Vinilo', icon: 'disc' },
+            ]}
+          />
 
           <Input
             label="Titulo"
@@ -429,20 +397,13 @@ export default function AdminScreen() {
             autoCapitalize="none"
           />
 
-          <TouchableOpacity
-            style={[styles.submitButton, submitting && styles.disabledButton]}
+          <Button
+            label="Añadir producto"
+            icon="add-circle"
+            fullWidth
+            loading={submitting}
             onPress={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={theme.onAccent} />
-            ) : (
-              <>
-                <Ionicons name="add-circle" size={20} color={theme.onAccent} />
-                <Text style={styles.submitButtonText}>Añadir producto</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -532,33 +493,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingBottom: 32,
     gap: 14,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    gap: 8,
-    padding: 4,
-    backgroundColor: t.border,
-    borderRadius: 8,
-  },
-  segmentButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  activeSegmentButton: {
-    backgroundColor: t.accent,
-  },
-  segmentText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: t.inkMuted,
-  },
-  activeSegmentText: {
-    color: t.onAccent,
-  },
   inlineFields: {
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     gap: 12,
@@ -629,24 +563,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  submitButton: {
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: t.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-  },
-  submitButtonText: {
-    color: t.onAccent,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  disabledButton: {
-    backgroundColor: t.inkMuted,
-  },
   centerContent: {
     flex: 1,
     alignItems: 'center',
@@ -664,25 +580,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     color: t.inkMuted,
     textAlign: 'center',
     marginBottom: 18,
-  },
-  primaryButton: {
-    backgroundColor: t.accent,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  primaryButtonText: {
-    color: t.onAccent,
-    fontWeight: '800',
-  },
-  secondaryButton: {
-    backgroundColor: t.border,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  secondaryButtonText: {
-    color: t.ink,
-    fontWeight: '800',
   },
 });

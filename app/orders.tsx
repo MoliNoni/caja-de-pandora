@@ -11,12 +11,13 @@ import {
   StyleSheet,
   FlatList,
   SafeAreaView,
-  TouchableOpacity,
   RefreshControl,
 } from 'react-native';
 import { useAuth } from '../lib/auth-context';
 import { getClienteOrdenes } from '../lib/database';
 import { useRouter } from 'expo-router';
+import { Button } from '../components/button';
+import { PatternBackground } from '../components/pattern-background';
 import { ProfileMenu } from '../components/profile-menu';
 import { Skeleton, SkeletonRegion } from '../components/skeleton';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -140,15 +141,11 @@ export default function OrdersScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
+      <PatternBackground />
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Necesitas iniciar sesion</Text>
           <Text style={styles.emptySubtitle}>Para ver tus ordenes</Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/signin')}
-          >
-            <Text style={styles.loginButtonText}>Iniciar sesion</Text>
-          </TouchableOpacity>
+          <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
         </View>
       </SafeAreaView>
     );
@@ -156,6 +153,7 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -181,12 +179,7 @@ export default function OrdersScreen() {
           <Text style={styles.emptySubtitle}>
             Realiza tu primera compra en el catalogo
           </Text>
-          <TouchableOpacity
-            style={styles.shopButton}
-            onPress={() => router.push('/explore')}
-          >
-            <Text style={styles.shopButtonText}>Ir al catalogo</Text>
-          </TouchableOpacity>
+          <Button label="Ir al catalogo" onPress={() => router.push('/explore')} />
         </View>
       ) : (
         <FlatList
@@ -319,28 +312,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     color: t.inkMuted,
     textAlign: 'center',
     marginBottom: 24,
-  },
-  loginButton: {
-    backgroundColor: t.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: t.onAccent,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  shopButton: {
-    backgroundColor: t.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  shopButtonText: {
-    color: t.onAccent,
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   listContent: {
     padding: 8,

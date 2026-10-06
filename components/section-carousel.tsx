@@ -4,9 +4,9 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 import { Product } from '../lib/database';
+import { Button } from './button';
 import { ProductCard } from './product-card';
 import { useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
@@ -35,9 +35,7 @@ export const SectionCarousel = ({
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {onSeeAll ? (
-          <TouchableOpacity style={styles.seeAllButton} onPress={onSeeAll}>
-            <Text style={styles.seeAllText}>Ver todo</Text>
-          </TouchableOpacity>
+          <Button label="Ver todo" variant="ghost" onPress={onSeeAll} />
         ) : null}
       </View>
 
@@ -86,17 +84,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 13,
     color: t.inkMuted,
     maxWidth: '80%',
-  },
-  seeAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: t.accent,
-  },
-  seeAllText: {
-    color: t.onAccent,
-    fontWeight: '700',
-    fontSize: 12,
   },
   carouselContent: {
     paddingLeft: 8,

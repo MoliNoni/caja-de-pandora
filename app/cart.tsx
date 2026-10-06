@@ -15,10 +15,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCart } from '../lib/cart-context';
 import { useAuth } from '../lib/auth-context';
 import { procesarCompra, PurchaseReceipt } from '../lib/database';
+import { Button } from '../components/button';
+import { PatternBackground } from '../components/pattern-background';
 import { CartDrawer } from '../components/cart-drawer';
 import { showAlert, showConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -53,6 +56,7 @@ export default function CartScreen() {
 
       const receipt = await procesarCompra(user.id, items, total, user.email);
       setPurchaseReceipt(receipt);
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       clearCart();
     } catch (error) {
       console.error('Error processing order:', error);
@@ -88,7 +92,8 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CartDrawer onCheckout={handleCheckout} onClose={() => router.back()} />
+      <PatternBackground />
+      <CartDrawer onCheckout={handleCheckout} onClose={() => router.back()} loading={loading} />
       {showCheckoutConfirm && (
         <View style={styles.confirmOverlay}>
           <TouchableOpacity
@@ -104,21 +109,20 @@ export default function CartScreen() {
               {total.toFixed(2)}.
             </Text>
             <View style={styles.confirmActions}>
-              <TouchableOpacity
-                style={[styles.confirmButton, styles.confirmCancelButton]}
+              <Button
+                label="Cancelar"
+                variant="outline"
+                style={styles.confirmButton}
                 onPress={() => setShowCheckoutConfirm(false)}
-              >
-                <Text style={styles.confirmCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.confirmButton, styles.confirmAcceptButton]}
+              />
+              <Button
+                label="Confirmar pago"
+                style={styles.confirmButton}
                 onPress={() => {
                   setShowCheckoutConfirm(false);
                   void processCheckout();
                 }}
-              >
-                <Text style={styles.confirmAcceptText}>Confirmar pago</Text>
-              </TouchableOpacity>
+              />
             </View>
           </View>
         </View>
@@ -230,24 +234,23 @@ export default function CartScreen() {
             </ScrollView>
 
             <View style={styles.receiptActions}>
-              <TouchableOpacity
-                style={[styles.receiptButton, styles.secondaryReceiptButton]}
+              <Button
+                label="Ver mis ordenes"
+                variant="outline"
+                style={styles.receiptButton}
                 onPress={() => {
                   setPurchaseReceipt(null);
                   router.push('/orders');
                 }}
-              >
-                <Text style={styles.secondaryReceiptText}>Ver mis ordenes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.receiptButton, styles.primaryReceiptButton]}
+              />
+              <Button
+                label="Seguir comprando"
+                style={styles.receiptButton}
                 onPress={() => {
                   setPurchaseReceipt(null);
                   router.push('/');
                 }}
-              >
-                <Text style={styles.primaryReceiptText}>Seguir comprando</Text>
-              </TouchableOpacity>
+              />
             </View>
           </View>
         </View>
@@ -328,27 +331,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   confirmButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
     minWidth: 120,
-    alignItems: 'center',
-  },
-  confirmCancelButton: {
-    backgroundColor: t.border,
-  },
-  confirmAcceptButton: {
-    backgroundColor: t.success,
-  },
-  confirmCancelText: {
-    color: t.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  confirmAcceptText: {
-    color: t.onAccent,
-    fontSize: 14,
-    fontWeight: '700',
   },
   loadingCard: {
     backgroundColor: t.surface,
@@ -497,27 +480,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   receiptButton: {
     flex: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryReceiptButton: {
-    backgroundColor: t.bg,
-    borderWidth: 1,
-    borderColor: t.border,
-  },
-  primaryReceiptButton: {
-    backgroundColor: t.accent,
-  },
-  secondaryReceiptText: {
-    color: t.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  primaryReceiptText: {
-    color: t.onAccent,
-    fontSize: 14,
-    fontWeight: '700',
   },
 });

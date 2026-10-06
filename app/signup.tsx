@@ -12,9 +12,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { Button } from '../components/button';
+import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
@@ -98,6 +99,7 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -263,17 +265,13 @@ export default function SignUpScreen() {
           </View>
 
           {/* Sign Up Button */}
-          <TouchableOpacity
-            style={[styles.button, (loading || isSubmitting) && styles.disabledButton]}
+          <Button
+            label="Crear Cuenta"
+            fullWidth
+            loading={loading || isSubmitting}
             onPress={handleSignUp}
-            disabled={loading || isSubmitting}
-          >
-            {loading || isSubmitting ? (
-              <ActivityIndicator color={theme.onAccent} />
-            ) : (
-              <Text style={styles.buttonText}>Crear Cuenta</Text>
-            )}
-          </TouchableOpacity>
+            style={styles.submit}
+          />
 
           {/* Sign In Link */}
           <View style={styles.footer}>
@@ -340,21 +338,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  button: {
-    backgroundColor: t.accent,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  submit: {
     marginTop: 8,
-  },
-  disabledButton: {
-    backgroundColor: t.inkMuted,
-  },
-  buttonText: {
-    color: t.onAccent,
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   footer: {
     flexDirection: 'row',

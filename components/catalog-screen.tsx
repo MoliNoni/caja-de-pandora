@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getProductos, Product } from '../lib/database';
+import { PatternBackground } from './pattern-background';
 import { ProductCard } from './product-card';
 import { ProfileMenu } from './profile-menu';
 import { useCart } from '../lib/cart-context';
@@ -126,6 +127,7 @@ export const CatalogScreen = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.menuButton}

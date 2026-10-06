@@ -14,6 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { Product } from '../lib/database';
 import { resolveProductImageUrl } from '../lib/product-image';
@@ -113,18 +114,14 @@ export const ProductCard = ({
           <Text style={styles.vendidos}>{product.vendidos} vendidos</Text>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            product.stock <= 0 && styles.disabledButton,
-          ]}
-          onPress={handleAddToCart}
+        <Button
+          label={product.stock > 0 ? 'Agregar' : 'Agotado'}
+          variant="outline"
+          fullWidth
           disabled={product.stock <= 0}
-        >
-          <Text style={[styles.addButtonText, product.stock <= 0 && styles.disabledButtonText]}>
-            {product.stock > 0 ? 'Agregar' : 'Agotado'}
-          </Text>
-        </TouchableOpacity>
+          onPress={handleAddToCart}
+          style={styles.addButton}
+        />
       </View>
     </View>
   );
@@ -251,30 +248,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     opacity: 0.8,
   },
   addButton: {
-    backgroundColor: t.accent,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  disabledButton: {
-    backgroundColor: t.border,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  addButtonText: {
-    color: t.onAccent,
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  disabledButtonText: {
-    color: t.inkMuted,
   },
 });

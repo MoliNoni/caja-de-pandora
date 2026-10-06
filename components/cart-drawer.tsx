@@ -14,6 +14,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -22,10 +23,11 @@ import type { Theme } from '../constants/theme';
 interface CartDrawerProps {
   onCheckout?: () => void;
   onClose?: () => void;
+  loading?: boolean;
 }
 
 // Main cart drawer component
-export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
+export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerProps) => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { items, total, removeItem, updateQuantity, clearCart, itemCount } =
@@ -123,27 +125,24 @@ export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
           </View>
 
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.checkoutButton]}
+            <Button
+              label="Proceder al Pago"
+              size="lg"
+              fullWidth
+              loading={loading}
               onPress={handleCheckout}
-            >
-              <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
-              style={[styles.button, styles.clearButton]}
+            <Button
+              label="Vaciar Carrito"
+              variant="ghost"
+              size="lg"
+              fullWidth
               onPress={handleClearCart}
-            >
-              <Text style={styles.clearButtonText}>Vaciar Carrito</Text>
-            </TouchableOpacity>
+            />
 
             {onClose && (
-              <TouchableOpacity
-                style={[styles.button, styles.closeButton]}
-                onPress={onClose}
-              >
-                <Text style={styles.closeButtonText}>Cerrar</Text>
-              </TouchableOpacity>
+              <Button label="Cerrar" variant="outline" size="lg" fullWidth onPress={onClose} />
             )}
           </View>
         </>
@@ -154,12 +153,7 @@ export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
             Añade algunos libros o vinilos para comenzar
           </Text>
           {onClose && (
-            <TouchableOpacity
-              style={[styles.button, styles.closeButton]}
-              onPress={onClose}
-            >
-              <Text style={styles.closeButtonText}>Continuar Comprando</Text>
-            </TouchableOpacity>
+            <Button label="Continuar Comprando" onPress={onClose} />
           )}
         </View>
       )}
@@ -309,36 +303,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-  },
-  button: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkoutButton: {
-    backgroundColor: t.accent,
-  },
-  checkoutButtonText: {
-    color: t.onAccent,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  clearButton: {
-    backgroundColor: t.danger,
-  },
-  clearButtonText: {
-    color: t.onAccent,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  closeButton: {
-    backgroundColor: t.border,
-  },
-  closeButtonText: {
-    color: t.ink,
-    fontSize: 14,
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,

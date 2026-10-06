@@ -21,6 +21,7 @@ import {
   getTopBestSellers,
   Product,
 } from '../../lib/database';
+import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
 import { ProfileMenu } from '../../components/profile-menu';
 import { useCart } from '../../lib/cart-context';
@@ -81,6 +82,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PatternBackground />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.menuButton}

@@ -7,13 +7,14 @@ import {
   Text,
   Image,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getProductoById, Product } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
+import { Button } from '../../components/button';
+import { PatternBackground } from '../../components/pattern-background';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useThemedStyles } from '../../hooks/use-theme';
 import type { Theme } from '../../constants/theme';
@@ -71,6 +72,7 @@ export default function ProductDetailScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <PatternBackground />
       <Stack.Screen options={{ title: product.titulo }} />
 
       {imageUri ? (
@@ -106,15 +108,13 @@ export default function ProductDetailScreen() {
 
       {!!product.descripcion && <Text style={styles.description}>{product.descripcion}</Text>}
 
-      <TouchableOpacity
-        style={[styles.addButton, !inStock && styles.disabledButton]}
-        onPress={() => void addItem(product, 1)}
+      <Button
+        label={inStock ? 'Agregar al carrito' : 'Agotado'}
+        fullWidth
         disabled={!inStock}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !inStock }}
-      >
-        <Text style={styles.addButtonText}>{inStock ? 'Agregar al carrito' : 'Agotado'}</Text>
-      </TouchableOpacity>
+        onPress={() => void addItem(product, 1)}
+        style={styles.addButton}
+      />
     </ScrollView>
   );
 }
@@ -134,13 +134,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },
   description: { fontSize: 15, color: t.ink, lineHeight: 22, marginTop: 16 },
   errorText: { fontSize: 16, color: t.inkMuted },
-  addButton: {
-    backgroundColor: t.accent,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  disabledButton: { backgroundColor: t.border },
-  addButtonText: { color: t.onAccent, fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+  addButton: { marginTop: 24 },
 });
