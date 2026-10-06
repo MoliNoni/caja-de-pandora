@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useCart } from '../lib/cart-context';
 import { Product } from '../lib/database';
 import { resolveProductImageUrl } from '../lib/product-image';
@@ -34,6 +35,8 @@ export const ProductCard = ({
   compact = false,
 }: ProductCardProps) => {
   const { addItem } = useCart();
+  const router = useRouter();
+  const openDetail = onPress ?? (() => router.push({ pathname: '/product/[id]', params: { id: product.id } }));
   const [imageUri, setImageUri] = useState<string | null>(product.imageUrl);
 
   // Load product cover image
@@ -59,7 +62,12 @@ export const ProductCard = ({
         compact && styles.compactContainer,
       ]}
     >
-      <TouchableOpacity onPress={onPress} style={styles.imageContainer}>
+      <TouchableOpacity
+        onPress={openDetail}
+        style={styles.imageContainer}
+        accessibilityRole="link"
+        accessibilityLabel={`Ver detalle de ${product.titulo}`}
+      >
         {imageUri ? (
           <Image
             source={{ uri: imageUri }}
