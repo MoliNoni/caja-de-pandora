@@ -4,7 +4,7 @@
 // Shows cart with item count
 // Manages search and product filtering
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,17 @@ export const CatalogScreen = ({
   const router = useRouter();
   const { itemCount } = useCart();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const searchRef = useRef<TextInput>(null);
+
+  // Tabs stay mounted, so autoFocus only works on the first visit: focus on every hero entry,
+  // then clear the param so the next entry changes it again.
+  useFocusEffect(
+    useCallback(() => {
+      if (focus !== 'search') return;
+      searchRef.current?.focus();
+      router.setParams({ focus: undefined });
+    }, [focus, router])
+  );
   const [productos, setProductos] = useState<Product[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +141,7 @@ export const CatalogScreen = ({
           placeholderTextColor={theme.inkMuted}
           value={searchQuery}
           onChangeText={handleSearch}
-          autoFocus={focus === 'search'}
+          ref={searchRef}
         />
       </View>
 
