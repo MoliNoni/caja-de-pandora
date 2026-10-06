@@ -18,9 +18,13 @@ import {
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 // Sign up screen component
 export default function SignUpScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { signUp, loading } = useAuth();
   const router = useRouter();
 
@@ -109,6 +113,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu nombre"
+              placeholderTextColor={theme.inkMuted}
               value={formData.nombre}
               onChangeText={(text) =>
                 setFormData({ ...formData, nombre: text })
@@ -126,6 +131,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu apellido"
+              placeholderTextColor={theme.inkMuted}
               value={formData.apellido}
               onChangeText={(text) =>
                 setFormData({ ...formData, apellido: text })
@@ -143,6 +149,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="tu@email.com"
+              placeholderTextColor={theme.inkMuted}
               value={formData.email}
               onChangeText={(text) =>
                 setFormData({ ...formData, email: text })
@@ -162,6 +169,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Contraseña"
+              placeholderTextColor={theme.inkMuted}
               value={formData.password}
               onChangeText={(text) =>
                 setFormData({ ...formData, password: text })
@@ -180,6 +188,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Confirma tu contraseña"
+              placeholderTextColor={theme.inkMuted}
               value={formData.confirmPassword}
               onChangeText={(text) =>
                 setFormData({ ...formData, confirmPassword: text })
@@ -198,6 +207,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu teléfono"
+              placeholderTextColor={theme.inkMuted}
               value={formData.telefono}
               onChangeText={(text) =>
                 setFormData({ ...formData, telefono: text })
@@ -213,6 +223,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu dirección"
+              placeholderTextColor={theme.inkMuted}
               value={formData.direccion}
               onChangeText={(text) =>
                 setFormData({ ...formData, direccion: text })
@@ -227,6 +238,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu ciudad"
+              placeholderTextColor={theme.inkMuted}
               value={formData.ciudad}
               onChangeText={(text) =>
                 setFormData({ ...formData, ciudad: text })
@@ -241,6 +253,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu código postal"
+              placeholderTextColor={theme.inkMuted}
               value={formData.codigoPostal}
               onChangeText={(text) =>
                 setFormData({ ...formData, codigoPostal: text })
@@ -256,7 +269,7 @@ export default function SignUpScreen() {
             disabled={loading || isSubmitting}
           >
             {loading || isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.onAccent} />
             ) : (
               <Text style={styles.buttonText}>Crear Cuenta</Text>
             )}
@@ -277,28 +290,28 @@ export default function SignUpScreen() {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 24,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: t.inkMuted,
   },
   form: {
     padding: 16,
@@ -309,26 +322,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: t.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#333',
-    backgroundColor: '#fff',
+    color: t.ink,
+    backgroundColor: t.surface,
   },
   error: {
-    color: '#e74c3c',
+    color: t.danger,
     fontSize: 12,
     marginTop: 4,
   },
   button: {
-    backgroundColor: '#3498db',
+    backgroundColor: t.accent,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -336,10 +349,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   disabledButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: t.inkMuted,
   },
   buttonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -349,11 +362,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerText: {
-    color: '#666',
+    color: t.inkMuted,
     fontSize: 14,
   },
   footerLink: {
-    color: '#3498db',
+    color: t.accent,
     fontSize: 14,
     fontWeight: 'bold',
   },

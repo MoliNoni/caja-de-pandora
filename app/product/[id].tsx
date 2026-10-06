@@ -8,16 +8,19 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getProductoById, Product } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
+import { Skeleton, SkeletonRegion } from '../../components/skeleton';
+import { useThemedStyles } from '../../hooks/use-theme';
+import type { Theme } from '../../constants/theme';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -43,9 +46,15 @@ export default function ProductDetailScreen() {
 
   if (status === 'loading') {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4b0082" />
-      </View>
+      <SkeletonRegion style={styles.container}>
+        <Skeleton aspectRatio={1} radius={16} style={styles.skeletonCover} />
+        <Skeleton height={26} width="75%" />
+        <Skeleton height={18} width="45%" style={styles.skeletonGap} />
+        <Skeleton height={28} width={96} style={styles.skeletonGap} />
+        <Skeleton height={16} style={styles.skeletonGap} />
+        <Skeleton height={16} width="90%" style={styles.skeletonGap} />
+        <Skeleton height={16} width="70%" style={styles.skeletonGap} />
+      </SkeletonRegion>
     );
   }
 
@@ -110,26 +119,28 @@ export default function ProductDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
+  skeletonCover: { marginBottom: 20 },
+  skeletonGap: { marginTop: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  container: { padding: 20, backgroundColor: '#fff', flexGrow: 1 },
-  image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#fafafa', marginBottom: 20 },
+  container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
+  image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: t.surface, marginBottom: 20 },
   placeholder: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: '#333' },
-  author: { fontSize: 16, color: '#666', marginTop: 4 },
-  price: { fontSize: 24, fontWeight: 'bold', color: '#4b0082', marginTop: 16 },
-  stock: { fontSize: 13, color: '#27ae60', fontWeight: '600', marginTop: 4, marginBottom: 12 },
-  noStock: { fontSize: 13, color: '#e74c3c', fontWeight: '600', marginTop: 4, marginBottom: 12 },
-  meta: { fontSize: 13, color: '#666', marginTop: 2 },
-  description: { fontSize: 15, color: '#333', lineHeight: 22, marginTop: 16 },
-  errorText: { fontSize: 16, color: '#666' },
+  title: { fontSize: 22, fontWeight: '700', color: t.ink },
+  author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
+  price: { fontSize: 24, fontWeight: 'bold', color: t.accent, marginTop: 16 },
+  stock: { fontSize: 13, color: t.success, fontWeight: '600', marginTop: 4, marginBottom: 12 },
+  noStock: { fontSize: 13, color: t.danger, fontWeight: '600', marginTop: 4, marginBottom: 12 },
+  meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },
+  description: { fontSize: 15, color: t.ink, lineHeight: 22, marginTop: 16 },
+  errorText: { fontSize: 16, color: t.inkMuted },
   addButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.accent,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 24,
   },
-  disabledButton: { backgroundColor: '#bdc3c7' },
-  addButtonText: { color: '#fff', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+  disabledButton: { backgroundColor: t.border },
+  addButtonText: { color: t.onAccent, fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
 });

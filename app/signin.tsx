@@ -17,9 +17,13 @@ import {
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 // Sign in screen component
 export default function SignInScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { signIn, user, loading } = useAuth();
   const router = useRouter();
 
@@ -86,6 +90,7 @@ export default function SignInScreen() {
           <TextInput
             style={styles.input}
             placeholder="tu@email.com"
+            placeholderTextColor={theme.inkMuted}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -103,6 +108,7 @@ export default function SignInScreen() {
           <TextInput
             style={styles.input}
             placeholder="Tu contrasena"
+            placeholderTextColor={theme.inkMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -120,7 +126,7 @@ export default function SignInScreen() {
           disabled={loading || isSubmitting}
         >
           {loading || isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.onAccent} />
           ) : (
             <Text style={styles.buttonText}>Iniciar sesion</Text>
           )}
@@ -151,28 +157,28 @@ export default function SignInScreen() {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 40,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   logo: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: t.inkMuted,
   },
   form: {
     padding: 16,
@@ -185,26 +191,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: t.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#333',
-    backgroundColor: '#fff',
+    color: t.ink,
+    backgroundColor: t.surface,
   },
   error: {
-    color: '#e74c3c',
+    color: t.danger,
     fontSize: 12,
     marginTop: 4,
   },
   button: {
-    backgroundColor: '#3498db',
+    backgroundColor: t.accent,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -212,16 +218,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   disabledButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: t.inkMuted,
   },
   buttonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 16,
     fontWeight: 'bold',
   },
   divider: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: t.border,
     marginVertical: 24,
   },
   signUpContainer: {
@@ -230,12 +236,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   signUpText: {
-    color: '#666',
+    color: t.inkMuted,
     fontSize: 14,
     marginRight: 4,
   },
   signUpLink: {
-    color: '#3498db',
+    color: t.accent,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -243,11 +249,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3498db',
+    borderColor: t.accent,
     alignItems: 'center',
   },
   guestButtonText: {
-    color: '#3498db',
+    color: t.accent,
     fontSize: 14,
     fontWeight: '600',
   },

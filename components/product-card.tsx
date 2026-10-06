@@ -17,6 +17,8 @@ import { useRouter } from 'expo-router';
 import { useCart } from '../lib/cart-context';
 import { Product } from '../lib/database';
 import { resolveProductImageUrl } from '../lib/product-image';
+import { useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +36,7 @@ export const ProductCard = ({
   isBestSeller = false,
   compact = false,
 }: ProductCardProps) => {
+  const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
   const router = useRouter();
   const openDetail = onPress ?? (() => router.push({ pathname: '/product/[id]', params: { id: product.id } }));
@@ -118,7 +121,7 @@ export const ProductCard = ({
           onPress={handleAddToCart}
           disabled={product.stock <= 0}
         >
-          <Text style={styles.addButtonText}>
+          <Text style={[styles.addButtonText, product.stock <= 0 && styles.disabledButtonText]}>
             {product.stock > 0 ? 'Agregar' : 'Agotado'}
           </Text>
         </TouchableOpacity>
@@ -127,11 +130,11 @@ export const ProductCard = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     width: (width - 40) / 2,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 16,
     overflow: 'hidden',
     // Enhanced shadow for better depth
@@ -139,10 +142,10 @@ const styles = StyleSheet.create({
     elevation: 6,
     // Subtle border
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: t.border,
     // Top accent border with theme color
     borderTopWidth: 3,
-    borderTopColor: '#4b0082',
+    borderTopColor: t.accent,
   },
   compactContainer: {
     width: 180,
@@ -152,16 +155,16 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     aspectRatio: 3 / 4,
-    backgroundColor: '#fafafa',
+    backgroundColor: t.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: t.border,
   },
   image: {
     width: '100%',
     height: '100%',
   },
   placeholderImage: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: t.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -172,12 +175,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: '#ffd700',
+    backgroundColor: t.accent,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: t.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bestSellerText: {
-    color: '#333',
+    color: t.onAccent,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -193,17 +196,17 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
   },
   title: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
-    color: '#333',
+    color: t.ink,
   },
   autor: {
     fontSize: 12,
-    color: '#666',
+    color: t.inkMuted,
     marginBottom: 8,
   },
   priceContainer: {
@@ -212,14 +215,16 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4b0082',
+    color: t.accent,
   },
   stock: {
     fontSize: 11,
-    color: '#27ae60',
+    color: t.success,
     marginTop: 4,
     fontWeight: '600',
-    backgroundColor: '#f0f9f0',
+    backgroundColor: t.surface,
+    borderWidth: 1,
+    borderColor: t.success,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -227,10 +232,12 @@ const styles = StyleSheet.create({
   },
   noStock: {
     fontSize: 11,
-    color: '#e74c3c',
+    color: t.danger,
     marginTop: 4,
     fontWeight: '600',
-    backgroundColor: '#fdf2f2',
+    backgroundColor: t.surface,
+    borderWidth: 1,
+    borderColor: t.danger,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -238,33 +245,36 @@ const styles = StyleSheet.create({
   },
   vendidos: {
     fontSize: 10,
-    color: '#9b59b6',
+    color: t.inkMuted,
     marginBottom: 12,
     fontWeight: '500',
     opacity: 0.8,
   },
   addButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.accent,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#4b0082',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
   disabledButton: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: t.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   addButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  disabledButtonText: {
+    color: t.inkMuted,
   },
 });

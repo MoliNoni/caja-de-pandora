@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { Product } from '../lib/database';
 import { ProductCard } from './product-card';
+import { useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 interface SectionCarouselProps {
   title: string;
@@ -24,6 +26,7 @@ export const SectionCarousel = ({
   isBestSeller = false,
   onSeeAll,
 }: SectionCarouselProps) => {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>
       <View style={styles.headerRow}>
@@ -62,7 +65,7 @@ export const SectionCarousel = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   section: {
     marginVertical: 10,
   },
@@ -76,22 +79,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#332f44',
+    color: t.ink,
   },
   subtitle: {
     marginTop: 4,
     fontSize: 13,
-    color: '#6b7280',
+    color: t.inkMuted,
     maxWidth: '80%',
   },
   seeAllButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#ffd700',
+    backgroundColor: t.accent,
   },
   seeAllText: {
-    color: '#333',
+    color: t.onAccent,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginHorizontal: 8,
-    color: '#9ca3af',
+    color: t.inkMuted,
     fontSize: 13,
   },
 });

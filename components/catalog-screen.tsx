@@ -13,7 +13,6 @@ import {
   FlatList,
   SafeAreaView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   TextInput,
   Animated,
@@ -26,6 +25,9 @@ import { ProductCard } from './product-card';
 import { ProfileMenu } from './profile-menu';
 import { useCart } from '../lib/cart-context';
 import { useAuth } from '../lib/auth-context';
+import { SkeletonCard, SkeletonRegion } from './skeleton';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 type CatalogScreenProps = {
   category: 'book' | 'vinyl';
@@ -45,6 +47,8 @@ export const CatalogScreen = ({
   emptySubtitle,
   showNavigation = true,
 }: CatalogScreenProps) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { itemCount } = useCart();
   const { isAdmin } = useAuth();
@@ -127,7 +131,7 @@ export const CatalogScreen = ({
           style={styles.menuButton}
           onPress={() => setShowMenu(!showMenu)}
         >
-          <Ionicons name="menu" size={24} color="#333" />
+          <Ionicons name="menu" size={24} color={theme.ink} />
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
         <View style={styles.headerActions}>
@@ -136,7 +140,7 @@ export const CatalogScreen = ({
             style={styles.cartButton}
             onPress={() => router.push('/cart')}
           >
-            <Ionicons name="cart" size={24} color="#ffd700" />
+            <Ionicons name="cart" size={24} color={theme.accent} />
             {itemCount > 0 && (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
@@ -158,7 +162,7 @@ export const CatalogScreen = ({
               style={styles.drawerCloseButton}
               onPress={() => setShowMenu(false)}
             >
-              <Ionicons name="close" size={28} color="#333" />
+              <Ionicons name="close" size={28} color={theme.ink} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -168,7 +172,7 @@ export const CatalogScreen = ({
                 setShowMenu(false);
               }}
             >
-              <Ionicons name="home" size={24} color="#ffd700" />
+              <Ionicons name="home" size={24} color={theme.accent} />
               <Text style={styles.drawerMenuItemText}>Inicio</Text>
             </TouchableOpacity>
 
@@ -182,7 +186,7 @@ export const CatalogScreen = ({
                   setShowMenu(false);
                 }}
               >
-                <Ionicons name="musical-notes" size={24} color="#ffd700" />
+                <Ionicons name="musical-notes" size={24} color={theme.accent} />
                 <Text style={styles.drawerMenuItemText}>Catálogo de Vinilos</Text>
               </TouchableOpacity>
             ) : (
@@ -193,7 +197,7 @@ export const CatalogScreen = ({
                   setShowMenu(false);
                 }}
               >
-                <Ionicons name="book" size={24} color="#ffd700" />
+                <Ionicons name="book" size={24} color={theme.accent} />
                 <Text style={styles.drawerMenuItemText}>Catálogo de Libros</Text>
               </TouchableOpacity>
             )}
@@ -209,7 +213,7 @@ export const CatalogScreen = ({
                     setShowMenu(false);
                   }}
                 >
-                  <Ionicons name="settings" size={24} color="#4b0082" />
+                  <Ionicons name="settings" size={24} color={theme.accent} />
                   <Text style={styles.drawerMenuItemText}>Administracion</Text>
                 </TouchableOpacity>
               </>
@@ -223,16 +227,18 @@ export const CatalogScreen = ({
         <TextInput
           style={styles.searchInput}
           placeholder={searchPlaceholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.inkMuted}
           value={searchQuery}
           onChangeText={handleSearch}
         />
       </View>
 
       {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#ffd700" />
-        </View>
+        <SkeletonRegion style={styles.skeletonGrid}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} width="48%" />
+          ))}
+        </SkeletonRegion>
       ) : filteredProductos.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>{emptyTitle}</Text>
@@ -256,7 +262,8 @@ export const CatalogScreen = ({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#ffd700']}
+              colors={[theme.accent]}
+              tintColor={theme.accent}
             />
           }
         />
@@ -265,10 +272,10 @@ export const CatalogScreen = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -276,9 +283,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   menuButton: {
     padding: 8,
@@ -286,7 +293,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     flex: 1,
     textAlign: 'center',
   },
@@ -303,7 +310,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#e74c3c',
+    backgroundColor: t.danger,
     borderRadius: 10,
     width: 20,
     height: 20,
@@ -311,7 +318,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -321,27 +328,31 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: t.border,
   },
   searchLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748b',
+    color: t.inkMuted,
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#333',
+    color: t.ink,
   },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    overflow: 'hidden',
   },
   emptyContainer: {
     flex: 1,
@@ -352,12 +363,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: t.inkMuted,
     textAlign: 'center',
   },
   listContent: {
@@ -370,7 +381,7 @@ const styles = StyleSheet.create({
   },
   resultCount: {
     fontSize: 12,
-    color: '#666',
+    color: t.inkMuted,
     marginHorizontal: 8,
     marginTop: 8,
     marginBottom: 12,
@@ -381,7 +392,7 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: '70%',
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     paddingTop: 20,
     elevation: 5,
     shadowColor: '#000',
@@ -396,7 +407,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: t.scrim,
     zIndex: 999,
   },
   drawerCloseButton: {
@@ -414,12 +425,12 @@ const styles = StyleSheet.create({
   drawerMenuItemText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
     marginLeft: 16,
   },
   drawerDivider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: t.border,
     marginVertical: 8,
   },
 });

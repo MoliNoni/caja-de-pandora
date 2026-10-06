@@ -11,8 +11,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth-context';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 export const ProfileMenu = () => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const [open, setOpen] = useState(false);
@@ -50,7 +54,7 @@ export const ProfileMenu = () => {
         <Ionicons
           name={user ? 'person-circle' : 'person-circle-outline'}
           size={24}
-          color="#4b0082"
+          color={theme.accent}
         />
       </TouchableOpacity>
 
@@ -81,7 +85,7 @@ export const ProfileMenu = () => {
               }}
               activeOpacity={0.75}
             >
-              <Ionicons name="receipt-outline" size={20} color="#4b0082" />
+              <Ionicons name="receipt-outline" size={20} color={theme.accent} />
               <Text style={styles.menuItemText}>Mis ordenes</Text>
             </TouchableOpacity>
 
@@ -92,9 +96,9 @@ export const ProfileMenu = () => {
               activeOpacity={0.75}
             >
               {signingOut ? (
-                <ActivityIndicator size="small" color="#4b0082" />
+                <ActivityIndicator size="small" color={theme.accent} />
               ) : (
-                <Ionicons name="log-out-outline" size={20} color="#4b0082" />
+                <Ionicons name="log-out-outline" size={20} color={theme.accent} />
               )}
               <Text style={styles.menuItemText}>Cerrar sesion</Text>
             </TouchableOpacity>
@@ -105,7 +109,7 @@ export const ProfileMenu = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   wrapper: {
     position: 'relative',
   },
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   iconButtonActive: {
-    backgroundColor: '#f6f0ff',
+    backgroundColor: t.border,
   },
   modalBackdrop: {
     flex: 1,
@@ -125,10 +129,10 @@ const styles = StyleSheet.create({
   },
   menu: {
     width: 230,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: t.border,
     paddingVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -143,16 +147,16 @@ const styles = StyleSheet.create({
   accountTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1f2937',
+    color: t.ink,
   },
   accountEmail: {
     fontSize: 12,
-    color: '#6b7280',
+    color: t.inkMuted,
     marginTop: 3,
   },
   divider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: t.border,
     marginVertical: 6,
   },
   menuItem: {
@@ -169,6 +173,6 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
+    color: t.ink,
   },
 });

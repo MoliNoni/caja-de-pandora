@@ -16,6 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../lib/cart-context';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 interface CartDrawerProps {
   onCheckout?: () => void;
@@ -24,6 +26,8 @@ interface CartDrawerProps {
 
 // Main cart drawer component
 export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { items, total, removeItem, updateQuantity, clearCart, itemCount } =
     useCart();
 
@@ -51,7 +55,7 @@ export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.ink} />
         </TouchableOpacity>
         <Text style={styles.title}>Carrito</Text>
         <Text style={styles.itemCount}>{itemCount} items</Text>
@@ -163,10 +167,10 @@ export const CartDrawer = ({ onCheckout, onClose }: CartDrawerProps) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -175,19 +179,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     flex: 1,
     textAlign: 'center',
   },
   itemCount: {
     fontSize: 14,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
+    color: t.inkMuted,
+    backgroundColor: t.border,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -199,7 +203,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     marginVertical: 4,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: t.surface,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -208,7 +212,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 6,
     marginRight: 12,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: t.border,
   },
   placeholderImage: {
     justifyContent: 'center',
@@ -217,7 +221,7 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 12,
     textAlign: 'center',
-    color: '#666',
+    color: t.inkMuted,
     paddingHorizontal: 4,
   },
   itemInfo: {
@@ -226,22 +230,22 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
     marginBottom: 4,
   },
   itemPrice: {
     fontSize: 12,
-    color: '#4b0082',
+    color: t.accent,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: t.bg,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: t.border,
     alignSelf: 'flex-start',
   },
   quantityButton: {
@@ -251,12 +255,13 @@ const styles = StyleSheet.create({
   quantityButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#3498db',
+    color: t.accent,
   },
   quantity: {
     paddingHorizontal: 8,
     fontSize: 12,
     fontWeight: '600',
+    color: t.ink,
   },
   itemRight: {
     marginLeft: 8,
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
   itemSubtotal: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   deleteButton: {
@@ -274,12 +279,12 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 12,
-    color: '#4b0082',
+    color: t.accent,
     fontWeight: '600',
   },
   divider: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: t.border,
     marginHorizontal: 16,
     marginVertical: 12,
   },
@@ -288,17 +293,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: t.border,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4b0082',
+    color: t.ink,
   },
   totalAmount: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffd700',
+    color: t.accent,
   },
   buttonsContainer: {
     paddingHorizontal: 16,
@@ -312,26 +317,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkoutButton: {
-    backgroundColor: '#ffd700',
+    backgroundColor: t.accent,
   },
   checkoutButtonText: {
-    color: '#333',
+    color: t.onAccent,
     fontSize: 14,
     fontWeight: 'bold',
   },
   clearButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.danger,
   },
   clearButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 14,
     fontWeight: '600',
   },
   closeButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: t.border,
   },
   closeButtonText: {
-    color: '#fff',
+    color: t.ink,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -344,13 +349,13 @@ const styles = StyleSheet.create({
   emptyMessage: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 12,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
+    color: t.inkMuted,
     textAlign: 'center',
     marginBottom: 24,
   },

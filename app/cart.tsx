@@ -21,9 +21,13 @@ import { useAuth } from '../lib/auth-context';
 import { procesarCompra, PurchaseReceipt } from '../lib/database';
 import { CartDrawer } from '../components/cart-drawer';
 import { showAlert, showConfirm } from '../lib/dialog';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 // Cart screen component
 export default function CartScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { items, total, itemCount, clearCart } = useCart();
   const { user } = useAuth();
@@ -121,8 +125,10 @@ export default function CartScreen() {
       )}
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#3498db" />
-          <Text style={styles.loadingText}>Procesando tu compra...</Text>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={theme.accent} />
+            <Text style={styles.loadingText}>Procesando tu compra...</Text>
+          </View>
         </View>
       )}
       {purchaseReceipt && (
@@ -250,10 +256,10 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -261,7 +267,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: t.scrim,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
@@ -283,16 +289,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.32)',
+    backgroundColor: t.scrim,
   },
   confirmCard: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#dbe4ea',
+    borderColor: t.border,
     boxShadow: '0px 18px 40px rgba(15, 23, 42, 0.18)',
     elevation: 12,
   },
@@ -301,19 +307,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: '#5b7c99',
+    color: t.inkMuted,
     marginBottom: 8,
   },
   confirmTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1f2937',
+    color: t.ink,
     marginBottom: 10,
   },
   confirmMessage: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#4b5563',
+    color: t.inkMuted,
     marginBottom: 20,
   },
   confirmActions: {
@@ -329,24 +335,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmCancelButton: {
-    backgroundColor: '#eef2f5',
+    backgroundColor: t.border,
   },
   confirmAcceptButton: {
-    backgroundColor: '#1f8f55',
+    backgroundColor: t.success,
   },
   confirmCancelText: {
-    color: '#334155',
+    color: t.ink,
     fontSize: 14,
     fontWeight: '700',
   },
   confirmAcceptText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 14,
     fontWeight: '700',
   },
+  loadingCard: {
+    backgroundColor: t.surface,
+    borderRadius: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
   loadingText: {
     marginTop: 16,
-    color: '#fff',
+    color: t.ink,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -367,16 +380,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.38)',
+    backgroundColor: t.scrim,
   },
   receiptCard: {
     width: '100%',
     maxWidth: 460,
     maxHeight: '88%',
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: t.border,
     overflow: 'hidden',
     boxShadow: '0px 24px 60px rgba(15, 23, 42, 0.22)',
     elevation: 16,
@@ -392,44 +405,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: '#4b0082',
+    color: t.accent,
     marginBottom: 8,
   },
   receiptTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1f2937',
+    color: t.ink,
     marginBottom: 8,
   },
   receiptMessage: {
     fontSize: 14,
     lineHeight: 21,
-    color: '#6b7280',
+    color: t.inkMuted,
     marginBottom: 12,
   },
   receiptNotice: {
     fontSize: 13,
     lineHeight: 20,
-    color: '#1f512c',
-    backgroundColor: '#ecfdf5',
+    color: t.success,
+    backgroundColor: t.surface,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#d1fae5',
+    borderColor: t.success,
     marginBottom: 16,
   },
   receiptSection: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: t.bg,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: t.border,
     padding: 16,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#4b0082',
+    color: t.accent,
     marginBottom: 12,
   },
   dataRow: {
@@ -443,34 +456,34 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
+    color: t.inkMuted,
   },
   dataValue: {
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#1f2937',
+    color: t.ink,
     textAlign: 'right',
   },
   totalValue: {
     flex: 1,
     fontSize: 13,
     fontWeight: '800',
-    color: '#4b0082',
+    color: t.accent,
     textAlign: 'right',
   },
   detailCard: {
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: t.border,
     padding: 14,
     marginBottom: 12,
   },
   detailTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1f2937',
+    color: t.ink,
     marginBottom: 10,
   },
   receiptActions: {
@@ -479,8 +492,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    backgroundColor: '#fffdf4',
+    borderTopColor: t.border,
+    backgroundColor: t.surface,
   },
   receiptButton: {
     flex: 1,
@@ -490,18 +503,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryReceiptButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.bg,
+    borderWidth: 1,
+    borderColor: t.border,
   },
   primaryReceiptButton: {
-    backgroundColor: '#ffd700',
+    backgroundColor: t.accent,
   },
   secondaryReceiptText: {
-    color: '#fff',
+    color: t.ink,
     fontSize: 14,
     fontWeight: '700',
   },
   primaryReceiptText: {
-    color: '#333',
+    color: t.onAccent,
     fontSize: 14,
     fontWeight: '700',
   },

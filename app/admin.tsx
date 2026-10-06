@@ -23,6 +23,9 @@ import {
 } from '../lib/database';
 import { showAlert } from '../lib/dialog';
 import { useAuth } from '../lib/auth-context';
+import { Skeleton, SkeletonRegion } from '../components/skeleton';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 type ProductFormState = {
   titulo: string;
@@ -67,6 +70,8 @@ const requiredFields: (keyof ProductFormState)[] = [
 ];
 
 export default function AdminScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState<ProductFormState>(initialFormState);
@@ -217,9 +222,11 @@ export default function AdminScreen() {
   if (authLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#4b0082" />
-        </View>
+        <SkeletonRegion style={styles.form}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} height={46} />
+          ))}
+        </SkeletonRegion>
       </SafeAreaView>
     );
   }
@@ -260,7 +267,7 @@ export default function AdminScreen() {
       >
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#1f2937" />
+            <Ionicons name="arrow-back" size={22} color={theme.ink} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>Administracion</Text>
@@ -280,7 +287,7 @@ export default function AdminScreen() {
               <Ionicons
                 name="book"
                 size={18}
-                color={formData.category === 'book' ? '#fff' : '#4b5563'}
+                color={formData.category === 'book' ? theme.onAccent : theme.inkMuted}
               />
               <Text
                 style={[
@@ -301,7 +308,7 @@ export default function AdminScreen() {
               <Ionicons
                 name="disc"
                 size={18}
-                color={formData.category === 'vinyl' ? '#fff' : '#4b5563'}
+                color={formData.category === 'vinyl' ? theme.onAccent : theme.inkMuted}
               />
               <Text
                 style={[
@@ -352,7 +359,7 @@ export default function AdminScreen() {
           <View style={styles.categoryGroup}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Categoria</Text>
-              {loadingCategorias && <ActivityIndicator size="small" color="#4b0082" />}
+              {loadingCategorias && <ActivityIndicator size="small" color={theme.accent} />}
             </View>
             {categoriasDisponibles.length > 0 && (
               <View style={styles.categoryChips}>
@@ -428,10 +435,10 @@ export default function AdminScreen() {
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.onAccent} />
             ) : (
               <>
-                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Ionicons name="add-circle" size={20} color={theme.onAccent} />
                 <Text style={styles.submitButtonText}>Añadir producto</Text>
               </>
             )}
@@ -460,26 +467,31 @@ const Input = ({
   keyboardType = 'default',
   autoCapitalize = 'sentences',
   onChangeText,
-}: InputProps) => (
-  <View style={styles.inputGroup}>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      style={[styles.input, multiline && styles.textArea, error && styles.inputError]}
-      value={value}
-      onChangeText={onChangeText}
-      multiline={multiline}
-      keyboardType={keyboardType}
-      autoCapitalize={autoCapitalize}
-      placeholderTextColor="#9ca3af"
-    />
-    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-  </View>
-);
+}: InputProps) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
-const styles = StyleSheet.create({
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={[styles.input, multiline && styles.textArea, error && styles.inputError]}
+        value={value}
+        onChangeText={onChangeText}
+        multiline={multiline}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        placeholderTextColor={theme.inkMuted}
+      />
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
+};
+
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f7fb',
+    backgroundColor: t.bg,
   },
   keyboardView: {
     flex: 1,
@@ -490,9 +502,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: t.border,
   },
   iconButton: {
     width: 40,
@@ -500,7 +512,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: '#eef2f7',
+    backgroundColor: t.border,
   },
   headerCopy: {
     flex: 1,
@@ -508,11 +520,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#111827',
+    color: t.ink,
   },
   subtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: t.inkMuted,
     marginTop: 2,
   },
   form: {
@@ -524,7 +536,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     padding: 4,
-    backgroundColor: '#e9edf3',
+    backgroundColor: t.border,
     borderRadius: 8,
   },
   segmentButton: {
@@ -537,15 +549,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activeSegmentButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.accent,
   },
   segmentText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4b5563',
+    color: t.inkMuted,
   },
   activeSegmentText: {
-    color: '#fff',
+    color: t.onAccent,
   },
   inlineFields: {
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
@@ -557,7 +569,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: t.ink,
     marginBottom: 6,
   },
   labelRow: {
@@ -576,33 +588,33 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: t.border,
+    backgroundColor: t.surface,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   activeCategoryChip: {
-    backgroundColor: '#4b0082',
-    borderColor: '#4b0082',
+    backgroundColor: t.accent,
+    borderColor: t.accent,
   },
   categoryChipText: {
-    color: '#374151',
+    color: t.ink,
     fontSize: 13,
     fontWeight: '700',
   },
   activeCategoryChipText: {
-    color: '#fff',
+    color: t.onAccent,
   },
   input: {
     minHeight: 46,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: t.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
-    color: '#111827',
+    backgroundColor: t.surface,
+    color: t.ink,
     fontSize: 14,
   },
   textArea: {
@@ -610,17 +622,17 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: t.danger,
   },
   errorText: {
-    color: '#dc2626',
+    color: t.danger,
     fontSize: 12,
     marginTop: 4,
   },
   submitButton: {
     height: 50,
     borderRadius: 8,
-    backgroundColor: '#1f8f55',
+    backgroundColor: t.success,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -628,12 +640,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   submitButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 15,
     fontWeight: '800',
   },
   disabledButton: {
-    backgroundColor: '#94a3b8',
+    backgroundColor: t.inkMuted,
   },
   centerContent: {
     flex: 1,
@@ -644,33 +656,33 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#111827',
+    color: t.ink,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: t.inkMuted,
     textAlign: 'center',
     marginBottom: 18,
   },
   primaryButton: {
-    backgroundColor: '#4b0082',
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontWeight: '800',
   },
   secondaryButton: {
-    backgroundColor: '#eef2f7',
+    backgroundColor: t.border,
     borderRadius: 8,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: '#1f2937',
+    color: t.ink,
     fontWeight: '800',
   },
 });

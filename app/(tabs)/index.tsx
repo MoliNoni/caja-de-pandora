@@ -10,7 +10,6 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
   Animated,
 } from 'react-native';
@@ -26,9 +25,14 @@ import { SectionCarousel } from '../../components/section-carousel';
 import { ProfileMenu } from '../../components/profile-menu';
 import { useCart } from '../../lib/cart-context';
 import { useAuth } from '../../lib/auth-context';
+import { Skeleton, SkeletonCard, SkeletonRegion } from '../../components/skeleton';
+import { useTheme, useThemedStyles } from '../../hooks/use-theme';
+import type { Theme } from '../../constants/theme';
 
 // Home screen component
 export default function HomeScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { itemCount } = useCart();
   const { isAdmin } = useAuth();
@@ -82,7 +86,7 @@ export default function HomeScreen() {
           style={styles.menuButton}
           onPress={() => setShowMenu(!showMenu)}
         >
-          <Ionicons name="menu" size={24} color="#333" />
+          <Ionicons name="menu" size={24} color={theme.ink} />
         </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>Librería Caja de Pandora</Text>
@@ -94,7 +98,7 @@ export default function HomeScreen() {
             style={styles.cartButton}
             onPress={() => router.push('/cart')}
           >
-            <Ionicons name="cart" size={24} color="#ffd700" />
+            <Ionicons name="cart" size={24} color={theme.accent} />
             {itemCount > 0 && (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
@@ -121,7 +125,7 @@ export default function HomeScreen() {
               style={styles.drawerCloseButton}
               onPress={() => setShowMenu(false)}
             >
-              <Ionicons name="close" size={28} color="#333" />
+              <Ionicons name="close" size={28} color={theme.ink} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -131,7 +135,7 @@ export default function HomeScreen() {
                 setShowMenu(false);
               }}
             >
-              <Ionicons name="book" size={24} color="#ffd700" />
+              <Ionicons name="book" size={24} color={theme.accent} />
               <Text style={styles.drawerMenuItemText}>Catálogo de Libros</Text>
             </TouchableOpacity>
 
@@ -144,7 +148,7 @@ export default function HomeScreen() {
                 setShowMenu(false);
               }}
             >
-              <Ionicons name="musical-notes" size={24} color="#ffd700" />
+              <Ionicons name="musical-notes" size={24} color={theme.accent} />
               <Text style={styles.drawerMenuItemText}>Catálogo de Vinilos</Text>
             </TouchableOpacity>
 
@@ -159,7 +163,7 @@ export default function HomeScreen() {
                     setShowMenu(false);
                   }}
                 >
-                  <Ionicons name="settings" size={24} color="#4b0082" />
+                  <Ionicons name="settings" size={24} color={theme.accent} />
                   <Text style={styles.drawerMenuItemText}>Administracion</Text>
                 </TouchableOpacity>
               </>
@@ -169,9 +173,18 @@ export default function HomeScreen() {
       )}
 
       {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#ffd700" />
-        </View>
+        <SkeletonRegion style={styles.scrollContent}>
+          {[0, 1].map((row) => (
+            <View key={row} style={styles.skeletonSection}>
+              <Skeleton height={20} width="50%" style={styles.skeletonTitle} />
+              <View style={styles.skeletonRow}>
+                {[0, 1, 2].map((card) => (
+                  <SkeletonCard key={card} width={180} />
+                ))}
+              </View>
+            </View>
+          ))}
+        </SkeletonRegion>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <SectionCarousel
@@ -226,10 +239,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -237,9 +250,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   menuButton: {
     padding: 8,
@@ -251,11 +264,11 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
   },
   tagline: {
     fontSize: 11,
-    color: '#666',
+    color: t.inkMuted,
     marginTop: 2,
   },
   drawerMenuWrapper: {
@@ -264,7 +277,7 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: '70%',
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     paddingTop: 20,
     elevation: 5,
     shadowColor: '#000',
@@ -279,7 +292,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: t.scrim,
     zIndex: 999,
   },
   drawerCloseButton: {
@@ -297,12 +310,12 @@ const styles = StyleSheet.create({
   drawerMenuItemText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
     marginLeft: 16,
   },
   drawerDivider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: t.border,
     marginVertical: 8,
   },
   headerActions: {
@@ -318,7 +331,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#e74c3c',
+    backgroundColor: t.danger,
     borderRadius: 10,
     width: 20,
     height: 20,
@@ -326,14 +339,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 12,
     fontWeight: 'bold',
   },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  skeletonSection: {
+    marginVertical: 10,
+  },
+  skeletonTitle: {
+    marginHorizontal: 8,
+    marginBottom: 10,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingLeft: 8,
+    overflow: 'hidden',
   },
   scrollContent: {
     paddingHorizontal: 8,
@@ -351,9 +372,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 18,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: t.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
@@ -363,12 +384,12 @@ const styles = StyleSheet.create({
   ctaTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2937',
+    color: t.ink,
     marginBottom: 6,
   },
   ctaText: {
     fontSize: 13,
-    color: '#4b5563',
+    color: t.inkMuted,
     lineHeight: 18,
   },
 });

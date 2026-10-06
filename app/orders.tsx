@@ -12,13 +12,15 @@ import {
   FlatList,
   SafeAreaView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { useAuth } from '../lib/auth-context';
 import { getClienteOrdenes } from '../lib/database';
 import { useRouter } from 'expo-router';
 import { ProfileMenu } from '../components/profile-menu';
+import { Skeleton, SkeletonRegion } from '../components/skeleton';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import type { Theme } from '../constants/theme';
 
 interface OrdenDetalleRaw {
   id?: string;
@@ -56,6 +58,8 @@ interface Orden {
 
 // Orders screen component
 export default function OrdersScreen() {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const router = useRouter();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
@@ -109,13 +113,13 @@ export default function OrdersScreen() {
   const getEstadoBadgeColor = (estado: string) => {
     switch (estado) {
       case 'completada':
-        return '#2ecc71';
+        return theme.success;
       case 'pendiente':
-        return '#f39c12';
+        return theme.accent;
       case 'cancelada':
-        return '#e74c3c';
+        return theme.danger;
       default:
-        return '#95a5a6';
+        return theme.inkMuted;
     }
   };
 
@@ -166,9 +170,11 @@ export default function OrdersScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#3498db" />
-        </View>
+        <SkeletonRegion style={styles.listContent}>
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} height={170} radius={12} style={styles.skeletonCard} />
+          ))}
+        </SkeletonRegion>
       ) : ordenes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No tienes ordenes</Text>
@@ -246,7 +252,8 @@ export default function OrdersScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#3498db']}
+              colors={[theme.accent]}
+              tintColor={theme.accent}
             />
           }
         />
@@ -255,17 +262,21 @@ export default function OrdersScreen() {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
+  skeletonCard: {
+    marginHorizontal: 8,
+    marginVertical: 8,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: t.bg,
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   headerTop: {
     flexDirection: 'row',
@@ -275,11 +286,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
+    color: t.inkMuted,
     marginTop: 4,
   },
   centerContent: {
@@ -300,34 +311,34 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: t.inkMuted,
     textAlign: 'center',
     marginBottom: 24,
   },
   loginButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: t.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   loginButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontWeight: 'bold',
     fontSize: 14,
   },
   shopButton: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: t.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   shopButtonText: {
-    color: '#fff',
+    color: t.onAccent,
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -337,7 +348,7 @@ const styles = StyleSheet.create({
   ordenCard: {
     marginHorizontal: 8,
     marginVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -353,16 +364,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: t.border,
   },
   ordenId: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: t.ink,
   },
   ordenFecha: {
     fontSize: 12,
-    color: '#666',
+    color: t.inkMuted,
     marginTop: 4,
   },
   estadoBadge: {
@@ -371,7 +382,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   estadoText: {
-    color: '#fff',
+    color: t.onAccent,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -383,7 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: t.border,
   },
   itemInfo: {
     flex: 1,
@@ -392,11 +403,11 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: t.ink,
   },
   itemAutor: {
     fontSize: 11,
-    color: '#666',
+    color: t.inkMuted,
     marginTop: 2,
   },
   itemRight: {
@@ -404,13 +415,13 @@ const styles = StyleSheet.create({
   },
   itemCantidad: {
     fontSize: 12,
-    color: '#666',
+    color: t.inkMuted,
     marginBottom: 4,
   },
   itemPrice: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#4b0082',
+    color: t.accent,
   },
   totalSection: {
     flexDirection: 'row',
@@ -418,16 +429,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: t.border,
   },
   totalLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#4b0082',
+    color: t.accent,
   },
   totalAmount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4b0082',
+    color: t.accent,
   },
 });
