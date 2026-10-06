@@ -13,9 +13,9 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useAuth } from '../lib/auth-context';
+import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
 
 // Sign in screen component
@@ -61,13 +61,9 @@ export default function SignInScreen() {
       const message = error.message || 'No se pudo iniciar sesion';
       
       if (message.includes('429') || message.includes('Too Many Requests')) {
-        Alert.alert(
-          'Demasiadas peticiones',
-          'Espera un momento antes de intentar de nuevo.',
-          [{ text: 'OK' }]
-        );
+        showAlert('Demasiadas peticiones', 'Espera un momento antes de intentar de nuevo.');
       } else {
-        Alert.alert('Error de autenticacion', message);
+        showAlert('Error de autenticacion', message);
       }
     } finally {
       setIsSubmitting(false);

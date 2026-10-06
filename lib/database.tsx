@@ -235,7 +235,7 @@ export const createCategoria = async (
       .from('categorias')
       .select('*')
       .eq('tipo', tipo)
-      .ilike('nombre', normalizedName)
+      .ilike('nombre', normalizedName.replace(/[\\%_]/g, '\\$&'))
       .maybeSingle();
 
     if (existingError) throw existingError;

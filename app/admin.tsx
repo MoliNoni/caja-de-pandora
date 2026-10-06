@@ -153,6 +153,10 @@ export default function AdminScreen() {
       nextErrors.discogs_id = 'Discogs ID requerido para vinilos';
     }
 
+    if (formData.imageUrl.trim() && !/^https:\/\/\S+$/i.test(formData.imageUrl.trim())) {
+      nextErrors.imageUrl = 'La URL debe empezar con https://';
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -413,6 +417,7 @@ export default function AdminScreen() {
           <Input
             label="URL de imagen"
             value={formData.imageUrl}
+            error={errors.imageUrl}
             onChangeText={(text) => setField('imageUrl', text)}
             autoCapitalize="none"
           />

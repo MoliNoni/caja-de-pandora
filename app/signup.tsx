@@ -13,10 +13,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../lib/auth-context';
+import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
 
 // Sign up screen component
@@ -47,8 +47,8 @@ export default function SignUpScreen() {
     if (!formData.apellido.trim()) newErrors.apellido = 'El apellido es requerido';
     if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
       newErrors.email = 'Email inválido';
-    if (formData.password.length < 6)
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    if (formData.password.length < 8)
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
 
@@ -75,22 +75,17 @@ export default function SignUpScreen() {
         codigoPostal: formData.codigoPostal,
       });
 
-      Alert.alert(
-        '¡Registro exitoso!',
-        'Tu cuenta ha sido creada. Ahora inicia sesión.',
-        [{ text: 'OK', onPress: () => router.push('/signin') }]
-      );
+      showAlert('¡Registro exitoso!', 'Tu cuenta ha sido creada. Ahora inicia sesión.');
+      router.push('/signin');
     } catch (error: any) {
       const message = error.message || 'No se pudo registrar';
-      
+
       if (message.includes('429') || message.includes('Too Many Requests')) {
-        Alert.alert(
-          'Demasiadas peticiones',
-          'Espera un momento antes de intentar de nuevo.',
-          [{ text: 'OK' }]
-        );
+        showAlert('Demasiadas peticiones', 'Espera un momento antes de intentar de nuevo.');
+      } else if (error?.code === 'weak_password') {
+        showAlert('Contraseña insegura', 'Esa contraseña apareció en filtraciones o es muy débil. Elige otra.');
       } else {
-        Alert.alert('Error', message);
+        showAlert('Error', message);
       }
     } finally {
       setIsSubmitting(false);
