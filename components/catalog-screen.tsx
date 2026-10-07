@@ -9,11 +9,11 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   SafeAreaView,
   RefreshControl,
   TextInput,
 } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { getProductos, Product } from '../lib/database';
@@ -23,6 +23,7 @@ import { DancingText } from './dancing-text';
 import { ProductCard } from './product-card';
 import { AppHeader } from './app-header';
 import { SkeletonCard, SkeletonRegion } from './skeleton';
+import { RefreshRecord } from './refresh-record';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -63,6 +64,10 @@ export const CatalogScreen = ({
   // Bumped on every visit: remounting the list replays the card entrance each time.
   const [visit, setVisit] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter products based on search query
@@ -150,8 +155,12 @@ export const CatalogScreen = ({
           <Text style={styles.emptySubtitle}>{emptySubtitle}</Text>
         </View>
       ) : (
-        <FlatList
+        <View style={styles.listArea}>
+        <RefreshRecord scrollY={scrollY} refreshing={refreshing} color={theme.accent} />
+        <Animated.FlatList
           key={visit}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
           data={filteredProductos}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
@@ -165,14 +174,17 @@ export const CatalogScreen = ({
           }
           contentContainerStyle={styles.listContent}
           refreshControl={
+            // Stock spinner hidden: RefreshRecord is the indicator.
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[theme.accent]}
-              tintColor={theme.accent}
+              colors={['transparent']}
+              tintColor="transparent"
+              progressBackgroundColor="transparent"
             />
           }
         />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -183,6 +195,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: t.bg,
   },
+  listArea: { flex: 1 },
   titleRow: {
     paddingHorizontal: 16,
     paddingTop: 8,
