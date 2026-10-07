@@ -5,6 +5,7 @@
 
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { prefetchScreens } from '../lib/database';
 import { AuthProvider } from '../lib/auth-context';
 import { CartProvider } from '../lib/cart-context';
@@ -22,6 +23,7 @@ export default function RootLayout() {
     prefetchScreens().catch(() => undefined); // best effort: screens still load on their own
   }, []);
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <AuthProvider>
       <CartProvider>
         <PlayerProvider>
@@ -51,5 +53,6 @@ export default function RootLayout() {
         </PlayerProvider>
       </CartProvider>
     </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

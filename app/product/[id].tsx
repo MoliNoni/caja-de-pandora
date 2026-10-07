@@ -5,7 +5,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   useWindowDimensions,
   type GestureResponderEvent,
@@ -20,6 +19,7 @@ import { resolveProductImageUrl } from '../../lib/product-image';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
+import { BookCover } from '../../components/book-cover';
 import { useBurst } from '../../components/pixel-burst';
 import { useFlyToCart } from '../../components/fly-to-cart';
 import { CartButton } from '../../components/app-header';
@@ -120,17 +120,8 @@ export default function ProductDetailScreen() {
         <Animated.View entering={FadeIn.duration(200)}>
           <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
         </Animated.View>
-      ) : imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={styles.image}
-          resizeMode="contain"
-          accessibilityLabel={`Portada de ${product.titulo}`}
-        />
       ) : (
-        <View style={[styles.image, styles.placeholder]}>
-          <Text style={styles.meta}>Sin imagen</Text>
-        </View>
+        <BookCover uri={imageUri} title={product.titulo} author={product.autor} width={Math.min(width * 0.62, 260)} />
       )}
 
       <Animated.View entering={FadeInDown.delay(150).springify()}>
@@ -172,8 +163,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   skeletonGap: { marginTop: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
-  image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: t.surface, marginBottom: 20 },
-  placeholder: { justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
   price: { fontSize: 28, fontWeight: 'bold', color: t.accent, marginTop: 16 },
