@@ -8,6 +8,7 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  type GestureResponderEvent,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
@@ -19,8 +20,9 @@ import { resolveProductImageUrl } from '../../lib/product-image';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
+import { useBurst } from '../../components/pixel-burst';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
-import { useThemedStyles } from '../../hooks/use-theme';
+import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
 export default function ProductDetailScreen() {
@@ -28,6 +30,8 @@ export default function ProductDetailScreen() {
   const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
   const player = usePlayer();
+  const theme = useTheme();
+  const burst = useBurst();
   const { width } = useWindowDimensions();
   const discSize = Math.min(width - 40, 340);
   // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
@@ -71,8 +75,9 @@ export default function ProductDetailScreen() {
   }, [isVinyl, resolveRecord]);
 
   // A record starts spinning (and playing) the moment it goes into the cart.
-  const add = () => {
+  const add = (e: GestureResponderEvent) => {
     if (!product) return;
+    burst(e, isVinyl ? theme.gradients.vinyl : theme.gradients.books, 'lg');
     void addItem(product, 1);
     if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord, recordMeta);
   };

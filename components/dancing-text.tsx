@@ -15,7 +15,7 @@ import Animated, {
 
 import { useTheme } from '../hooks/use-theme';
 
-const STAGGER_MS = 45;
+const STAGGER_MS = 32;
 const WAVE_UP_MS = 420;
 const WAVE_REST_MS = 2200; // pause between waves so the title settles and stays readable
 const sine = Easing.inOut(Easing.sin);

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Radius, Spacing, type Theme } from '../constants/theme';
@@ -11,7 +11,7 @@ type Variant = 'accent' | 'outline' | 'ghost' | 'default';
 
 type ButtonProps = {
   label: string;
-  onPress: () => void;
+  onPress: (event: GestureResponderEvent) => void;
   /** accent = the one primary CTA per screen; outline/ghost = secondary (design.md#components). */
   variant?: Variant;
   size?: 'md' | 'lg';

@@ -10,7 +10,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, G, LinearGradient, Line, Rect, Stop } from 'react-native-svg';
 
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -22,7 +22,10 @@ const TURN_MS = 1800; // 33⅓ rpm
 const STOP_MS = 600; // decelerate to rest on pause
 // Ease-out cubic starts at 3·d/T of the cruising speed: this arc keeps the speed continuous at pause.
 const STOP_DEG = ((360 / TURN_MS) * STOP_MS) / 3;
-const GROOVES = [0.46, 0.52, 0.58, 0.64, 0.7, 0.76, 0.82, 0.88, 0.94];
+// Fine grooves with a few brighter bands where the gaps between songs would be.
+const GROOVES = Array.from({ length: 22 }, (_, i) => 0.42 + i * 0.026);
+const GAPS = new Set([5, 11, 16]);
+const ARM_PLAY_DEG = 24;
 
 type Props = {
   trackId: string;
@@ -55,7 +58,7 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
 
   useEffect(() => {
     const ms = reducedMotion ? 0 : 300;
-    arm.value = withTiming(playing ? 22 : 0, { duration: ms, easing: Easing.out(Easing.ease) });
+    arm.value = withTiming(playing ? ARM_PLAY_DEG : 0, { duration: ms, easing: Easing.out(Easing.ease) });
     icon.value = withTiming(playing ? 1 : 0, { duration: ms });
     lit.value = withTiming(playing ? 1 : 0, { duration: ms });
     if (playing && !reducedMotion) {
@@ -100,40 +103,94 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
     if (!(await player.toggle(trackId, resolve, meta))) showAlert('Sin vista previa', 'No encontramos un fragmento para reproducir.');
   };
 
-  const center = size * 0.38;
+  // Deck geometry, all relative to `size` (the deck width).
+  const disc = size * 0.82;
+  const r = disc / 2;
+  const discX = size * 0.03;
+  const discY = size * 0.04;
+  const deckH = disc + size * 0.08;
+  const labelSize = disc * 0.38;
+  const pivot = { x: size * 0.92, y: size * 0.1 };
+  const armLen = size * 0.56;
+  const discBox = { position: 'absolute' as const, left: discX, top: discY, width: disc, height: disc, borderRadius: r };
 
   return (
     <View style={styles.wrap}>
-      <View style={{ width: size, height: size }}>
+      <View style={[styles.deck, { width: size, height: deckH }]}>
         <Animated.View
           pointerEvents="none"
-          style={[
-            styles.glow,
-            { width: size, height: size, borderRadius: size / 2, borderColor: theme.vivid[0], shadowColor: theme.vivid[5] },
-            glowStyle,
-          ]}
+          style={[styles.glow, discBox, { borderColor: theme.vivid[0], shadowColor: theme.vivid[5] }, glowStyle]}
         />
-        <Animated.View style={[styles.disc, { width: size, height: size, borderRadius: size / 2 }, spin]}>
-          <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-            {GROOVES.map((r) => (
-              <Circle key={r} cx={size / 2} cy={size / 2} r={(size / 2) * r} fill="none" stroke="#2A2A2A" strokeWidth={1} />
+        <View style={[discBox, styles.platter]} />
+        <Animated.View style={[discBox, styles.disc, spin]}>
+          <Svg width={disc} height={disc} style={StyleSheet.absoluteFill}>
+            {GROOVES.map((k, i) => (
+              <Circle
+                key={k}
+                cx={r}
+                cy={r}
+                r={r * k}
+                fill="none"
+                stroke={GAPS.has(i) ? '#3A3A3A' : '#202020'}
+                strokeWidth={GAPS.has(i) ? 1.5 : 1}
+              />
             ))}
+            <Circle cx={r} cy={r} r={labelSize / 2 + 5} fill="none" stroke={theme.vivid[0]} strokeWidth={3} />
           </Svg>
           {coverUri ? (
             <Image
               source={{ uri: coverUri }}
-              style={{ width: center, height: center, borderRadius: center / 2 }}
+              style={{ width: labelSize, height: labelSize, borderRadius: labelSize / 2 }}
               accessibilityLabel={`Portada de ${title}`}
             />
           ) : (
-            <View style={{ width: center, height: center, borderRadius: center / 2, backgroundColor: theme.accent }} />
+            <View style={{ width: labelSize, height: labelSize, borderRadius: labelSize / 2, backgroundColor: theme.accent }} />
           )}
           <View style={styles.spindle} />
         </Animated.View>
+        {/* Fixed sheen: light doesn't turn with the record, which is what sells the spin. */}
+        <Svg pointerEvents="none" width={disc} height={disc} style={{ position: 'absolute', left: discX, top: discY }}>
+          <Defs>
+            <LinearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0.2" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.36" stopColor="#FFFFFF" stopOpacity={0.13} />
+              <Stop offset="0.46" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.56" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.66" stopColor="#FFFFFF" stopOpacity={0.09} />
+              <Stop offset="0.8" stopColor="#FFFFFF" stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          <Circle cx={r} cy={r} r={r} fill="url(#sheen)" />
+        </Svg>
         <Animated.View
           pointerEvents="none"
-          style={[styles.arm, { height: size * 0.5, right: size * 0.04, top: -size * 0.02, transformOrigin: ['50%', 0, 0] }, armStyle]}
-        />
+          style={[StyleSheet.absoluteFill, { transformOrigin: [pivot.x, pivot.y, 0] }, armStyle]}
+        >
+          <Svg width={size} height={deckH}>
+            <Rect x={pivot.x - size * 0.03} y={pivot.y - size * 0.11} width={size * 0.06} height={size * 0.07} rx={4} fill="#4A4458" />
+            <Line
+              x1={pivot.x}
+              y1={pivot.y}
+              x2={pivot.x}
+              y2={pivot.y + armLen - size * 0.06}
+              stroke="#D9D4E4"
+              strokeWidth={size * 0.018}
+              strokeLinecap="round"
+            />
+            <G>
+              <Rect
+                x={pivot.x - size * 0.03}
+                y={pivot.y + armLen - size * 0.08}
+                width={size * 0.06}
+                height={size * 0.09}
+                rx={3}
+                fill={theme.vivid[0]}
+              />
+            </G>
+            <Circle cx={pivot.x} cy={pivot.y} r={size * 0.05} fill="#2A2533" stroke="#5A5468" strokeWidth={2} />
+            <Circle cx={pivot.x} cy={pivot.y} r={size * 0.016} fill="#D9D4E4" />
+          </Svg>
+        </Animated.View>
       </View>
 
       <Pressable
@@ -167,18 +224,16 @@ const makeStyles = (theme: Theme) =>
       shadowOffset: { width: 0, height: 0 },
       boxShadow: '0 0 48px rgba(224, 17, 95, 0.55), 0 0 90px rgba(124, 58, 237, 0.45)',
     },
+    deck: {
+      borderRadius: 24,
+      backgroundColor: '#17121F',
+      borderWidth: 1,
+      borderColor: '#2C2538',
+      boxShadow: '0 24px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
+    },
+    platter: { backgroundColor: '#0A0A0A', transform: [{ scale: 1.03 }], boxShadow: '0 10px 30px rgba(0,0,0,0.6)' },
     disc: { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     spindle: { position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: theme.bg },
-    // Tonearm: pale rod with a coloured cartridge at the tip.
-    arm: {
-      position: 'absolute',
-      width: 8,
-      borderRadius: 4,
-      backgroundColor: '#D9D4E4',
-      borderBottomWidth: 22,
-      borderBottomColor: theme.vivid[0],
-      boxShadow: '0 6px 14px rgba(0,0,0,0.45)',
-    },
     button: {
       width: 56,
       height: 56,

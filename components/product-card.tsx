@@ -13,15 +13,17 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  type GestureResponderEvent,
   type ViewStyle,
 } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
+import { useBurst } from './pixel-burst';
 import { Product, productCache } from '../lib/database';
 import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-image';
-import { useThemedStyles } from '../hooks/use-theme';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -55,6 +57,9 @@ export const ProductCard = ({
     if (!reducedMotion) lift.value = withSpring(on ? 1 : 0, { damping: 14, stiffness: 220 });
   };
   const { addItem } = useCart();
+  const theme = useTheme();
+  const burst = useBurst();
+  const burstColors = product.category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books;
   const router = useRouter();
   // undefined = cover still loading (neutral block), null = no cover exists.
   const [imageUri, setImageUri] = useState<string | null | undefined>(() => peekProductImageUrl(product));
@@ -74,7 +79,8 @@ export const ProductCard = ({
   }, [product]);
 
   // Add product to cart
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: GestureResponderEvent) => {
+    burst(e, burstColors, 'lg');
     void addItem(product, 1);
   };
 
@@ -91,7 +97,10 @@ export const ProductCard = ({
       {/* Hover-only wrapper (web): not focusable, no action of its own. */}
       <Pressable focusable={false} accessible={false} onHoverIn={() => hover(true)} onHoverOut={() => hover(false)}>
       <TouchableOpacity
-        onPress={openDetail}
+        onPress={(e) => {
+          burst(e, burstColors, 'md');
+          openDetail();
+        }}
         style={styles.imageContainer}
         accessibilityRole="link"
         accessibilityLabel={`Ver detalle de ${product.titulo}`}
@@ -139,7 +148,7 @@ export const ProductCard = ({
         )}
 
         <Button
-          label={product.stock > 0 ? 'Agregar' : 'Agotado'}
+          label={product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
           accessibilityLabel={product.stock > 0 ? `Agregar ${product.titulo} al carrito` : `${product.titulo}, agotado`}
           variant="outline"
           fullWidth

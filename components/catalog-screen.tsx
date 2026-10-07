@@ -11,20 +11,17 @@ import {
   StyleSheet,
   FlatList,
   SafeAreaView,
-  TouchableOpacity,
   RefreshControl,
   TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { getProductos, Product } from '../lib/database';
 import { useCachedState } from '../lib/cache';
 import { PatternBackground } from './pattern-background';
 import { DancingText } from './dancing-text';
 import { ProductCard } from './product-card';
-import { ProfileMenu } from './profile-menu';
-import { useCart } from '../lib/cart-context';
+import { AppHeader } from './app-header';
 import { SkeletonCard, SkeletonRegion } from './skeleton';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
@@ -48,7 +45,6 @@ export const CatalogScreen = ({
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { itemCount } = useCart();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const searchRef = useRef<TextInput>(null);
 
@@ -121,31 +117,13 @@ export const CatalogScreen = ({
   return (
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
-      <View style={styles.header}>
-        <DancingText
-          text={title}
-          style={styles.title}
-          containerStyle={styles.titleRow}
-          colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
-        />
-        <View style={styles.headerActions}>
-          <ProfileMenu />
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={() => router.push('/cart')}
-            accessibilityRole="link"
-            accessibilityLabel={itemCount > 0 ? `Carrito, ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}` : 'Carrito'}
-            hitSlop={4}
-          >
-            <Ionicons name="cart" size={24} color={theme.accent} />
-            {itemCount > 0 && (
-              <View style={styles.cartBadge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Text style={styles.cartBadgeText}>{itemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppHeader />
+      <DancingText
+        text={title}
+        style={styles.title}
+        containerStyle={styles.titleRow}
+        colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
+      />
 
       <View style={styles.searchContainer}>
         <Text style={styles.searchLabel}>Buscar</Text>
@@ -205,16 +183,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: t.bg,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
   titleRow: {
-    flex: 1,
-    marginRight: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   title: {
     fontSize: 36,

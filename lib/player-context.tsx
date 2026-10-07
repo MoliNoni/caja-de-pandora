@@ -18,15 +18,23 @@ interface PlayerContextType {
   pause: () => void;
   /** resolve may be omitted to resume the loaded preview (e.g. from the mini-player). */
   toggle: (trackId: string, resolve?: ResolvePreview, meta?: NowPlaying) => Promise<boolean>;
+  /** Listener volume 0..1 (fades are applied on top of it). */
+  volume: number;
+  setVolume: (volume: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
+// Position ticks 10x/s: kept in its own context so only progress UIs re-render on every tick.
+const ProgressContext = createContext({ position: 0, duration: 0 });
 
 // A preview that never reports isLoaded is treated as a playback failure (signed URLs expire).
 const LOAD_TIMEOUT_MS = 8000;
+const DEFAULT_VOLUME = 0.5;
+const FADE_IN_S = 0.8;
+const FADE_OUT_S = 5; // previews are 30 s clips: fade the tail instead of stopping dead
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
-  const player = useAudioPlayer(null);
+  const player = useAudioPlayer(null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const [trackId, setTrackId] = useState<string | null>(null);
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
@@ -34,6 +42,24 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const request = useRef(0); // invalidates in-flight loads when another track is requested
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResolve = useRef<ResolvePreview | null>(null); // source of the loaded preview
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+
+  // Effective gain = listener volume x fade-in x fade-out. Re-applied every tick because the web
+  // player builds a fresh <audio> (volume 1) on each replace().
+  const { currentTime, duration, playing, didJustFinish } = status;
+  useEffect(() => {
+    const fadeIn = Math.min(1, currentTime / FADE_IN_S);
+    const fadeOut = duration > 0 ? Math.min(1, Math.max(0, (duration - currentTime) / FADE_OUT_S)) : 1;
+    player.volume = volume * Math.min(fadeIn, fadeOut);
+  }, [player, volume, currentTime, duration, playing]);
+
+  // Clip over: unload it so the record stops and the mini-player slides away.
+  useEffect(() => {
+    if (didJustFinish) {
+      setTrackId(null);
+      loadedTrackId.current = null;
+    }
+  }, [didJustFinish]);
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
@@ -110,12 +136,24 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       play,
       pause,
       toggle,
+      volume,
+      setVolume: (v: number) => setVolume(Math.min(1, Math.max(0, v))),
     }),
-    [trackId, nowPlaying, status.playing, status.isLoaded, play, pause, toggle]
+    [trackId, nowPlaying, status.playing, status.isLoaded, play, pause, toggle, volume]
+  );
+  const progress = useMemo(
+    () => ({ position: trackId ? currentTime : 0, duration: trackId ? duration : 0 }),
+    [trackId, currentTime, duration]
   );
 
-  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
+  return (
+    <PlayerContext.Provider value={value}>
+      <ProgressContext.Provider value={progress}>{children}</ProgressContext.Provider>
+    </PlayerContext.Provider>
+  );
 };
+
+export const usePlayerProgress = () => useContext(ProgressContext);
 
 export const usePlayer = () => {
   const context = useContext(PlayerContext);

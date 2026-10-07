@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { DancingText } from '../components/dancing-text';
+import { AppHeader } from '../components/app-header';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
@@ -80,9 +81,9 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <PatternBackground />
+      <AppHeader back actions={false} />
       {/* Header */}
       <View style={styles.header}>
-        <Animated.Text entering={FadeInDown.springify()} style={styles.logo}>CAJA DE PANDORA</Animated.Text>
         <DancingText text="Hola de nuevo" style={styles.title} colors={theme.gradients.warm} />
       </View>
 
@@ -169,7 +170,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 16,
     paddingBottom: 8,
   },
   logo: {

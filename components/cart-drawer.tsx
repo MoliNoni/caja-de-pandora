@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft, LinearTransition, ZoomIn } from 'react-native-reanimated';
 import { DancingText } from './dancing-text';
+import { useBurst } from './pixel-burst';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
@@ -32,6 +33,7 @@ interface CartDrawerProps {
 // Main cart drawer component
 export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerProps) => {
   const theme = useTheme();
+  const burst = useBurst();
   const styles = useThemedStyles(makeStyles);
   const { items, total, removeItem, updateQuantity, clearCart, itemCount } =
     useCart();
@@ -100,7 +102,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                   <Text style={styles.itemPrice}>${item.precio.toFixed(2)}</Text>
                   <View style={styles.quantityContainer}>
                     <TouchableOpacity
-                      onPress={() => updateQuantity(item.id, item.cantidad - 1)}
+                      onPress={(e) => {
+                        burst(e, theme.gradients.warm, 'sm');
+                        updateQuantity(item.id, item.cantidad - 1);
+                      }}
                       disabled={loading}
                       style={styles.quantityButton}
                       accessibilityRole="button"
@@ -112,7 +117,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     </TouchableOpacity>
                     <Text style={styles.quantity}>{item.cantidad}</Text>
                     <TouchableOpacity
-                      onPress={() => updateQuantity(item.id, item.cantidad + 1)}
+                      onPress={(e) => {
+                        burst(e, theme.gradients.warm, 'sm');
+                        updateQuantity(item.id, item.cantidad + 1);
+                      }}
                       disabled={loading}
                       style={styles.quantityButton}
                       accessibilityRole="button"
@@ -130,7 +138,10 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     ${(item.precio * item.cantidad).toFixed(2)}
                   </Text>
                   <TouchableOpacity
-                    onPress={() => removeItem(item.id)}
+                    onPress={(e) => {
+                      burst(e, theme.gradients.warm, 'sm');
+                      removeItem(item.id);
+                    }}
                     disabled={loading}
                     style={styles.deleteButton}
                     accessibilityRole="button"
