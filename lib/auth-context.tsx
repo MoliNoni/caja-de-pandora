@@ -22,8 +22,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (email?: string | null) => {
-    if (!email) {
+  const loadProfile = async (userId?: string | null) => {
+    if (!userId) {
       setProfile(null);
       return null;
     }
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data, error } = await supabase
       .from('clientes')
       .select('*')
-      .eq('email', email)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (error) {
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) throw error;
         setSession(data?.session || null);
         setUser(data?.session?.user || null);
-        await loadProfile(data?.session?.user?.email);
+        await loadProfile(data?.session?.user?.id);
       } catch (error) {
         console.error('Error loading session:', error);
       } finally {
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       setUser(session?.user || null);
-      void loadProfile(session?.user?.email);
+      void loadProfile(session?.user?.id);
     });
 
     return () => subscription?.unsubscribe();
@@ -78,33 +78,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, userData: any) => {
     try {
       setLoading(true);
-      const { error, data } = await supabase.auth.signUp({
+      // The profile row is created by the on_auth_user_created DB trigger from this metadata.
+      const { error } = await supabase.auth.signUp({
         email,
         password,
-      });
-
-      if (error) throw error;
-
-      // Crear registro en tabla clientes
-      if (data.user) {
-        const { error: insertError } = await supabase
-          .from('clientes')
-          .insert({
-            email,
+        options: {
+          data: {
             nombre: userData.nombre || '',
             apellido: userData.apellido || '',
             telefono: userData.telefono || null,
             direccion: userData.direccion || null,
             ciudad: userData.ciudad || null,
             codigo_postal: userData.codigoPostal || null,
-            rol: 'cliente',
-          });
-        
-        if (insertError) {
-          console.error('Error inserting cliente:', insertError);
-          throw new Error(`Error creando perfil: ${insertError.message}`);
-        }
-      }
+          },
+        },
+      });
+
+      if (error) throw error;
     } catch (error) {
       throw error;
     } finally {

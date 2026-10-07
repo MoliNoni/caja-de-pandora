@@ -528,16 +528,11 @@ export const updateProductoVendidos = async (productId: string, cantidad: number
 // Obtener órdenes del cliente
 export const getClienteOrdenes = async (clienteId: string) => {
   try {
-    // Primero obtener el cliente por email (clienteId aquí es el auth user id)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) {
-      throw new Error('Usuario no autenticado');
-    }
-
+    // clienteId is the auth user id; RLS also lets admins read every order, so filter by own profile.
     const { data: cliente, error: clienteError } = await supabase
       .from('clientes')
       .select('id')
-      .eq('email', user.email)
+      .eq('user_id', clienteId)
       .single();
 
     if (clienteError || !cliente) {
