@@ -272,7 +272,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingTop: 8,
+    // Clears the floating tab bar (68 tall + 12 offset) with a small gap.
+    paddingBottom: 92,
   },
   columnWrapper: {
     justifyContent: 'space-between',
