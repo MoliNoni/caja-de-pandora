@@ -5,6 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 
 import { Radius, Spacing, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
+import { tapHaptic } from '../lib/haptics';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 
 type Variant = 'accent' | 'outline' | 'ghost' | 'default';
@@ -50,6 +51,7 @@ export function Button({
   // Release always finishes the push first, so a quick tap (press-in and press-out
   // a few ms apart) still shows the full push instead of a cancelled 3 % dip.
   const pressIn = () => {
+    tapHaptic();
     if (!reducedMotion) scale.value = withTiming(0.94, PRESS);
   };
   const pressOut = () => {

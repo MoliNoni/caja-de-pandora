@@ -15,7 +15,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { successHaptic } from '../lib/haptics';
 import { useRouter } from 'expo-router';
 import { useCart } from '../lib/cart-context';
 import { useAuth } from '../lib/auth-context';
@@ -77,7 +77,7 @@ export default function CartScreen() {
 
       const receipt = await procesarCompra(items, user.email);
       setPurchaseReceipt(receipt);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      successHaptic();
       clearCart();
     } catch (error) {
       console.error('Error processing order:', error);

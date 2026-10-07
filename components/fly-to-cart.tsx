@@ -3,6 +3,7 @@ import { Image, StyleSheet, View, type GestureResponderEvent, type ViewStyle } f
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useTheme } from '../hooks/use-theme';
+import { successHaptic } from '../lib/haptics';
 
 // Fly-to-cart: the product thumbnail arcs from the tapped button to the header cart.
 // The focused CartButton registers itself as the target; one overlay at the app root draws the flight.
@@ -33,7 +34,10 @@ function Thumb({ f, done }: { f: Flight; done: (id: number) => void }) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withTiming(1, { duration: FLY_MS, easing: Easing.inOut(Easing.cubic) });
-    const timer = setTimeout(() => done(f.id), FLY_MS + 30);
+    const timer = setTimeout(() => {
+      successHaptic(); // the thumbnail lands in the cart
+      done(f.id);
+    }, FLY_MS + 30);
     return () => clearTimeout(timer);
   }, [t, f.id, done]);
   const style = useAnimatedStyle((): ViewStyle => {
@@ -66,10 +70,11 @@ export function FlyToCartProvider({ children }: { children: ReactNode }) {
   const fly = useCallback<FlyFn>(
     (event, image) => {
       const target = cartTarget?.current;
-      if (reducedMotion || !target) return;
+      // No flight to land: confirm the add right away.
+      if (reducedMotion || !target) return successHaptic();
       const from = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
       target.measureInWindow((x, y, w, h) => {
-        if (!w) return; // target not on screen
+        if (!w) return successHaptic(); // target not on screen
         const id = ++seq.current;
         setFlights((all) => [...all, { id, from, to: { x: x + w / 2, y: y + h / 2 }, image }]);
       });
