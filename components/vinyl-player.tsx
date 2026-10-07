@@ -222,22 +222,22 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
             <Circle cx={pivot.x} cy={pivot.y} r={size * 0.016} fill="#D9D4E4" />
           </Svg>
         </Animated.View>
+        {/* Start button on the plinth, like a real deck: keeps the player compact. */}
+        <Pressable
+          onPress={() => void onPress()}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ busy: active && player.loading }}
+          style={(state) => [styles.button, isFocused(state) && styles.focusRing]}
+        >
+          <Animated.View style={[styles.iconLayer, playIcon]}>
+            <Ionicons name="play" size={22} color={theme.onAccent} />
+          </Animated.View>
+          <Animated.View style={[styles.iconLayer, pauseIcon]}>
+            <Ionicons name="pause" size={22} color={theme.onAccent} />
+          </Animated.View>
+        </Pressable>
       </View>
-
-      <Pressable
-        onPress={() => void onPress()}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        accessibilityState={{ busy: active && player.loading }}
-        style={(state) => [styles.button, isFocused(state) && styles.focusRing]}
-      >
-        <Animated.View style={[styles.iconLayer, playIcon]}>
-          <Ionicons name="play" size={26} color={theme.onAccent} />
-        </Animated.View>
-        <Animated.View style={[styles.iconLayer, pauseIcon]}>
-          <Ionicons name="pause" size={26} color={theme.onAccent} />
-        </Animated.View>
-      </Pressable>
 
       {reducedMotion && playing ? <Text style={styles.status}>Reproduciendo</Text> : null}
     </View>
@@ -246,7 +246,7 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    wrap: { alignItems: 'center', gap: 16, marginBottom: 20 },
+    wrap: { alignItems: 'center', gap: 8, marginBottom: 8 },
     glow: {
       position: 'absolute',
       borderWidth: 6,
@@ -272,9 +272,12 @@ const makeStyles = (theme: Theme) =>
     disc: { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     spindle: { position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: theme.bg },
     button: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      position: 'absolute',
+      right: 12,
+      bottom: 12,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
       backgroundColor: theme.accent,
       alignItems: 'center',
       justifyContent: 'center',

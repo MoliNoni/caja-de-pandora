@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RollingNumber } from './rolling-number';
 import { useIsFocused } from '@react-navigation/native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -97,10 +97,12 @@ type Props = {
   back?: boolean;
   /** Profile + cart on the right (shop screens). */
   actions?: boolean;
+  /** Where "back" goes when there is no history (e.g. after a reload on a deep link). */
+  fallback?: Href;
 };
 
 /** Shared top bar: brand mark on the left (or back), profile and cart on the right. */
-export function AppHeader({ back = false, actions = true }: Props) {
+export function AppHeader({ back = false, actions = true, fallback = '/' }: Props) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
 
@@ -109,7 +111,7 @@ export function AppHeader({ back = false, actions = true }: Props) {
       <View style={styles.left}>
         {back ? (
           <Pressable
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace(fallback))}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             hitSlop={6}

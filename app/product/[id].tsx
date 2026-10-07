@@ -6,6 +6,8 @@ import {
   View,
   Text,
   StyleSheet,
+  SafeAreaView,
+  Pressable,
   useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
@@ -23,7 +25,7 @@ import { VinylPlayer } from '../../components/vinyl-player';
 import { BookCover } from '../../components/book-cover';
 import { useBurst } from '../../components/pixel-burst';
 import { useFlyToCart } from '../../components/fly-to-cart';
-import { CartButton } from '../../components/app-header';
+import { AppHeader } from '../../components/app-header';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
@@ -36,8 +38,12 @@ export default function ProductDetailScreen() {
   const theme = useTheme();
   const burst = useBurst();
   const fly = useFlyToCart();
-  const { width } = useWindowDimensions();
-  const discSize = Math.min(width - 40, 340);
+  const { width, height } = useWindowDimensions();
+  // Media gets ~40 % of the screen height so the whole page fits a phone without scrolling.
+  const mediaH = height * 0.4;
+  const discSize = Math.min(width - 40, 340, mediaH / 0.9); // deck is 0.9 x its width tall
+  const bookWidth = Math.min(width * 0.72, 290, mediaH / 1.5); // book is 1.5 x its width tall
+  const [expanded, setExpanded] = useState(false);
   // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
   const cached = productCache.get(String(id)) ?? null;
   const [product, setProduct] = useState<Product | null>(cached);
@@ -103,93 +109,119 @@ export default function ProductDetailScreen() {
     if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord, recordMeta);
   };
 
+  const back = <AppHeader back fallback={isVinyl ? '/(tabs)/vinyl' : '/(tabs)/explore'} />;
+
   if (status === 'loading') {
     return (
-      <SkeletonRegion style={styles.container}>
-        <Skeleton aspectRatio={1} radius={16} style={styles.skeletonCover} />
-        <Skeleton height={26} width="75%" />
-        <Skeleton height={18} width="45%" style={styles.skeletonGap} />
-        <Skeleton height={28} width={96} style={styles.skeletonGap} />
-        <Skeleton height={16} style={styles.skeletonGap} />
-        <Skeleton height={16} width="90%" style={styles.skeletonGap} />
-        <Skeleton height={16} width="70%" style={styles.skeletonGap} />
-      </SkeletonRegion>
+      <SafeAreaView style={styles.screen}>
+        {back}
+        <SkeletonRegion style={styles.content}>
+          <Skeleton height={mediaH} radius={16} style={styles.skeletonCover} />
+          <Skeleton height={24} width="75%" />
+          <Skeleton height={16} width="45%" style={styles.skeletonGap} />
+          <Skeleton height={24} width={96} style={styles.skeletonGap} />
+          <Skeleton height={14} style={styles.skeletonGap} />
+          <Skeleton height={14} width="80%" style={styles.skeletonGap} />
+        </SkeletonRegion>
+      </SafeAreaView>
     );
   }
 
   if (status === 'error' || !product) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.screen}>
         <Stack.Screen options={{ title: 'Producto' }} />
-        <Text style={styles.errorText} accessibilityRole="alert">Producto no encontrado.</Text>
-      </View>
+        {back}
+        <View style={styles.center}>
+          <Text style={styles.errorText} accessibilityRole="alert">Producto no encontrado.</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   const inStock = product.stock > 0;
+  const meta = [product.editorial, product.anio_publicacion, product.genero].filter(Boolean).join(' · ');
+  // A book already shows this text inside its cover when it is the synopsis.
+  const description =
+    product.descripcion && product.descripcion.trim() !== synopsis?.trim() ? product.descripcion : null;
+  const longDescription = !!description && description.length > 160;
 
   return (
-    <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.screen}>
       <PatternBackground />
-      <Stack.Screen options={{ title: product.titulo, headerRight: () => <CartButton /> }} />
+      {/* Title for the browser tab; the visible bar is AppHeader (keeps "back" after a reload). */}
+      <Stack.Screen options={{ title: product.titulo }} />
+      {back}
 
-      {isVinyl ? (
-        <Animated.View entering={FadeIn.duration(200)}>
-          <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
-        </Animated.View>
-      ) : (
-        <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={Math.min(width * 0.72, 290)} />
-      )}
+      <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.content}>
+        {isVinyl ? (
+          <Animated.View entering={FadeIn.duration(200)} style={styles.media}>
+            <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
+          </Animated.View>
+        ) : (
+          <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={bookWidth} />
+        )}
 
-      <Animated.View entering={FadeInDown.delay(150).springify()}>
-        <Text style={styles.title} accessibilityRole="header">
-          {product.titulo}
-        </Text>
-        {!!product.autor && <Text style={styles.author}>{product.autor}</Text>}
-      </Animated.View>
-
-      <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
-      <Text style={inStock ? styles.stock : styles.noStock}>
-        {inStock ? `${product.stock} en stock` : 'Agotado'}
-      </Text>
-
-      {[product.editorial, product.anio_publicacion, product.genero]
-        .filter(Boolean)
-        .map((value) => (
-          <Text key={String(value)} style={styles.meta}>
-            {value}
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+            {product.titulo}
           </Text>
-        ))}
+          {!!product.autor && <Text style={styles.author} numberOfLines={1}>{product.autor}</Text>}
+        </Animated.View>
 
-      {/* A book already shows this text inside its cover when it is the synopsis. */}
-      {!!product.descripcion && product.descripcion.trim() !== synopsis?.trim() && (
-        <Text style={styles.description}>{product.descripcion}</Text>
-      )}
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
+          <Text style={[styles.stockChip, inStock ? styles.stock : styles.noStock]}>
+            {inStock ? `${product.stock} en stock` : 'Agotado'}
+          </Text>
+        </View>
 
+        {!!meta && <Text style={styles.meta} numberOfLines={1}>{meta}</Text>}
 
-      <Button
-        label={inStock ? 'Agregar al carrito' : 'Agotado'}
-        fullWidth
-        disabled={!inStock}
-        onPress={add}
-        style={styles.addButton}
-      />
-    </Animated.ScrollView>
+        {description ? (
+          <>
+            <Text style={styles.description} numberOfLines={expanded ? undefined : 3}>{description}</Text>
+            {longDescription ? (
+              <Pressable onPress={() => setExpanded((v) => !v)} accessibilityRole="button" hitSlop={8}>
+                <Text style={styles.more}>{expanded ? 'Leer menos' : 'Leer más'}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : null}
+      </Animated.ScrollView>
+
+      {/* Always in reach: the main action never scrolls away. */}
+      <View style={styles.footer}>
+        <Button label={inStock ? 'Agregar al carrito' : 'Agotado'} fullWidth disabled={!inStock} onPress={add} />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const makeStyles = (t: Theme) => StyleSheet.create({
-  skeletonCover: { marginBottom: 20 },
-  skeletonGap: { marginTop: 12 },
+  screen: { flex: 1, backgroundColor: t.bg },
+  content: { paddingHorizontal: 20, paddingBottom: 16, flexGrow: 1 },
+  skeletonCover: { marginBottom: 16 },
+  skeletonGap: { marginTop: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
-  title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, fontFamily: Fonts.serif, color: t.ink },
-  author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
-  price: { fontSize: 28, fontWeight: 'bold', color: t.accent, marginTop: 16 },
-  stock: { fontSize: 13, color: t.success, fontWeight: '600', marginTop: 4, marginBottom: 12 },
-  noStock: { fontSize: 13, color: t.danger, fontWeight: '600', marginTop: 4, marginBottom: 12 },
-  meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },
-  description: { fontSize: 15, color: t.ink, lineHeight: 22, marginTop: 16 },
+  media: { alignItems: 'center', marginBottom: 12 },
+  title: { fontSize: 24, lineHeight: 29, fontWeight: '800', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
+  author: { fontSize: 15, color: t.inkMuted, marginTop: 2 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  price: { fontSize: 24, fontWeight: '800', color: t.accent },
+  stockChip: { fontSize: 12, fontWeight: '700', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
+  stock: { color: t.success, borderColor: t.success },
+  noStock: { color: t.danger, borderColor: t.danger },
+  meta: { fontSize: 13, color: t.inkMuted, marginTop: 6 },
+  description: { fontSize: 14, color: t.ink, lineHeight: 20, marginTop: 10 },
+  more: { fontSize: 13, fontWeight: '700', color: t.accent, marginTop: 4 },
   errorText: { fontSize: 16, color: t.inkMuted },
-  addButton: { marginTop: 24 },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: t.border,
+    backgroundColor: t.bg,
+  },
 });

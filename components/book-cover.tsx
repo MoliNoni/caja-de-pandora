@@ -148,7 +148,7 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     // Full-bleed clip: the turned cover runs off the left edge without making the page scroll sideways.
-    stage: { marginHorizontal: -20, overflow: 'hidden', paddingTop: 8, paddingBottom: 28 },
+    stage: { marginHorizontal: -20, overflow: 'hidden', paddingTop: 4, paddingBottom: 14 },
     book: { alignSelf: 'center' },
     pageEdge: {
       position: 'absolute',
