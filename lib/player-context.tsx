@@ -182,6 +182,9 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const usePlayerProgress = () => useContext(ProgressContext);
+
+/** Extra bottom space a list needs while the floating mini-player is showing (pill + gap). */
+export const useMiniPlayerInset = () => (useContext(PlayerContext)?.nowPlaying ? 72 : 0);
 export const useAudioLevel = () => useContext(AudioLevelContext);
 
 export const usePlayer = () => {

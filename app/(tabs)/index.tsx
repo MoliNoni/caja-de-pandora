@@ -19,6 +19,7 @@ import Animated, {
 import { useFocusEffect } from '@react-navigation/native';
 import { getHomeData, type HomeData } from '../../lib/database';
 import { useCachedState } from '../../lib/cache';
+import { useMiniPlayerInset } from '../../lib/player-context';
 import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
 import { HeroButton } from '../../components/hero-button';
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const loading = home === undefined;
   // Bumped on every visit: remounting the sections replays their entrance each time.
   const [visit, setVisit] = useState(0);
+  const miniPlayerInset = useMiniPlayerInset();
 
   // Scroll-linked hero: the title spreads and the hero fades over the first HERO_FADE px;
   // the aurora drifts up slower than the content (parallax).
@@ -97,7 +99,7 @@ export default function HomeScreen() {
           ))}
         </SkeletonRegion>
       ) : (
-        <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
+        <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={[styles.scrollContent, { paddingBottom: 92 + miniPlayerInset }]} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
             <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} />
             <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
