@@ -4,9 +4,18 @@
 // Modular sections and carousel support
 
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, StyleSheet, SafeAreaView, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  Extrapolation,
+  FadeInDown,
+  interpolate,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  useScrollOffset,
+} from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHomeData, type HomeData } from '../../lib/database';
 import { useCachedState } from '../../lib/cache';
@@ -19,6 +28,8 @@ import { Skeleton, SkeletonCard, SkeletonRegion } from '../../components/skeleto
 import { useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
+const HERO_FADE = 260;
+
 // Home screen component
 export default function HomeScreen() {
   const styles = useThemedStyles(makeStyles);
@@ -28,6 +39,22 @@ export default function HomeScreen() {
   const loading = home === undefined;
   // Bumped on every visit: remounting the sections replays their entrance each time.
   const [visit, setVisit] = useState(0);
+
+  // Scroll-linked hero: the title spreads and the hero fades over the first HERO_FADE px;
+  // the aurora drifts up slower than the content (parallax).
+  const reducedMotion = useReducedMotion();
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useScrollOffset(scrollRef);
+  const spread = useDerivedValue(() =>
+    reducedMotion ? 0 : interpolate(scrollY.value, [0, HERO_FADE], [0, 1], Extrapolation.CLAMP)
+  );
+  const heroStyle = useAnimatedStyle((): ViewStyle => ({
+    opacity: 1 - 0.85 * spread.value,
+    transform: [{ translateY: scrollY.value * 0.35 * (reducedMotion ? 0 : 1) }],
+  }));
+  const auroraStyle = useAnimatedStyle((): ViewStyle => ({
+    transform: [{ translateY: reducedMotion ? 0 : -Math.min(Math.max(scrollY.value, 0) * 0.15, 90) }],
+  }));
 
   const loadHomeData = useCallback(async () => {
     try {
@@ -46,7 +73,9 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <PatternBackground />
+      <Animated.View style={[StyleSheet.absoluteFill, auroraStyle]} pointerEvents="none">
+        <PatternBackground />
+      </Animated.View>
       <AppHeader />
 
       {loading || !home ? (
@@ -63,9 +92,9 @@ export default function HomeScreen() {
           ))}
         </SkeletonRegion>
       ) : (
-        <ScrollView key={visit} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.hero}>
-            <DancingText text="Caja de Pandora" style={styles.heroTitle} />
+        <Animated.ScrollView ref={scrollRef} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
+          <Animated.View style={[styles.hero, heroStyle]}>
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} />
             <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
               Ábrela: historias que se leen y discos que giran.
             </Animated.Text>
@@ -77,7 +106,7 @@ export default function HomeScreen() {
                 }
               />
             </Animated.View>
-          </View>
+          </Animated.View>
 
           <SectionCarousel
             title="Best Sellers en Libros"
@@ -105,7 +134,7 @@ export default function HomeScreen() {
             products={home.newVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
-        </ScrollView>
+        </Animated.ScrollView>
       )}
     </SafeAreaView>
   );

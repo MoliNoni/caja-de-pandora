@@ -11,6 +11,7 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../hooks/use-theme';
@@ -40,11 +41,16 @@ type Props = {
   delay?: number;
   /** Gradient stops spread across the letters (#RRGGBB). Default: theme.gradients.pandora. */
   colors?: string[];
+  /** 0..1, driven by the caller (e.g. scroll): letters drift apart from the centre. */
+  spread?: SharedValue<number>;
 };
 
-function Letter({ char, index, color, style, wave, delay }: {
+function Letter({ char, index, side, color, style, wave, delay, spread }: {
   char: string;
   index: number;
+  /** -1 (first letter) .. 1 (last letter). */
+  side: number;
+  spread?: SharedValue<number>;
   color?: string;
   style?: StyleProp<TextStyle>;
   wave: boolean;
@@ -82,20 +88,24 @@ function Letter({ char, index, color, style, wave, delay }: {
   }, [reducedMotion, wave, delay, index, enter, bob]);
 
   const tilt = index % 2 ? 28 : -28;
-  const animated = useAnimatedStyle((): TextStyle => ({
-    opacity: Math.min(enter.value, 1),
-    transform: [
-      { translateY: (1 - enter.value) * 44 + bob.value },
-      { rotate: `${(1 - enter.value) * tilt}deg` },
-      { scale: 0.3 + 0.7 * enter.value },
-    ],
-  }));
+  const animated = useAnimatedStyle((): TextStyle => {
+    const s = spread?.value ?? 0;
+    return {
+      opacity: Math.min(enter.value, 1),
+      transform: [
+        { translateX: side * 60 * s },
+        { translateY: (1 - enter.value) * 44 + bob.value - 18 * s * (1 - Math.abs(side)) },
+        { rotate: `${(1 - enter.value) * tilt + side * 14 * s}deg` },
+        { scale: 0.3 + 0.7 * enter.value },
+      ],
+    };
+  });
 
   return <Animated.Text style={[style, color ? { color } : null, animated]}>{char}</Animated.Text>;
 }
 
 /** Display title whose letters spring in one by one, then dance in a slow wave. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors }: Props) {
+export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, spread }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -118,6 +128,8 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 key={index}
                 char={char}
                 index={index}
+                side={(index / last) * 2 - 1}
+                spread={spread}
                 style={style}
                 wave={wave}
                 delay={delay}
