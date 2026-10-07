@@ -10,11 +10,11 @@ import Animated, {
   Extrapolation,
   FadeInDown,
   interpolate,
-  useAnimatedRef,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useDerivedValue,
   useReducedMotion,
-  useScrollOffset,
+  useSharedValue,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHomeData, type HomeData } from '../../lib/database';
@@ -43,8 +43,12 @@ export default function HomeScreen() {
   // Scroll-linked hero: the title spreads and the hero fades over the first HERO_FADE px;
   // the aurora drifts up slower than the content (parallax).
   const reducedMotion = useReducedMotion();
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const scrollY = useScrollOffset(scrollRef);
+  // Own value, reset on every visit: the ScrollView remounts at the top (key={visit}), and a
+  // stale offset from the last visit would leave the hero faded out and the title spread.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
   const spread = useDerivedValue(() =>
     reducedMotion ? 0 : interpolate(scrollY.value, [0, HERO_FADE], [0, 1], Extrapolation.CLAMP)
   );
@@ -66,9 +70,10 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      scrollY.value = 0;
       setVisit((v) => v + 1);
       loadHomeData();
-    }, [loadHomeData])
+    }, [loadHomeData, scrollY])
   );
 
   return (
@@ -92,7 +97,7 @@ export default function HomeScreen() {
           ))}
         </SkeletonRegion>
       ) : (
-        <Animated.ScrollView ref={scrollRef} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
+        <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
             <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} />
             <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
