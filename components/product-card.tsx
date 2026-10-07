@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { useBurst } from './pixel-burst';
+import { useFlyToCart } from './fly-to-cart';
 import { Product, productCache } from '../lib/database';
 import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-image';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -59,6 +60,7 @@ export const ProductCard = ({
   const { addItem } = useCart();
   const theme = useTheme();
   const burst = useBurst();
+  const fly = useFlyToCart();
   const burstColors = product.category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books;
   const router = useRouter();
   // undefined = cover still loading (neutral block), null = no cover exists.
@@ -81,6 +83,7 @@ export const ProductCard = ({
   // Add product to cart
   const handleAddToCart = (e: GestureResponderEvent) => {
     burst(e, burstColors, 'lg');
+    fly(e, imageUri);
     void addItem(product, 1);
   };
 
@@ -151,6 +154,7 @@ export const ProductCard = ({
           label={product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
           accessibilityLabel={product.stock > 0 ? `Agregar ${product.titulo} al carrito` : `${product.titulo}, agotado`}
           variant="outline"
+          size="sm"
           fullWidth
           disabled={product.stock <= 0}
           onPress={handleAddToCart}
@@ -228,7 +232,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     letterSpacing: 0.5,
   },
   content: {
-    padding: 16,
+    padding: 12,
     backgroundColor: t.surface,
   },
   title: {

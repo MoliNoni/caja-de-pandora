@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getRecordPreviewUrl } from '../../lib/previews';
@@ -21,6 +21,8 @@ import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
 import { useBurst } from '../../components/pixel-burst';
+import { useFlyToCart } from '../../components/fly-to-cart';
+import { CartButton } from '../../components/app-header';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
@@ -32,6 +34,7 @@ export default function ProductDetailScreen() {
   const player = usePlayer();
   const theme = useTheme();
   const burst = useBurst();
+  const fly = useFlyToCart();
   const { width } = useWindowDimensions();
   const discSize = Math.min(width - 40, 340);
   // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
@@ -78,6 +81,7 @@ export default function ProductDetailScreen() {
   const add = (e: GestureResponderEvent) => {
     if (!product) return;
     burst(e, isVinyl ? theme.gradients.vinyl : theme.gradients.books, 'lg');
+    fly(e, imageUri);
     void addItem(product, 1);
     if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord, recordMeta);
   };
@@ -110,10 +114,10 @@ export default function ProductDetailScreen() {
   return (
     <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.container}>
       <PatternBackground />
-      <Stack.Screen options={{ title: product.titulo }} />
+      <Stack.Screen options={{ title: product.titulo, headerRight: () => <CartButton /> }} />
 
       {isVinyl ? (
-        <Animated.View entering={ZoomIn.springify().damping(12)}>
+        <Animated.View entering={FadeIn.duration(200)}>
           <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
         </Animated.View>
       ) : imageUri ? (

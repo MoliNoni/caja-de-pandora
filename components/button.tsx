@@ -14,7 +14,7 @@ type ButtonProps = {
   onPress: (event: GestureResponderEvent) => void;
   /** accent = the one primary CTA per screen; outline/ghost = secondary (design.md#components). */
   variant?: Variant;
-  size?: 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   icon?: ComponentProps<typeof Ionicons>['name'];
   loading?: boolean;
   disabled?: boolean;
@@ -69,7 +69,7 @@ export function Button({
         ) : (
           <>
             {icon ? <Ionicons name={icon} size={size === 'lg' ? 20 : 18} color={fg} /> : null}
-            <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: fg }]}>{label}</Text>
+            <Text numberOfLines={1} style={[styles.label, size !== 'md' && styles[`label_${size}`], { color: fg }]}>{label}</Text>
           </>
         )}
       </Animated.View>
@@ -90,6 +90,7 @@ const makeStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: 'transparent',
     },
+    sm: { minHeight: 40, paddingHorizontal: Spacing.sm },
     md: { minHeight: 44, paddingHorizontal: Spacing.lg },
     lg: { minHeight: 52, paddingHorizontal: Spacing.xl },
     accent: { backgroundColor: theme.accent },
@@ -98,5 +99,6 @@ const makeStyles = (theme: Theme) =>
     default: { backgroundColor: theme.surface, borderColor: theme.border },
     inactive: { opacity: 0.5 },
     label: { fontSize: 15, fontWeight: '600' },
-    labelLg: { fontSize: 17 },
+    label_sm: { fontSize: 13.5 },
+    label_lg: { fontSize: 17 },
   });

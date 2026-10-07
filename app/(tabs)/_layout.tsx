@@ -7,6 +7,7 @@ import { Tabs } from 'expo-router';
 import { HapticTab } from '../../components/haptic-tab';
 import { IconSymbol } from '../../components/icon-symbol';
 import { useTheme } from '../../hooks/use-theme';
+import { Fonts } from '../../constants/theme';
 
 // Tab navigation layout
 export default function TabLayout() {
@@ -18,27 +19,34 @@ export default function TabLayout() {
         tabBarInactiveTintColor: theme.inkMuted,
         headerShown: false,
         tabBarButton: HapticTab,
+        // Floating pill bar: rounded, lifted, the active tab sits in a tinted capsule.
         tabBarStyle: {
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 12,
+          height: 64,
+          paddingTop: 8,
+          paddingBottom: 8,
+          paddingHorizontal: 8,
+          borderRadius: 32,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: theme.border,
           backgroundColor: theme.surface,
-          borderTopWidth: 1,
-          borderTopColor: theme.border,
-          height: 62,
-          paddingBottom: 3,
-          paddingTop: 0,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
+          elevation: 12,
+          boxShadow: '0 14px 40px rgba(26,16,51,0.22), 0 2px 8px rgba(26,16,51,0.10)',
         },
+        tabBarItemStyle: { borderRadius: 24, marginHorizontal: 4 },
+        tabBarActiveBackgroundColor: `${theme.accent}1F`,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 0,
+          fontSize: 12,
+          fontWeight: '700',
+          fontFamily: Fonts.serif,
+          letterSpacing: 0.2,
         },
-        tabBarIconStyle: {
-          marginTop: 0,
-        },
+        // Keep each screen's last row clear of the floating bar.
+        sceneStyle: { paddingBottom: 88, backgroundColor: theme.bg },
       }}
     >
       <Tabs.Screen
@@ -46,7 +54,7 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol size={24} name="house.fill" color={color} />
           ),
         }}
       />
@@ -55,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: 'Libros',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="book.fill" color={color} />
+            <IconSymbol size={24} name="book.fill" color={color} />
           ),
         }}
       />
@@ -64,7 +72,7 @@ export default function TabLayout() {
         options={{
           title: 'Vinilos',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="music.note" color={color} />
+            <IconSymbol size={24} name="music.note" color={color} />
           ),
         }}
       />

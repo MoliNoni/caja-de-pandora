@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -19,6 +20,7 @@ import { Fonts, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { useCart } from '../lib/cart-context';
+import { FLY_MS, registerCartTarget } from './fly-to-cart';
 import { ProfileMenu } from './profile-menu';
 
 /** Brand mark: a small record that keeps turning. */
@@ -48,21 +50,31 @@ function SpinningRecord({ size }: { size: number }) {
   );
 }
 
-/** Cart link whose badge pops whenever the count grows. */
-function CartButton() {
+/** Cart link (fly-to-cart target while focused); the badge counts up and pops when a flight lands. */
+export function CartButton() {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { itemCount } = useCart();
   const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
+  const ref = useRef<View>(null);
+  const focused = useIsFocused();
+  useEffect(() => (focused ? registerCartTarget(ref) : undefined), [focused]);
+
+  const [shown, setShown] = useState(itemCount);
   useEffect(() => {
-    if (reducedMotion || itemCount === 0) return;
+    const timer = setTimeout(() => setShown(itemCount), itemCount > shown && !reducedMotion ? FLY_MS : 0);
+    return () => clearTimeout(timer);
+  }, [itemCount, shown, reducedMotion]);
+  useEffect(() => {
+    if (reducedMotion || shown === 0) return;
     scale.value = withSequence(withTiming(1.35, { duration: 120 }), withSpring(1, { damping: 6, stiffness: 220 }));
-  }, [itemCount, reducedMotion, scale]);
+  }, [shown, reducedMotion, scale]);
   const pop = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Pressable
+      ref={ref}
       onPress={() => router.push('/cart')}
       accessibilityRole="link"
       accessibilityLabel={itemCount > 0 ? `Carrito, ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}` : 'Carrito'}
@@ -70,9 +82,9 @@ function CartButton() {
       style={(state) => [styles.iconButton, isFocused(state) && styles.focusRing]}
     >
       <Ionicons name="cart" size={22} color={theme.accent} />
-      {itemCount > 0 && (
+      {shown > 0 && (
         <Animated.View style={[styles.badge, pop]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={styles.badgeText}>{itemCount}</Text>
+          <Text style={styles.badgeText}>{shown}</Text>
         </Animated.View>
       )}
     </Pressable>

@@ -170,7 +170,7 @@ export function MiniPlayer() {
 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
-    dock: { position: 'absolute', left: 12, right: 12, bottom: 76, alignItems: 'center' },
+    dock: { position: 'absolute', left: 12, right: 12, bottom: 86, alignItems: 'center' },
     pill: {
       width: '100%',
       maxWidth: 520,

@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, LinearGradient, Line, Rect, Stop } from 'react-native-svg';
@@ -53,6 +55,19 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
   const glow = useSharedValue(0);
   const lit = useSharedValue(0);
   const icon = useSharedValue(0); // 0 = play, 1 = pause
+  // Sleeve reveal on mount: the sleeve slides off the record (0 → 1), then the record drops onto the platter.
+  const sleeve = useSharedValue(reducedMotion ? 1 : 0);
+  const drop = useSharedValue(reducedMotion ? 1 : 0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      sleeve.value = 1;
+      drop.value = 1;
+      return;
+    }
+    sleeve.value = withDelay(250, withTiming(1, { duration: 700, easing: Easing.inOut(Easing.cubic) }));
+    drop.value = withDelay(850, withSpring(1, { damping: 10, stiffness: 170 }));
+  }, [reducedMotion, sleeve, drop]);
 
   const wasPlaying = useRef(false);
 
@@ -83,7 +98,20 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
     wasPlaying.current = playing;
   }, [playing, reducedMotion, rotation, arm, icon, glow, lit]);
 
-  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
+  // Deck geometry, all relative to `size` (the deck width).
+  const disc = size * 0.82;
+  const spin = useAnimatedStyle((): ViewStyle => ({
+    transform: [
+      { translateX: -disc * 0.08 * sleeve.value * (1 - drop.value) },
+      { translateY: -disc * 0.05 * (1 - drop.value) },
+      { scale: 1.07 - 0.07 * drop.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+  }));
+  const sleeveStyle = useAnimatedStyle((): ViewStyle => ({
+    opacity: sleeve.value < 0.6 ? 1 : (1 - sleeve.value) / 0.4,
+    transform: [{ translateX: disc * 0.95 * sleeve.value }, { rotate: `${9 * sleeve.value}deg` }],
+  }));
   const glowStyle = useAnimatedStyle(() => ({
     opacity: lit.value * (0.55 + 0.35 * glow.value),
     transform: [{ scale: 1.04 + 0.06 * glow.value }],
@@ -103,8 +131,6 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
     if (!(await player.toggle(trackId, resolve, meta))) showAlert('Sin vista previa', 'No encontramos un fragmento para reproducir.');
   };
 
-  // Deck geometry, all relative to `size` (the deck width).
-  const disc = size * 0.82;
   const r = disc / 2;
   const discX = size * 0.03;
   const discY = size * 0.04;
@@ -162,6 +188,9 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
           </Defs>
           <Circle cx={r} cy={r} r={r} fill="url(#sheen)" />
         </Svg>
+        <Animated.View pointerEvents="none" style={[discBox, styles.sleeve, sleeveStyle]}>
+          {coverUri ? <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} /> : null}
+        </Animated.View>
         <Animated.View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, { transformOrigin: [pivot.x, pivot.y, 0] }, armStyle]}
@@ -232,6 +261,12 @@ const makeStyles = (theme: Theme) =>
       boxShadow: '0 24px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
     },
     platter: { backgroundColor: '#0A0A0A', transform: [{ scale: 1.03 }], boxShadow: '0 10px 30px rgba(0,0,0,0.6)' },
+    sleeve: {
+      borderRadius: 6,
+      overflow: 'hidden',
+      backgroundColor: theme.accent,
+      boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+    },
     disc: { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     spindle: { position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: theme.bg },
     button: {
