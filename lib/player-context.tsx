@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioSampleListener } from 'expo-audio';
+import { makeMutable, withTiming, type SharedValue } from 'react-native-reanimated';
 
 // Single global player: starting a track replaces whatever was playing.
 /** Resolves a playable URL; refresh = the previous URL failed to load. */
@@ -26,6 +27,13 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 // Position ticks 10x/s: kept in its own context so only progress UIs re-render on every tick.
 const ProgressContext = createContext({ position: 0, duration: 0 });
+/**
+ * Loudness of the playing preview, 0..1, on the UI thread (no re-renders). `live` is 1 once real
+ * samples arrive: iOS always; Android only with RECORD_AUDIO (never requested here); web never.
+ * Without samples, visuals keep their own synthetic pulse.
+ */
+type AudioLevel = { level: SharedValue<number>; live: SharedValue<number> };
+const AudioLevelContext = createContext<AudioLevel>({ level: makeMutable(0), live: makeMutable(0) });
 
 // A preview that never reports isLoaded is treated as a playback failure (signed URLs expire).
 const LOAD_TIMEOUT_MS = 8000;
@@ -43,6 +51,18 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResolve = useRef<ResolvePreview | null>(null); // source of the loaded preview
   const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  const [audioLevel] = useState<AudioLevel>(() => ({ level: makeMutable(0), live: makeMutable(0) }));
+
+  useAudioSampleListener(player, (sample) => {
+    const frames = sample.channels[0]?.frames;
+    if (!frames?.length) return;
+    let sum = 0;
+    for (let i = 0; i < frames.length; i += 4) sum += frames[i] * frames[i];
+    const rms = Math.sqrt(sum / Math.ceil(frames.length / 4));
+    // ponytail: fixed gain, tuned by ear for music previews; normalise per track if levels vary a lot.
+    audioLevel.level.value = withTiming(Math.min(1, rms * 3.5), { duration: 90 });
+    audioLevel.live.value = 1;
+  });
 
   // Effective gain = listener volume x fade-in x fade-out. Re-applied every tick because the web
   // player builds a fresh <audio> (volume 1) on each replace().
@@ -54,6 +74,12 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [player, volume, currentTime, duration, playing]);
 
   // Clip over: unload it so the record stops and the mini-player slides away.
+  // Fall back to the synthetic pulse until the next clip proves it delivers samples.
+  useEffect(() => {
+    audioLevel.live.value = 0;
+    audioLevel.level.value = 0;
+  }, [audioLevel, trackId]);
+
   useEffect(() => {
     if (didJustFinish) {
       setTrackId(null);
@@ -148,12 +174,15 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <PlayerContext.Provider value={value}>
-      <ProgressContext.Provider value={progress}>{children}</ProgressContext.Provider>
+      <ProgressContext.Provider value={progress}>
+        <AudioLevelContext.Provider value={audioLevel}>{children}</AudioLevelContext.Provider>
+      </ProgressContext.Provider>
     </PlayerContext.Provider>
   );
 };
 
 export const usePlayerProgress = () => useContext(ProgressContext);
+export const useAudioLevel = () => useContext(AudioLevelContext);
 
 export const usePlayer = () => {
   const context = useContext(PlayerContext);

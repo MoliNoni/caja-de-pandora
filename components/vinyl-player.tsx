@@ -17,7 +17,7 @@ import Svg, { Circle, Defs, G, LinearGradient, Line, Rect, Stop } from 'react-na
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { showAlert } from '../lib/dialog';
-import { usePlayer, type NowPlaying, type ResolvePreview } from '../lib/player-context';
+import { useAudioLevel, usePlayer, type NowPlaying, type ResolvePreview } from '../lib/player-context';
 import type { Theme } from '../constants/theme';
 
 const TURN_MS = 1800; // 33⅓ rpm
@@ -46,6 +46,7 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
   const styles = useThemedStyles(makeStyles);
   const reducedMotion = useReducedMotion();
   const player = usePlayer();
+  const audio = useAudioLevel();
   const active = player.trackId === trackId;
   // Spin from the tap, not from the first audio frame: loading a preview takes a moment.
   const playing = active && (player.isPlaying || player.loading);
@@ -112,10 +113,11 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
     opacity: sleeve.value < 0.6 ? 1 : (1 - sleeve.value) / 0.4,
     transform: [{ translateX: disc * 0.95 * sleeve.value }, { rotate: `${9 * sleeve.value}deg` }],
   }));
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: lit.value * (0.55 + 0.35 * glow.value),
-    transform: [{ scale: 1.04 + 0.06 * glow.value }],
-  }));
+  // Real loudness when the platform delivers samples, the synthetic pulse otherwise.
+  const glowStyle = useAnimatedStyle(() => {
+    const g = audio.live.value && !reducedMotion ? audio.level.value : glow.value;
+    return { opacity: lit.value * (0.55 + 0.35 * g), transform: [{ scale: 1.04 + 0.06 * g }] };
+  });
   const armStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${arm.value}deg` }] }));
   const playIcon = useAnimatedStyle(() => ({
     opacity: 1 - icon.value,

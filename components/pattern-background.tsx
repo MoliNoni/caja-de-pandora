@@ -13,6 +13,7 @@ import Svg, { Circle, Defs, Pattern, RadialGradient, Rect, Stop } from 'react-na
 
 import { useTheme } from '../hooks/use-theme';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { useAudioLevel } from '../lib/player-context';
 
 const forcedQuery =
   Platform.OS === 'web' && typeof window !== 'undefined' ? window.matchMedia?.('(forced-colors: active)') : undefined;
@@ -38,6 +39,7 @@ function Blob({ color, left, top, dx, dy, ms, opacity }: (typeof BLOBS)[number] 
   const id = `blob${useId().replace(/:/g, '')}`;
   const reducedMotion = useReducedMotion();
   const t = useSharedValue(0);
+  const audio = useAudioLevel();
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -46,7 +48,12 @@ function Blob({ color, left, top, dx, dy, ms, opacity }: (typeof BLOBS)[number] 
   }, [reducedMotion, ms, t]);
 
   const drift = useAnimatedStyle((): ViewStyle => ({
-    transform: [{ translateX: dx * t.value }, { translateY: dy * t.value }, { scale: 1 + 0.15 * t.value }],
+    transform: [
+      { translateX: dx * t.value },
+      { translateY: dy * t.value },
+      // Blobs breathe with the music when real audio samples are available.
+      { scale: 1 + 0.15 * t.value + (reducedMotion ? 0 : 0.12 * audio.live.value * audio.level.value) },
+    ],
   }));
 
   const fill = theme.vivid[color];
