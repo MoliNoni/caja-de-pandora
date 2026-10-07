@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { RollingNumber } from './rolling-number';
 import Animated, { FadeInRight, FadeOutLeft, LinearTransition, ZoomIn } from 'react-native-reanimated';
 import { DancingText } from './dancing-text';
 import { useBurst } from './pixel-burst';
@@ -115,7 +116,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     >
                       <Text style={styles.quantityButtonText}>-</Text>
                     </TouchableOpacity>
-                    <Text style={styles.quantity}>{item.cantidad}</Text>
+                    <RollingNumber text={String(item.cantidad)} style={styles.quantity} />
                     <TouchableOpacity
                       onPress={(e) => {
                         burst(e, theme.gradients.warm, 'sm');
@@ -134,9 +135,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                 </View>
 
                 <View style={styles.itemRight}>
-                  <Text style={styles.itemSubtotal}>
-                    ${(item.precio * item.cantidad).toFixed(2)}
-                  </Text>
+                  <RollingNumber text={`$${(item.precio * item.cantidad).toFixed(2)}`} style={styles.itemSubtotal} />
                   <TouchableOpacity
                     onPress={(e) => {
                       burst(e, theme.gradients.warm, 'sm');
@@ -162,7 +161,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
 
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>Total:</Text>
-            <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
+            <RollingNumber text={`$${total.toFixed(2)}`} style={styles.totalAmount} />
           </View>
 
           <View style={styles.buttonsContainer}>

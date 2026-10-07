@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { RollingNumber } from './rolling-number';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -84,7 +85,7 @@ export function CartButton() {
       <Ionicons name="cart" size={22} color={theme.accent} />
       {shown > 0 && (
         <Animated.View style={[styles.badge, pop]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={styles.badgeText}>{shown}</Text>
+          <RollingNumber text={String(shown)} style={styles.badgeText} />
         </Animated.View>
       )}
     </Pressable>
