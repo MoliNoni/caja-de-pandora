@@ -7,18 +7,19 @@ import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   Image,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInRight, FadeOutLeft, LinearTransition, ZoomIn } from 'react-native-reanimated';
+import { DancingText } from './dancing-text';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 
 const QTY_HIT_SLOP = { top: 10, bottom: 10, left: 6, right: 6 };
 
@@ -68,17 +69,22 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
         >
           <Ionicons name="arrow-back" size={24} color={theme.ink} />
         </TouchableOpacity>
-        <Text style={styles.title} accessibilityRole="header">Carrito</Text>
+        <DancingText text="Tu carrito" style={styles.title} containerStyle={styles.titleRow} />
         <Text style={styles.itemCount}>{itemCount} items</Text>
       </View>
 
       {items.length > 0 ? (
         <>
-          <FlatList
+          <Animated.FlatList
             data={items}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.cartItem}>
+            itemLayoutAnimation={LinearTransition.springify().damping(16)}
+            renderItem={({ item, index }) => (
+              <Animated.View
+                entering={FadeInRight.delay(Math.min(index, 6) * 70).springify().damping(14)}
+                exiting={FadeOutLeft.duration(220)}
+                style={styles.cartItem}
+              >
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                 ) : (
@@ -135,7 +141,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     <Text style={styles.deleteButtonText}>Eliminar</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </Animated.View>
             )}
             contentContainerStyle={styles.listContent}
             scrollEnabled
@@ -173,6 +179,9 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
         </>
       ) : (
         <View style={styles.emptyContainer}>
+          <Animated.View entering={ZoomIn.springify().damping(8)} aria-hidden>
+            <Ionicons name="cart-outline" size={72} color={theme.vivid[5]} />
+          </Animated.View>
           <Text style={styles.emptyMessage}>Tu carrito está vacío</Text>
           <Text style={styles.emptySubtext}>
             Añade algunos libros o vinilos para comenzar
@@ -200,12 +209,15 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: t.border,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: t.ink,
+  titleRow: {
     flex: 1,
-    textAlign: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    fontFamily: Fonts.serif,
+    letterSpacing: -0.8,
   },
   itemCount: {
     fontSize: 14,

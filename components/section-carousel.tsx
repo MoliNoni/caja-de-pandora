@@ -5,6 +5,7 @@ import {
   FlatList,
   StyleSheet,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Product } from '../lib/database';
 import { Button } from './button';
 import { ProductCard } from './product-card';
@@ -33,8 +34,8 @@ export const SectionCarousel = ({
   return (
     <View style={styles.section}>
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title} accessibilityRole="header">{title}</Text>
+        <View style={styles.headerText}>
+          <Animated.Text entering={FadeInDown.springify()} style={styles.title} accessibilityRole="header">{title}</Animated.Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {onSeeAll ? (
@@ -54,6 +55,7 @@ export const SectionCarousel = ({
               compact
               isBestSeller={isBestSeller}
               featured={featuredFirst && index === 0}
+              index={index}
             />
           </View>
         )}
@@ -78,9 +80,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginHorizontal: 8,
     marginBottom: 10,
   },
+  headerText: {
+    flex: 1,
+  },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
+    letterSpacing: -0.5,
     fontFamily: Fonts.serif,
     color: t.ink,
   },

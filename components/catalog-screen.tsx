@@ -20,6 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getProductos, Product } from '../lib/database';
 import { PatternBackground } from './pattern-background';
+import { DancingText } from './dancing-text';
 import { ProductCard } from './product-card';
 import { ProfileMenu } from './profile-menu';
 import { useCart } from '../lib/cart-context';
@@ -116,7 +117,7 @@ export const CatalogScreen = ({
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">{title}</Text>
+        <DancingText text={title} style={styles.title} containerStyle={styles.titleRow} />
         <View style={styles.headerActions}>
           <ProfileMenu />
           <TouchableOpacity
@@ -165,7 +166,7 @@ export const CatalogScreen = ({
           data={filteredProductos}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
-          renderItem={({ item }) => <ProductCard product={item} />}
+          renderItem={({ item, index }) => <ProductCard product={item} index={index} />}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <Text style={styles.resultCount}>
@@ -199,18 +200,18 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: t.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+  },
+  titleRow: {
+    flex: 1,
+    marginRight: 8,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -1,
+    fontWeight: '800',
     fontFamily: Fonts.serif,
     color: t.ink,
-    flex: 1,
-    textAlign: 'left',
-    marginRight: 8,
   },
   headerActions: {
     flexDirection: 'row',

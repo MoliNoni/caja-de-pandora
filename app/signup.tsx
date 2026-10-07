@@ -14,13 +14,15 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { DancingText } from '../components/dancing-text';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 
 // Sign up screen component
 export default function SignUpScreen() {
@@ -103,12 +105,12 @@ export default function SignUpScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>📚 LibreríaShop</Text>
-          <Text style={styles.title} accessibilityRole="header">Crear Cuenta</Text>
+          <Animated.Text entering={FadeInDown.springify()} style={styles.logo}>CAJA DE PANDORA</Animated.Text>
+          <DancingText text="Crea tu cuenta" style={styles.title} />
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
+        <Animated.View entering={FadeInDown.delay(450).springify().damping(14)} style={styles.form}>
           {/* Nombre */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Nombre *</Text>
@@ -294,7 +296,7 @@ export default function SignUpScreen() {
               <Text style={styles.footerLink}>Inicia sesión</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -306,25 +308,32 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.bg,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    backgroundColor: t.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 8,
   },
   logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: t.ink,
-    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: t.inkMuted,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: t.inkMuted,
+    fontSize: 48,
+    lineHeight: 54,
+    letterSpacing: -1.5,
+    fontWeight: '800',
+    fontFamily: Fonts.serif,
   },
   form: {
-    padding: 16,
+    margin: 16,
+    padding: 20,
+    borderRadius: 28,
+    backgroundColor: t.surface,
+    borderWidth: 1,
+    borderColor: t.border,
+    boxShadow: '0px 24px 60px rgba(26,16,51,0.14)',
   },
   inputGroup: {
     marginBottom: 16,

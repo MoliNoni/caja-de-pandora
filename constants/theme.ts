@@ -7,28 +7,31 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    bg: '#F6F1E7',
+    bg: '#FFF7EE',
     surface: '#FFFFFF',
-    ink: '#1B1714',
-    inkMuted: '#5C534B',
-    accent: '#B4361F',
+    ink: '#1A1033',
+    inkMuted: '#5B5370',
+    accent: '#E0115F',
     onAccent: '#FFFFFF',
-    border: '#E2D8C8',
+    border: '#F0E3D6',
     danger: '#B42318',
-    success: '#1F7A4D',
-    scrim: 'rgba(0, 0, 0, 0.5)',
+    success: '#0F7A55',
+    scrim: 'rgba(26, 16, 51, 0.5)',
+    /** Display colors (letters, blobs, glows). Each keeps >= 3:1 against `bg` for large text. */
+    vivid: ['#E0115F', '#E85D04', '#B7791F', '#0F9D7A', '#2563EB', '#7C3AED'],
   },
   dark: {
-    bg: '#14110F',
-    surface: '#1E1A17',
-    ink: '#F2ECE2',
-    inkMuted: '#B5ABA0',
-    accent: '#E2654B',
-    onAccent: '#14110F',
-    border: '#332C26',
+    bg: '#0E0A1F',
+    surface: '#1A1430',
+    ink: '#F7F2FF',
+    inkMuted: '#B9B0D0',
+    accent: '#FF4F8B',
+    onAccent: '#14081F',
+    border: '#2E2550',
     danger: '#F97066',
     success: '#4ADE80',
     scrim: 'rgba(0, 0, 0, 0.6)',
+    vivid: ['#FF4F8B', '#FF9F1C', '#FFD60A', '#2EE6B6', '#5EA8FF', '#B38CFF'],
   },
 };
 
@@ -57,7 +60,8 @@ export const Fonts = Platform.select({
   },
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
+    /** Display face, loaded in app/+html.tsx. */
+    serif: "'Bricolage Grotesque', Georgia, serif",
     rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },

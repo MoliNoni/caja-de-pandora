@@ -1,7 +1,7 @@
 // Product Detail Screen
 // Deep-linkable route: /product/:id
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Pressable,
   View,
@@ -9,14 +9,19 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
+import { getItunesPreviewUrl } from '../../lib/itunes';
+import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { formatDuration, getTracksByProduct, Track } from '../../lib/tracks';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
+import { VinylPlayer } from '../../components/vinyl-player';
 import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
@@ -25,6 +30,9 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
+  const player = usePlayer();
+  const { width } = useWindowDimensions();
+  const discSize = Math.min(width - 40, 340);
   const [product, setProduct] = useState<Product | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -52,6 +60,20 @@ export default function ProductDetailScreen() {
       active = false;
     };
   }, [id]);
+
+  const isVinyl = product?.category === 'vinyl';
+  const recordKey = `record:${id}`;
+  const resolveRecord = useCallback(
+    () => getItunesPreviewUrl(product?.autor, product?.titulo ?? ''),
+    [product?.autor, product?.titulo]
+  );
+
+  // A record starts spinning (and playing) the moment it goes into the cart.
+  const add = () => {
+    if (!product) return;
+    void addItem(product, 1);
+    if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord);
+  };
 
   if (status === 'loading') {
     return (
@@ -83,7 +105,11 @@ export default function ProductDetailScreen() {
       <PatternBackground />
       <Stack.Screen options={{ title: product.titulo }} />
 
-      {imageUri ? (
+      {isVinyl ? (
+        <Animated.View entering={ZoomIn.springify().damping(12)}>
+          <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} />
+        </Animated.View>
+      ) : imageUri ? (
         <Image
           source={{ uri: imageUri }}
           style={styles.image}
@@ -96,10 +122,12 @@ export default function ProductDetailScreen() {
         </View>
       )}
 
-      <Text style={styles.title} accessibilityRole="header">
-        {product.titulo}
-      </Text>
-      {!!product.autor && <Text style={styles.author}>{product.autor}</Text>}
+      <Animated.View entering={FadeInDown.delay(150).springify()}>
+        <Text style={styles.title} accessibilityRole="header">
+          {product.titulo}
+        </Text>
+        {!!product.autor && <Text style={styles.author}>{product.autor}</Text>}
+      </Animated.View>
 
       <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
       <Text style={inStock ? styles.stock : styles.noStock}>
@@ -140,7 +168,7 @@ export default function ProductDetailScreen() {
         label={inStock ? 'Agregar al carrito' : 'Agotado'}
         fullWidth
         disabled={!inStock}
-        onPress={() => void addItem(product, 1)}
+        onPress={add}
         style={styles.addButton}
       />
     </ScrollView>
@@ -154,9 +182,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
   image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: t.surface, marginBottom: 20 },
   placeholder: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: '700', fontFamily: Fonts.serif, color: t.ink },
+  title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
-  price: { fontSize: 24, fontWeight: 'bold', color: t.accent, marginTop: 16 },
+  price: { fontSize: 28, fontWeight: 'bold', color: t.accent, marginTop: 16 },
   stock: { fontSize: 13, color: t.success, fontWeight: '600', marginTop: 4, marginBottom: 12 },
   noStock: { fontSize: 13, color: t.danger, fontWeight: '600', marginTop: 4, marginBottom: 12 },
   meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },

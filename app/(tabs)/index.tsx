@@ -3,7 +3,7 @@
 // Shows featured books and vinyl
 // Modular sections and carousel support
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,19 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -23,11 +36,50 @@ import {
 import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
 import { HeroButton } from '../../components/hero-button';
+import { DancingText } from '../../components/dancing-text';
 import { ProfileMenu } from '../../components/profile-menu';
 import { useCart } from '../../lib/cart-context';
 import { Skeleton, SkeletonCard, SkeletonRegion } from '../../components/skeleton';
 import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
+
+/** Decorative record that keeps turning beside the hero title. */
+function SpinningRecord({ size }: { size: number }) {
+  const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    if (reducedMotion) return;
+    turn.value = withRepeat(withTiming(360, { duration: 4000, easing: Easing.linear }), -1);
+    return () => cancelAnimation(turn);
+  }, [reducedMotion, turn]);
+  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  const r = size / 2;
+  return (
+    <Animated.View style={spin} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={size} height={size}>
+        <Circle cx={r} cy={r} r={r} fill="#111" />
+        {[0.5, 0.62, 0.74, 0.86, 0.95].map((k) => (
+          <Circle key={k} cx={r} cy={r} r={r * k} fill="none" stroke="#2C2C2C" strokeWidth={1} />
+        ))}
+        <Circle cx={r} cy={r} r={r * 0.36} fill={theme.vivid[0]} />
+        <Circle cx={r * 1.12} cy={r * 0.86} r={r * 0.1} fill={theme.vivid[2]} />
+        <Circle cx={r} cy={r} r={r * 0.06} fill={theme.bg} />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/** Cart icon that pops whenever the item count grows. */
+function useBadgePop(count: number) {
+  const scale = useSharedValue(1);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => {
+    if (reducedMotion || count === 0) return;
+    scale.value = withSequence(withTiming(1.35, { duration: 120 }), withSpring(1, { damping: 6, stiffness: 220 }));
+  }, [count, reducedMotion, scale]);
+  return useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+}
 
 // Home screen component
 export default function HomeScreen() {
@@ -35,6 +87,7 @@ export default function HomeScreen() {
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { itemCount } = useCart();
+  const badgePop = useBadgePop(itemCount);
 
   const [bestSellersBooks, setBestSellersBooks] = useState<Product[]>([]);
   const [bestSellersVinyls, setBestSellersVinyls] = useState<Product[]>([]);
@@ -86,9 +139,9 @@ export default function HomeScreen() {
           >
             <Ionicons name="cart" size={24} color={theme.accent} />
             {itemCount > 0 && (
-              <View style={styles.cartBadge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Animated.View style={[styles.cartBadge, badgePop]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 <Text style={styles.cartBadgeText}>{itemCount}</Text>
-              </View>
+              </Animated.View>
             )}
           </TouchableOpacity>
         </View>
@@ -110,16 +163,24 @@ export default function HomeScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.hero}>
-            <Text style={styles.heroTitle} accessibilityRole="header">
-              Libros y vinilos con historia
-            </Text>
-            <Text style={styles.heroText}>Descubre tesoros literarios y musicales.</Text>
-            <HeroButton
-              label="Buscar en el catálogo"
-              onPress={() =>
-                router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
-              }
-            />
+            <View style={styles.heroTop}>
+              <Animated.Text entering={FadeInDown.springify()} style={styles.eyebrow}>
+                LIBROS · VINILOS · DESDE SIEMPRE
+              </Animated.Text>
+              <SpinningRecord size={64} />
+            </View>
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} delay={150} />
+            <Animated.Text entering={FadeInDown.delay(800).springify()} style={styles.heroText}>
+              Ábrela: historias que se leen y discos que giran.
+            </Animated.Text>
+            <Animated.View entering={FadeInDown.delay(1000).springify()}>
+              <HeroButton
+                label="Buscar en el catálogo"
+                onPress={() =>
+                  router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
+                }
+              />
+            </Animated.View>
           </View>
 
           <SectionCarousel
@@ -169,17 +230,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: t.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    backgroundColor: 'transparent',
   },
   logoContainer: {
     flex: 1,
     marginRight: 12,
   },
   logo: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: Fonts.serif,
+    letterSpacing: -0.3,
     color: t.ink,
   },
   headerActions: {
@@ -226,20 +287,35 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   hero: {
     marginHorizontal: 8,
-    marginTop: 16,
-    marginBottom: 16,
-    gap: 12,
+    marginTop: 24,
+    marginBottom: 32,
+    gap: 16,
     alignItems: 'flex-start',
   },
-  heroTitle: {
-    fontSize: 32,
-    lineHeight: 38,
+  heroTop: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  eyebrow: {
+    fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 2,
+    color: t.inkMuted,
+  },
+  heroTitle: {
+    fontSize: 64,
+    lineHeight: 68,
+    letterSpacing: -2,
+    fontWeight: '800',
     fontFamily: Fonts.serif,
     color: t.ink,
   },
   heroText: {
-    fontSize: 15,
+    fontSize: 18,
+    lineHeight: 26,
     color: t.inkMuted,
+    maxWidth: 420,
   },
 });

@@ -12,14 +12,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Pressable,
+  type ViewStyle,
 } from 'react-native';
+import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { Product } from '../lib/database';
 import { resolveProductImageUrl } from '../lib/product-image';
 import { useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +32,8 @@ interface ProductCardProps {
   isBestSeller?: boolean;
   compact?: boolean;
   featured?: boolean;
+  /** Position in its list: staggers the entrance. */
+  index?: number;
 }
 
 // Product card component
@@ -38,8 +43,17 @@ export const ProductCard = ({
   isBestSeller = false,
   compact = false,
   featured = false,
+  index = 0,
 }: ProductCardProps) => {
   const styles = useThemedStyles(makeStyles);
+  const reducedMotion = useReducedMotion();
+  const lift = useSharedValue(0);
+  const liftStyle = useAnimatedStyle((): ViewStyle => ({
+    transform: [{ translateY: -6 * lift.value }, { rotate: `${-0.6 * lift.value}deg` }, { scale: 1 + 0.02 * lift.value }],
+  }));
+  const hover = (on: boolean) => {
+    if (!reducedMotion) lift.value = withSpring(on ? 1 : 0, { damping: 14, stiffness: 220 });
+  };
   const { addItem } = useCart();
   const router = useRouter();
   const openDetail = onPress ?? (() => router.push({ pathname: '/product/[id]', params: { id: product.id } }));
@@ -62,13 +76,17 @@ export const ProductCard = ({
   };
 
   return (
-    <View
+    <Animated.View
+      entering={FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(14)}
       style={[
         styles.container,
         compact && styles.compactContainer,
         featured && styles.featuredContainer,
+        liftStyle,
       ]}
     >
+      {/* Hover-only wrapper (web): not focusable, no action of its own. */}
+      <Pressable focusable={false} accessible={false} onHoverIn={() => hover(true)} onHoverOut={() => hover(false)}>
       <TouchableOpacity
         onPress={openDetail}
         style={styles.imageContainer}
@@ -127,7 +145,8 @@ export const ProductCard = ({
           style={styles.addButton}
         />
       </View>
-    </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -136,17 +155,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     width: (width - 40) / 2,
     marginBottom: 16,
     backgroundColor: t.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    // Enhanced shadow for better depth
-    boxShadow: '0px 4px 12px rgba(0,0,0,0.15), 0px 2px 6px rgba(0,0,0,0.1)',
+    boxShadow: '0px 10px 30px rgba(26,16,51,0.12), 0px 2px 6px rgba(26,16,51,0.08)',
     elevation: 6,
     // Subtle border
     borderWidth: 1,
     borderColor: t.border,
-    // Top accent border with theme color
-    borderTopWidth: 3,
-    borderTopColor: t.accent,
   },
   compactContainer: {
     width: 180,
@@ -204,8 +219,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.surface,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: Fonts.serif,
     marginBottom: 4,
     color: t.ink,
   },
@@ -218,8 +234,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 8,
   },
   price: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: t.accent,
   },
   stock: {

@@ -1,25 +1,78 @@
-import { useId, useSyncExternalStore } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
+import { useEffect, useId, useSyncExternalStore } from 'react';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle, Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTheme } from '../hooks/use-theme';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 const forcedQuery =
   Platform.OS === 'web' && typeof window !== 'undefined' ? window.matchMedia?.('(forced-colors: active)') : undefined;
 
 const subscribe = (onChange: () => void) => {
-  forcedQuery?.addEventListener('change', onChange);
-  return () => forcedQuery?.removeEventListener('change', onChange);
+  forcedQuery?.addEventListener?.('change', onChange);
+  return () => forcedQuery?.removeEventListener?.('change', onChange);
 };
 const getForcedColors = () => forcedQuery?.matches ?? false;
 
+const BLOB = 460;
+
+// Position (% of screen) and drift loop of each colour blob.
+const BLOBS = [
+  { color: 0, left: '-20%', top: '-12%', dx: 70, dy: 50, ms: 11000 },
+  { color: 4, left: '45%', top: '20%', dx: -80, dy: 60, ms: 13000 },
+  { color: 2, left: '-10%', top: '60%', dx: 60, dy: -70, ms: 15000 },
+  { color: 5, left: '55%', top: '75%', dx: -50, dy: -40, ms: 12000 },
+] as const;
+
+function Blob({ color, left, top, dx, dy, ms, opacity }: (typeof BLOBS)[number] & { opacity: number }) {
+  const theme = useTheme();
+  const id = `blob${useId().replace(/:/g, '')}`;
+  const reducedMotion = useReducedMotion();
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    t.value = withRepeat(withTiming(1, { duration: ms, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => cancelAnimation(t);
+  }, [reducedMotion, ms, t]);
+
+  const drift = useAnimatedStyle((): ViewStyle => ({
+    transform: [{ translateX: dx * t.value }, { translateY: dy * t.value }, { scale: 1 + 0.15 * t.value }],
+  }));
+
+  const fill = theme.vivid[color];
+  return (
+    <Animated.View style={[styles.blob, { left, top }, drift]}>
+      <Svg width={BLOB} height={BLOB}>
+        <Defs>
+          <RadialGradient id={id} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={fill} stopOpacity={opacity} />
+            <Stop offset="1" stopColor={fill} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={BLOB / 2} cy={BLOB / 2} r={BLOB / 2} fill={`url(#${id})`} />
+      </Svg>
+    </Animated.View>
+  );
+}
+
 /**
- * Static decorative texture behind a screen (design.md#components): `dots` app-wide,
- * `contours` (record grooves) on vinyl screens. Hidden from assistive tech; off in forced colors.
- * Render it as the first child of a screen container.
+ * Decorative backdrop behind a screen: slow drifting colour blobs (aurora) under a fine texture,
+ * `dots` app-wide, `contours` (record grooves) on vinyl screens. Static under reduced motion,
+ * hidden from assistive tech and off in forced colours. Render it as the first child of a screen.
  */
 export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'contours' }) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const id = `pattern${useId().replace(/:/g, '')}`;
   const forcedColors = useSyncExternalStore(subscribe, getForcedColors, () => false);
 
@@ -31,13 +84,16 @@ export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'co
       aria-hidden
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={StyleSheet.absoluteFill}
+      style={[StyleSheet.absoluteFill, styles.clip]}
     >
-      <Svg width="100%" height="100%">
+      {BLOBS.map((b) => (
+        <Blob key={b.color} {...b} opacity={dark ? 0.32 : 0.22} />
+      ))}
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           {variant === 'dots' ? (
-            <Pattern id={id} width={16} height={16} patternUnits="userSpaceOnUse">
-              <Circle cx={8} cy={8} r={1} fill={theme.ink} />
+            <Pattern id={id} width={18} height={18} patternUnits="userSpaceOnUse">
+              <Circle cx={9} cy={9} r={1} fill={theme.ink} />
             </Pattern>
           ) : (
             <Pattern id={id} width={160} height={160} patternUnits="userSpaceOnUse">
@@ -47,8 +103,13 @@ export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'co
             </Pattern>
           )}
         </Defs>
-        <Rect width="100%" height="100%" fill={`url(#${id})`} opacity={variant === 'dots' ? 0.06 : 0.05} />
+        <Rect width="100%" height="100%" fill={`url(#${id})`} opacity={variant === 'dots' ? 0.07 : 0.05} />
       </Svg>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  clip: { overflow: 'hidden' },
+  blob: { position: 'absolute', width: BLOB, height: BLOB },
+});
