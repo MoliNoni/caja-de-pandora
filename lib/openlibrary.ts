@@ -116,6 +116,54 @@ export const searchOpenLibraryByISBN = async (isbn: string) => {
   }
 };
 
+const synopsisCache = new Map<string, Promise<string | null>>();
+
+/** Open Library descriptions carry markdown and a trailing "----------" block of source links. */
+const cleanDescription = (raw: string) =>
+  raw
+    .split(/\n-{3,}/)[0]
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, '$1')
+    .trim();
+
+/**
+ * Synopsis of a book from Open Library: the work found by ISBN, else by title + author.
+ * No custom headers, so the browser makes a simple CORS request (the API allows any origin).
+ * Resolves null when there is no work or no description; cached per book for the session.
+ */
+export const getOpenLibrarySynopsis = (book: { isbn?: string; titulo: string; autor?: string }) => {
+  const id = book.isbn || `${book.titulo}|${book.autor ?? ''}`;
+  let pending = synopsisCache.get(id);
+  if (!pending) {
+    pending = (async () => {
+      try {
+        let workKey: string | undefined;
+        if (book.isbn) {
+          const edition = await fetch(`https://openlibrary.org/isbn/${encodeURIComponent(book.isbn)}.json`);
+          if (edition.ok) workKey = (await edition.json()).works?.[0]?.key;
+        }
+        if (!workKey) {
+          const params = new URLSearchParams({ title: book.titulo, limit: '1', fields: 'key' });
+          if (book.autor) params.set('author', book.autor);
+          const search = await fetch(`https://openlibrary.org/search.json?${params}`);
+          if (search.ok) workKey = (await search.json()).docs?.[0]?.key;
+        }
+        if (!workKey) return null;
+        const work = await fetch(`https://openlibrary.org${workKey}.json`);
+        if (!work.ok) return null;
+        const { description } = await work.json();
+        const text = typeof description === 'string' ? description : description?.value;
+        return text ? cleanDescription(text) || null : null;
+      } catch {
+        synopsisCache.delete(id); // network failure: allow a retry on the next visit
+        return null;
+      }
+    })();
+    synopsisCache.set(id, pending);
+  }
+  return pending;
+};
+
 /**
  * Guardar URL en cache local
  */

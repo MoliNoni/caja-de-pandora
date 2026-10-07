@@ -16,6 +16,7 @@ import { getRecordPreviewUrl } from '../../lib/previews';
 import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
+import { getOpenLibrarySynopsis } from '../../lib/openlibrary';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
@@ -62,6 +63,22 @@ export default function ProductDetailScreen() {
   }, [id]);
 
   const isVinyl = product?.category === 'vinyl';
+
+  // Book synopsis for the inside page: Open Library first, the catalog description as fallback.
+  const [synopsis, setSynopsis] = useState<string | null | undefined>(undefined);
+  const isBook = product?.category === 'book';
+  const { isbn, titulo, autor, descripcion } = product ?? {};
+  useEffect(() => {
+    if (!isBook || !titulo) return;
+    let active = true;
+    setSynopsis(undefined);
+    getOpenLibrarySynopsis({ isbn, titulo, autor }).then((text) => {
+      if (active) setSynopsis(text ?? (descripcion || null));
+    });
+    return () => {
+      active = false;
+    };
+  }, [isBook, isbn, titulo, autor, descripcion]);
   const recordKey = `record:${id}`;
   const resolveRecord = useCallback(
     () => getRecordPreviewUrl(product?.autor, product?.titulo ?? ''),
@@ -121,7 +138,7 @@ export default function ProductDetailScreen() {
           <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
         </Animated.View>
       ) : (
-        <BookCover uri={imageUri} title={product.titulo} author={product.autor} width={Math.min(width * 0.62, 260)} />
+        <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={Math.min(width * 0.72, 290)} />
       )}
 
       <Animated.View entering={FadeInDown.delay(150).springify()}>
