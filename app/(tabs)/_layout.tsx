@@ -37,7 +37,7 @@ export default function TabLayout() {
           elevation: 12,
           boxShadow: '0 14px 40px rgba(26,16,51,0.22), 0 2px 8px rgba(26,16,51,0.10)',
         },
-        tabBarItemStyle: { borderRadius: 24, marginHorizontal: 4, paddingVertical: 4 },
+        tabBarItemStyle: { borderRadius: 24, marginHorizontal: 4 },
         // Wide screens default to beside-icon, which truncates the label.
         tabBarLabelPosition: 'below-icon',
         tabBarActiveBackgroundColor: `${theme.accent}1F`,
