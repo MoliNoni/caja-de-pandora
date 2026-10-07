@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { Radius, Spacing, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
@@ -23,9 +23,10 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-const PRESS = { duration: 160, easing: Easing.out(Easing.ease) };
+const PRESS = { duration: 90, easing: Easing.out(Easing.ease) };
+const RELEASE = { damping: 9, stiffness: 320 };
 
-/** 000h Button ported to RN: pill, press scale 0.97 / 160 ms ease-out, busy while loading. */
+/** 000h Button ported to RN: pill, press push 0.94 then a springy release, busy while loading. */
 export function Button({
   label,
   onPress,
@@ -46,15 +47,20 @@ export function Button({
 
   const inactive = disabled || loading;
   const fg = variant === 'accent' ? theme.onAccent : variant === 'default' ? theme.ink : theme.accent;
-  const press = (to: number) => {
-    if (!reducedMotion) scale.value = withTiming(to, PRESS);
+  // Release always finishes the push first, so a quick tap (press-in and press-out
+  // a few ms apart) still shows the full push instead of a cancelled 3 % dip.
+  const pressIn = () => {
+    if (!reducedMotion) scale.value = withTiming(0.94, PRESS);
+  };
+  const pressOut = () => {
+    if (!reducedMotion) scale.value = withSequence(withTiming(0.94, PRESS), withSpring(1, RELEASE));
   };
 
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => press(0.97)}
-      onPressOut={() => press(1)}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
       disabled={inactive}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -80,7 +86,7 @@ export function Button({
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     fullWidth: { alignSelf: 'stretch' },
-    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
+    focusRing: { borderRadius: Radius.pill, outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
     base: {
       flexDirection: 'row',
       alignItems: 'center',
