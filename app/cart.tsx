@@ -74,7 +74,7 @@ export default function CartScreen() {
     try {
       setLoading(true);
 
-      const receipt = await procesarCompra(user.id, items, total, user.email);
+      const receipt = await procesarCompra(items, user.email);
       setPurchaseReceipt(receipt);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       clearCart();

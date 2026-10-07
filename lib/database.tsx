@@ -75,24 +75,6 @@ export type ProductUpdateInput = Partial<ProductCreateInput> & {
 
 type ProductRow = Record<string, any>;
 
-export interface Encabezado {
-  id: string;
-  cliente_id: string;
-  estado: string;
-  total: number;
-  fecha_creacion?: string;
-  fecha_actualizacion?: string;
-}
-
-export interface DetalleCompra {
-  id?: string;
-  encabezado_id: string;
-  producto_id: string;
-  cantidad: number;
-  precio_unitario: number;
-  subtotal: number;
-}
-
 export interface PurchaseItemInput {
   id: string;
   titulo: string;
@@ -461,70 +443,6 @@ export const deleteProducto = async (id: string) => {
   }
 };
 
-// Crear encabezado (orden)
-export const createEncabezado = async (clienteId: string, total: number) => {
-  try {
-    const { data, error } = await supabase
-      .from('encabezados')
-      .insert([
-        {
-          cliente_id: clienteId,
-          total,
-          estado: 'completada',
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Encabezado;
-  } catch (error) {
-    console.error('Error creating encabezado:', error);
-    throw error;
-  }
-};
-
-// Crear detalles (items de orden)
-export const createDetalles = async (detalles: DetalleCompra[]) => {
-  try {
-    const { data, error } = await supabase
-      .from('detalles')
-      .insert(detalles)
-      .select();
-
-    if (error) throw error;
-    return (data || []) as DetalleCompra[];
-  } catch (error) {
-    console.error('Error creating detalles:', error);
-    throw error;
-  }
-};
-
-// Actualizar cantidad vendida de productos
-export const updateProductoVendidos = async (productId: string, cantidad: number) => {
-  try {
-    const { data: currentData, error: fetchError } = await supabase
-      .from('productos')
-      .select('vendidos')
-      .eq('id', productId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    const newVendidos = (currentData?.vendidos || 0) + cantidad;
-
-    const { error: updateError } = await supabase
-      .from('productos')
-      .update({ vendidos: newVendidos })
-      .eq('id', productId);
-
-    if (updateError) throw updateError;
-  } catch (error) {
-    console.error('Error updating vendidos:', error);
-    throw error;
-  }
-};
-
 // Obtener órdenes del cliente
 export const getClienteOrdenes = async (clienteId: string) => {
   try {
@@ -562,123 +480,69 @@ export const getClienteOrdenes = async (clienteId: string) => {
   }
 };
 
-// Verificar y crear cliente si no existe
-export const ensureClienteExists = async (clienteId: string, userEmail?: string) => {
-  try {
-    let email = userEmail;
-    if (!email) {
-      // Intentar obtener email del usuario autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        email = user.email;
-      }
-    }
+interface PlaceOrderResult {
+  id: string;
+  cliente_id: string;
+  fecha: string;
+  total: number;
+  detalles: {
+    id: string;
+    producto_id: string;
+    titulo: string;
+    cantidad: number;
+    precio_unitario: number;
+    subtotal: number;
+  }[];
+}
 
-    if (!email) {
-      throw new Error('No se pudo obtener el email del usuario');
-    }
-
-    // Verificar si el cliente ya existe por email
-    const { data: existingCliente, error: fetchError } = await supabase
-      .from('clientes')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (existingCliente) {
-      return existingCliente as Cliente; // Ya existe, devolver el registro completo
-    }
-
-    // Si no existe, crear cliente básico
-    const clienteData = {
-      email,
-      nombre: '',
-      apellido: '',
-      telefono: null,
-      direccion: null,
-      ciudad: null,
-      codigo_postal: null,
-    };
-
-    const { data, error } = await supabase
-      .from('clientes')
-      .insert(clienteData)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Cliente;
-  } catch (error) {
-    console.error('Error ensuring cliente exists:', error);
-    throw error;
-  }
-};
-
-// Procesar compra completa
+// Procesar compra completa: the server resolves prices, totals, stock and ownership.
 export const procesarCompra = async (
-  clienteId: string,
   items: PurchaseItemInput[],
-  total: number,
   userEmail?: string
 ): Promise<PurchaseReceipt> => {
   try {
-    // 0. Asegurar que el cliente existe y obtener su registro
-    const cliente = await ensureClienteExists(clienteId, userEmail);
+    const { data, error } = await supabase.rpc('place_order', {
+      items: items.map((item) => ({ product_id: item.id, qty: item.cantidad })),
+    });
 
-    // 1. Crear encabezado usando el ID del cliente de la tabla clientes
-    const encabezado = await createEncabezado(cliente.id, total);
+    if (error) throw error;
+    const order = data as PlaceOrderResult;
 
-    // 2. Crear detalles
-    const detalles = items.map((item) => ({
-      encabezado_id: encabezado.id,
-      producto_id: item.id,
-      cantidad: item.cantidad,
-      precio_unitario: item.precio,
-      subtotal: item.precio * item.cantidad,
-    })) satisfies DetalleCompra[];
+    const encabezado: PurchaseReceiptHeader = {
+      id: order.id,
+      idCliente: order.cliente_id,
+      fecha: order.fecha || new Date().toISOString(),
+      subtotal: Number(order.total),
+      total: Number(order.total),
+      descuentoTotal: 0,
+    };
 
-    const detallesCreados = await createDetalles(detalles);
-
-    // 3. Actualizar cantidad vendida y stock
-    for (const item of items) {
-      await updateProductoVendidos(item.id, item.cantidad);
-      const producto = await getProductoById(item.id);
-      await updateProducto(item.id, {
-        stock: Math.max(0, producto.stock - item.cantidad),
-      });
-    }
-
-    const receiptDetails = items.map((item, index) => ({
-      id: detallesCreados?.[index]?.id || `${encabezado.id}-${item.id}-${index}`,
-      idEncabezado: encabezado.id,
-      idProducto: item.id,
-      titulo: item.titulo,
-      cantidad: item.cantidad,
-      valor: item.precio,
+    const detalles: PurchaseReceiptDetail[] = order.detalles.map((d) => ({
+      id: d.id,
+      idEncabezado: order.id,
+      idProducto: d.producto_id,
+      titulo: d.titulo,
+      cantidad: d.cantidad,
+      valor: Number(d.precio_unitario),
       descuento: 0,
-      subtotal: item.precio * item.cantidad,
+      subtotal: Number(d.subtotal),
     }));
 
     let emailStatus = 'Orden registrada correctamente.';
-    const emailRecipient = userEmail || cliente.email;
 
-    if (emailRecipient) {
+    if (userEmail) {
       try {
-        await sendOrderConfirmationEmail(emailRecipient, {
-          encabezado: {
-            id: encabezado.id,
-            idCliente: cliente.id,
-            fecha:
-              encabezado.fecha_creacion ||
-              encabezado.fecha_actualizacion ||
-              new Date().toISOString(),
-            subtotal: total,
-            total,
-            descuentoTotal: 0,
-          },
-          detalles: receiptDetails,
-        }, items);
-        emailStatus = `Correo de confirmación enviado a ${emailRecipient}`;
+        await sendOrderConfirmationEmail(
+          userEmail,
+          { encabezado, detalles },
+          detalles.map((d) => ({
+            id: d.idProducto,
+            titulo: d.titulo,
+            precio: d.valor,
+            cantidad: d.cantidad,
+          }))
+        );
+        emailStatus = `Correo de confirmación enviado a ${userEmail}`;
       } catch (sendError) {
         console.warn('No se pudo enviar el correo de confirmación:', sendError);
         const errorMessage =
@@ -693,21 +557,7 @@ export const procesarCompra = async (
       emailStatus = 'No se encontró un correo para enviar la confirmación.';
     }
 
-    return {
-      encabezado: {
-        id: encabezado.id,
-        idCliente: cliente.id,
-        fecha:
-          encabezado.fecha_creacion ||
-          encabezado.fecha_actualizacion ||
-          new Date().toISOString(),
-        subtotal: total,
-        total,
-        descuentoTotal: 0,
-      },
-      detalles: receiptDetails,
-      emailStatus,
-    };
+    return { encabezado, detalles, emailStatus };
   } catch (error) {
     console.error('Error procesando compra:', error);
     throw error;
