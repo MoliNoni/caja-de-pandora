@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -22,6 +23,9 @@ import {
   ProductCreateInput,
 } from '../lib/database';
 import { showAlert } from '../lib/dialog';
+import { lookupBookByIsbn } from '../lib/openlibrary';
+import { lookupDiscogsRelease } from '../lib/discogs';
+import { getRecordPreviewUrl } from '../lib/previews';
 import { useAuth } from '../lib/auth-context';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
@@ -107,9 +111,77 @@ export default function AdminScreen() {
   const setField = (field: keyof ProductFormState, value: string | ProductCategory) => {
     setFormData((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
+    if (field === 'isbn' || field === 'discogs_id') setLookup({ state: 'idle' }); // results belong to the old code
+  };
+
+  // Prefill from the ISBN / Discogs ID and report what the product page will have: cover,
+  // synopsis (books) or audio preview (records). Only empty fields are filled.
+  type Check = { ok: boolean; text: string };
+  const [lookup, setLookup] = useState<
+    { state: 'idle' | 'loading' } | { state: 'notfound' } | { state: 'done'; cover: string | null; checks: Check[] }
+  >({ state: 'idle' });
+
+  const completeFromCatalog = async () => {
+    const isBook = formData.category === 'book';
+    const code = isBook ? formData.isbn : formData.discogs_id;
+    if (!code.trim()) {
+      setErrors((current) => ({ ...current, [isBook ? 'isbn' : 'discogs_id']: isBook ? 'Escribe el ISBN' : 'Escribe el Discogs ID' }));
+      return;
+    }
+    setLookup({ state: 'loading' });
+    try {
+      const found = isBook ? await lookupBookByIsbn(code) : await lookupDiscogsRelease(code);
+      if (!found) {
+        setLookup({ state: 'notfound' });
+        return;
+      }
+      // `synopsis` exists only on book lookups: it tells the two shapes apart.
+      const book = 'synopsis' in found ? found : null;
+      const record = 'synopsis' in found ? null : found;
+      const editorial = book ? book.editorial : record?.sello;
+      const synopsis = book?.synopsis ?? null;
+      const generos = record?.generos ?? [];
+      const known = categoriasDisponibles.find((c) => generos.some((g) => g.toLowerCase() === c.nombre.toLowerCase()));
+      const genero = known?.nombre ?? generos[0];
+      const next = {
+        ...formData,
+        titulo: formData.titulo || found.titulo || '',
+        autor: formData.autor || found.autor || '',
+        editorial: formData.editorial || editorial || '',
+        anio_publicacion: formData.anio_publicacion || found.anio || '',
+        descripcion: formData.descripcion || synopsis || '',
+        imageUrl: formData.imageUrl || found.cover || '',
+        ...(!formData.genero && genero ? { genero: known?.nombre ?? genero, categoria_id: known?.id ?? '' } : {}),
+      };
+      setFormData(next);
+      setErrors({});
+
+      const checks: Check[] = [
+        { ok: !!next.imageUrl, text: next.imageUrl ? 'Portada lista' : 'Sin portada: pega una URL de imagen' },
+      ];
+      if (isBook) {
+        checks.push(
+          synopsis
+            ? { ok: true, text: 'Sinopsis encontrada: se muestra al abrir el libro' }
+            : { ok: false, text: 'Sin sinopsis en Open Library: el libro mostrara tu descripcion' }
+        );
+      } else {
+        // Same search the product page runs, on the values that will be saved.
+        const preview = await getRecordPreviewUrl(next.autor, next.titulo);
+        checks.push(
+          preview
+            ? { ok: true, text: 'Vista previa de audio encontrada: el disco sonara al girar' }
+            : { ok: false, text: 'Sin vista previa de audio: revisa artista y titulo; el disco girara en silencio' }
+        );
+      }
+      setLookup({ state: 'done', cover: next.imageUrl || null, checks });
+    } catch {
+      setLookup({ state: 'notfound' });
+    }
   };
 
   const handleCategoryTypeChange = (category: ProductCategory) => {
+    setLookup({ state: 'idle' });
     setFormData((current) => ({
       ...current,
       category,
@@ -214,6 +286,7 @@ export default function AdminScreen() {
       setSubmitting(true);
       await createProducto(await buildPayload());
       setFormData({ ...initialFormState, category: formData.category });
+      setLookup({ state: 'idle' });
       showAlert('Producto creado', 'El producto fue añadido al catalogo.');
     } catch (error: any) {
       showAlert('No se pudo crear', error?.message || 'Revisa los datos e intenta de nuevo.');
@@ -295,6 +368,43 @@ export default function AdminScreen() {
           />
 
           <Input
+            label={formData.category === 'book' ? 'ISBN' : 'Discogs ID'}
+            value={formData.category === 'book' ? formData.isbn : formData.discogs_id}
+            error={formData.category === 'book' ? errors.isbn : errors.discogs_id}
+            onChangeText={(text) =>
+              setField(formData.category === 'book' ? 'isbn' : 'discogs_id', text)
+            }
+          />
+          <Button
+            label={formData.category === 'book' ? 'Completar datos desde el ISBN' : 'Completar datos desde Discogs'}
+            icon="sparkles"
+            variant="outline"
+            fullWidth
+            loading={lookup.state === 'loading'}
+            onPress={completeFromCatalog}
+          />
+          {lookup.state === 'notfound' ? (
+            <Text style={styles.lookupMiss} accessibilityLiveRegion="polite" aria-live="polite">
+              {formData.category === 'book'
+                ? 'No encontramos ese ISBN en Open Library. Revisa el numero o completa los datos a mano.'
+                : 'No encontramos ese release en Discogs. Revisa el ID o completa los datos a mano.'}
+            </Text>
+          ) : null}
+          {lookup.state === 'done' ? (
+            <View style={styles.lookupCard} accessibilityLiveRegion="polite" aria-live="polite">
+              {lookup.cover ? <Image source={{ uri: lookup.cover }} style={styles.lookupCover} accessibilityLabel="Portada encontrada" /> : null}
+              <View style={styles.lookupChecks}>
+                {lookup.checks.map((check) => (
+                  <View key={check.text} style={styles.lookupRow}>
+                    <Ionicons name={check.ok ? 'checkmark-circle' : 'alert-circle'} size={18} color={check.ok ? theme.success : theme.danger} />
+                    <Text style={styles.lookupText}>{check.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <Input
             label="Titulo"
             value={formData.titulo}
             error={errors.titulo}
@@ -373,14 +483,6 @@ export default function AdminScreen() {
               }}
             />
           </View>
-          <Input
-            label={formData.category === 'book' ? 'ISBN' : 'Discogs ID'}
-            value={formData.category === 'book' ? formData.isbn : formData.discogs_id}
-            error={formData.category === 'book' ? errors.isbn : errors.discogs_id}
-            onChangeText={(text) =>
-              setField(formData.category === 'book' ? 'isbn' : 'discogs_id', text)
-            }
-          />
           <View style={styles.inlineFields}>
             <Input
               label="Año"
@@ -458,6 +560,20 @@ const Input = ({
 };
 
 const makeStyles = (t: Theme) => StyleSheet.create({
+  lookupMiss: { fontSize: 13, color: t.danger, marginTop: -4 },
+  lookupCard: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: t.border,
+    backgroundColor: t.surface,
+  },
+  lookupCover: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.bg },
+  lookupChecks: { flex: 1, gap: 6, justifyContent: 'center' },
+  lookupRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  lookupText: { flex: 1, fontSize: 13, lineHeight: 18, color: t.ink },
   container: {
     flex: 1,
     backgroundColor: t.bg,

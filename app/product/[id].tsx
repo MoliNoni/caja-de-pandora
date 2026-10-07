@@ -161,7 +161,10 @@ export default function ProductDetailScreen() {
           </Text>
         ))}
 
-      {!!product.descripcion && <Text style={styles.description}>{product.descripcion}</Text>}
+      {/* A book already shows this text inside its cover when it is the synopsis. */}
+      {!!product.descripcion && product.descripcion.trim() !== synopsis?.trim() && (
+        <Text style={styles.description}>{product.descripcion}</Text>
+      )}
 
 
       <Button

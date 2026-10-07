@@ -78,3 +78,30 @@ const saveToCache = async (key: string, url: string): Promise<void> => {
     console.error('Error saving cache:', error);
   }
 };
+/** Everything the admin form can prefill from a Discogs release. Null when the release is unknown. */
+export type RecordLookup = {
+  titulo?: string;
+  autor?: string;
+  sello?: string;
+  anio?: string;
+  /** Broad genres first, then styles: the form reuses whichever matches an existing category. */
+  generos: string[];
+  cover: string | null;
+};
+
+export const lookupDiscogsRelease = async (releaseId: string): Promise<RecordLookup | null> => {
+  const id = releaseId.trim();
+  if (!/^\d{1,12}$/.test(id)) return null;
+  const { data, error } = await supabase.functions.invoke('discogs-proxy', { body: { path: `releases/${id}` } });
+  if (error || !data?.title) return null;
+  const image = data.images?.find((img: any) => img.type === 'primary') ?? data.images?.[0];
+  return {
+    titulo: data.title,
+    // Discogs disambiguates homonyms as "Name (2)": drop the suffix.
+    autor: data.artists?.map((a: any) => String(a.name).replace(/\s\(\d+\)$/, '')).join(', ') || undefined,
+    sello: data.labels?.[0]?.name?.replace(/\s\(\d+\)$/, ''),
+    anio: data.year ? String(data.year) : undefined,
+    generos: [...(data.genres ?? []), ...(data.styles ?? [])],
+    cover: image?.uri ?? null,
+  };
+};
