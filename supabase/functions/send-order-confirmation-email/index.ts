@@ -1,162 +1,89 @@
 // @ts-nocheck
-import { serve } from 'https://deno.land/std@0.201.0/http/server.ts';
+import { z } from 'npm:zod@3';
+import { corsHeaders, getCaller, jsonResponse } from '../_shared/http.ts';
 
-interface PurchaseReceiptHeader {
-  id: string;
-  idCliente: string;
-  fecha: string;
-  subtotal: number;
-  total: number;
-  descuentoTotal: number;
-}
+// The client sends only the order id; everything else is loaded server-side.
+const bodySchema = z.object({ orderId: z.string().uuid() });
 
-interface PurchaseReceiptDetail {
-  id: string;
-  idEncabezado: string;
-  idProducto: string;
-  titulo: string;
-  cantidad: number;
-  valor: number;
-  descuento: number;
-  subtotal: number;
-}
+const escapeHtml = (value: unknown) =>
+  String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-interface PurchaseReceipt {
-  encabezado: PurchaseReceiptHeader;
-  detalles: PurchaseReceiptDetail[];
-}
+const money = (value: unknown) => `$${Number(value).toFixed(2)}`;
 
-interface PurchaseItemInput {
-  id: string;
-  titulo: string;
-  precio: number;
-  cantidad: number;
-}
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(req) });
+  if (req.method !== 'POST') return jsonResponse(req, { error: 'Method not allowed' }, 405);
 
-interface EmailRequest {
-  recipientEmail: string;
-  receipt: PurchaseReceipt;
-  items: PurchaseItemInput[];
-}
+  const caller = await getCaller(req);
+  if (!caller) return jsonResponse(req, { error: 'Unauthorized' }, 401);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+  const parsed = bodySchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return jsonResponse(req, { error: 'Bad request' }, 400);
 
-const jsonResponse = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  });
+  const apiKey = Deno.env.get('BREVO_API_KEY');
+  if (!apiKey) return jsonResponse(req, { error: 'Internal error' }, 500);
 
-const formatOrderText = (receipt: PurchaseReceipt, items: PurchaseItemInput[]) => {
-  const itemsText = items
-    .map(
-      (item) =>
-        `- ${item.titulo} x${item.cantidad} @ $${item.precio.toFixed(2)} = $${(
-          item.precio * item.cantidad
-        ).toFixed(2)}`
-    )
-    .join('\n');
+  try {
+    // RLS limits this to the caller's own orders (admins see all, hence the user_id check below).
+    const { data: order, error } = await caller.client
+      .from('encabezados')
+      .select(
+        'id, total, fecha_creacion, cliente:cliente_id(email, user_id), detalles(cantidad, precio_unitario, subtotal, producto:producto_id(titulo))'
+      )
+      .eq('id', parsed.data.orderId)
+      .maybeSingle();
 
-  return `Gracias por su compra en Librería Caja de Pandora.\n\nOrden: ${receipt.encabezado.id}\nCliente: ${receipt.encabezado.idCliente}\nFecha: ${new Date(
-    receipt.encabezado.fecha
-  ).toLocaleString('es-CO')}\n\nDetalles:\n${itemsText}\n\nSubtotal: $${receipt.encabezado.subtotal.toFixed(
-    2
-  )}\nDescuento: $${receipt.encabezado.descuentoTotal.toFixed(2)}\nTotal: $${receipt.encabezado.total.toFixed(2)}\n\nEsperamos volver a verte pronto.`;
-};
+    if (error || !order || order.cliente?.user_id !== caller.user.id || !order.cliente?.email) {
+      return jsonResponse(req, { error: 'Not found' }, 404);
+    }
 
-const formatOrderHtml = (receipt: PurchaseReceipt, items: PurchaseItemInput[]) => {
-  const itemsHtml = items
-    .map(
-      (item) =>
-        `<li>${item.titulo} x${item.cantidad} @ $${item.precio.toFixed(2)} = $${(
-          item.precio * item.cantidad
-        ).toFixed(2)}</li>`
-    )
-    .join('');
+    const lines = (order.detalles ?? []).map((d: any) => ({
+      titulo: d.producto?.titulo ?? '',
+      cantidad: d.cantidad,
+      precio: d.precio_unitario,
+      subtotal: d.subtotal,
+    }));
+    const fecha = new Date(order.fecha_creacion ?? Date.now()).toLocaleString('es-CO');
 
-  return `
+    const htmlContent = `
     <div style="font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#1f2937;">
       <h1 style="color:#4b0082;">Confirmación de compra</h1>
       <p>Gracias por comprar en Librería Caja de Pandora.</p>
-      <p><strong>Orden:</strong> ${receipt.encabezado.id}</p>
-      <p><strong>Fecha:</strong> ${new Date(
-        receipt.encabezado.fecha
-      ).toLocaleString('es-CO')}</p>
-      <p><strong>Total:</strong> $${receipt.encabezado.total.toFixed(2)}</p>
+      <p><strong>Orden:</strong> ${escapeHtml(order.id)}</p>
+      <p><strong>Fecha:</strong> ${escapeHtml(fecha)}</p>
+      <p><strong>Total:</strong> ${escapeHtml(money(order.total))}</p>
       <h2>Detalle de productos</h2>
-      <ul>${itemsHtml}</ul>
+      <ul>${lines
+        .map(
+          (l: any) =>
+            `<li>${escapeHtml(l.titulo)} x${escapeHtml(l.cantidad)} @ ${escapeHtml(money(l.precio))} = ${escapeHtml(money(l.subtotal))}</li>`
+        )
+        .join('')}</ul>
       <p>Esperamos verte pronto de nuevo.</p>
-    </div>
-  `;
-};
+    </div>`;
 
-serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+    const textContent = `Gracias por su compra en Librería Caja de Pandora.\n\nOrden: ${order.id}\nFecha: ${fecha}\n\nDetalles:\n${lines
+      .map((l: any) => `- ${l.titulo} x${l.cantidad} @ ${money(l.precio)} = ${money(l.subtotal)}`)
+      .join('\n')}\n\nTotal: ${money(order.total)}\n\nEsperamos volver a verte pronto.`;
 
-  try {
-    if (req.method !== 'POST') {
-      return jsonResponse({ error: 'Method not allowed' }, 405);
-    }
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+      body: JSON.stringify({
+        sender: {
+          name: Deno.env.get('BREVO_SENDER_NAME') ?? 'Librería Caja de Pandora',
+          email: Deno.env.get('BREVO_SENDER_EMAIL'),
+        },
+        to: [{ email: order.cliente.email }],
+        subject: 'Confirmación de compra - Librería Caja de Pandora',
+        htmlContent,
+        textContent,
+      }),
+    });
 
-  const rawBody = await req.json().catch(() => null);
-  let body = rawBody;
-
-  if (typeof rawBody === 'string') {
-    body = JSON.parse(rawBody);
-  }
-
-  if (!body || typeof body.recipientEmail !== 'string') {
-    return jsonResponse({ error: 'Bad request: recipientEmail missing' }, 400);
-  }
-
-  const apiKey = Deno.env.get('BREVO_API_KEY');
-  const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'juanmolinalcgs@gmail.com';
-  const senderName = Deno.env.get('BREVO_SENDER_NAME') || 'Librería Caja de Pandora';
-
-  if (!apiKey) {
-    return jsonResponse({ error: 'Server misconfiguration: BREVO_API_KEY is required' }, 500);
-  }
-
-  const emailRequest = body as EmailRequest;
-
-  const payload = {
-    sender: {
-      name: senderName,
-      email: senderEmail,
-    },
-    to: [{ email: emailRequest.recipientEmail }],
-    subject: 'Confirmación de compra - Librería Caja de Pandora',
-    htmlContent: formatOrderHtml(emailRequest.receipt, emailRequest.items),
-    textContent: formatOrderText(emailRequest.receipt, emailRequest.items),
-  };
-
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.text();
-
-  if (!response.ok) {
-    return jsonResponse({ error: true, status: response.status, body: data }, response.status);
-  }
-
-    return jsonResponse({ success: true, body: data });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return jsonResponse({ error: message }, 500);
+    if (!response.ok) return jsonResponse(req, { error: 'Email delivery failed' }, 502);
+    return jsonResponse(req, { success: true });
+  } catch {
+    return jsonResponse(req, { error: 'Internal error' }, 500);
   }
 });

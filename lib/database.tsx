@@ -532,16 +532,7 @@ export const procesarCompra = async (
 
     if (userEmail) {
       try {
-        await sendOrderConfirmationEmail(
-          userEmail,
-          { encabezado, detalles },
-          detalles.map((d) => ({
-            id: d.idProducto,
-            titulo: d.titulo,
-            precio: d.valor,
-            cantidad: d.cantidad,
-          }))
-        );
+        await sendOrderConfirmationEmail(order.id);
         emailStatus = `Correo de confirmación enviado a ${userEmail}`;
       } catch (sendError) {
         console.warn('No se pudo enviar el correo de confirmación:', sendError);

@@ -1,9 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './supabase';
 
 // Configuración de Discogs API
-const DISCOGS_API = 'https://api.discogs.com';
-const DISCOGS_TOKEN = process.env.EXPO_PUBLIC_DISCOGS_TOKEN || ''; // Necesitas obtener un token de Discogs
-const USER_AGENT = 'VinylStore/1.0 (contact: tu-email@example.com)';
 const CACHE_KEY_PREFIX = 'discogs_cover_';
 const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 días
 
@@ -15,12 +13,12 @@ interface CacheEntry {
 /**
  * Obtiene la URL de portada de un release de Discogs por ID de release
  * Respeta los términos de servicio:
- * - Usa token de autenticación
+ * - El token vive en la Edge Function discogs-proxy, nunca en el cliente
  * - Cachea resultados localmente
  * - No hace requests en bulk
  */
 export const getDiscogsCoverUrl = async (releaseId: string): Promise<string | null> => {
-  if (!releaseId || !DISCOGS_TOKEN) return null;
+  if (!releaseId) return null;
 
   try {
     // Verificar cache local primero
@@ -29,19 +27,14 @@ export const getDiscogsCoverUrl = async (releaseId: string): Promise<string | nu
       return cachedUrl;
     }
 
-    // Hacer request a Discogs
-    const response = await fetch(`${DISCOGS_API}/releases/${releaseId}`, {
-      headers: {
-        'Authorization': `Discogs token=${DISCOGS_TOKEN}`,
-        'User-Agent': USER_AGENT,
-      },
+    // Hacer request a Discogs a través del proxy
+    const { data, error } = await supabase.functions.invoke('discogs-proxy', {
+      body: { path: `releases/${releaseId}` },
     });
 
-    if (!response.ok) {
+    if (error || !data) {
       return null;
     }
-
-    const data = await response.json();
 
     // Buscar la imagen primaria
     const primaryImage = data.images?.find((img: any) => img.type === 'primary') || data.images?.[0];

@@ -5,7 +5,7 @@ require('dotenv').config({ path: './.env.local' });
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const discogsToken = process.env.EXPO_PUBLIC_DISCOGS_TOKEN;
+const discogsToken = process.env.DISCOGS_TOKEN;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase credentials');
@@ -13,7 +13,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 if (!discogsToken) {
-  console.error('Missing Discogs token. Add EXPO_PUBLIC_DISCOGS_TOKEN to .env.local');
+  console.error('Missing Discogs token. Add DISCOGS_TOKEN to .env.local');
   process.exit(1);
 }
 

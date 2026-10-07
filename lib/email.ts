@@ -1,31 +1,15 @@
 import { supabase } from './supabase';
-import type { PurchaseReceipt, PurchaseItemInput } from './database';
 
-interface EmailPayload {
-  recipientEmail: string;
-  receipt: PurchaseReceipt;
-  items: PurchaseItemInput[];
-}
-
-export const sendOrderConfirmationEmail = async (
-  recipientEmail: string,
-  receipt: PurchaseReceipt,
-  items: PurchaseItemInput[]
-) => {
-  const payload: EmailPayload = {
-    recipientEmail,
-    receipt,
-    items,
-  };
-
-  const functionAttempt = await supabase.functions.invoke('send-order-confirmation-email', {
-    body: payload,
+// The server loads the order and recipient itself; only the order id is sent.
+export const sendOrderConfirmationEmail = async (orderId: string) => {
+  const { data, error } = await supabase.functions.invoke('send-order-confirmation-email', {
+    body: { orderId },
   });
 
-  if (functionAttempt.error) {
-    console.warn('Supabase function failed:', functionAttempt.error);
-    throw new Error((functionAttempt.error as any)?.message || JSON.stringify(functionAttempt.error));
+  if (error) {
+    console.warn('Supabase function failed:', error);
+    throw new Error((error as any)?.message || JSON.stringify(error));
   }
 
-  return functionAttempt.data;
+  return data;
 };
