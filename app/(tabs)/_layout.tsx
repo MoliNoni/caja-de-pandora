@@ -5,7 +5,7 @@
 
 import { Tabs } from 'expo-router';
 import { HapticTab } from '../../components/haptic-tab';
-import { IconSymbol } from '../../components/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/use-theme';
 import { Fonts } from '../../constants/theme';
 
@@ -57,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="house.fill" color={color} />
+            <Ionicons size={24} name="home" color={color} />
           ),
         }}
       />
@@ -66,7 +66,7 @@ export default function TabLayout() {
         options={{
           title: 'Libros',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="book.fill" color={color} />
+            <Ionicons size={24} name="book" color={color} />
           ),
         }}
       />
@@ -75,7 +75,7 @@ export default function TabLayout() {
         options={{
           title: 'Vinilos',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="music.note" color={color} />
+            <Ionicons size={24} name="musical-notes" color={color} />
           ),
         }}
       />
