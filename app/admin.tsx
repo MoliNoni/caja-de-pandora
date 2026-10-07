@@ -23,7 +23,7 @@ import {
   ProductCreateInput,
 } from '../lib/database';
 import { showAlert } from '../lib/dialog';
-import { lookupBookByIsbn } from '../lib/openlibrary';
+import { lookupBookByIsbn } from '../lib/book-info';
 import { lookupDiscogsRelease } from '../lib/discogs';
 import { getRecordPreviewUrl } from '../lib/previews';
 import { useAuth } from '../lib/auth-context';
@@ -163,7 +163,7 @@ export default function AdminScreen() {
         checks.push(
           synopsis
             ? { ok: true, text: 'Sinopsis encontrada: se muestra al abrir el libro' }
-            : { ok: false, text: 'Sin sinopsis en Open Library: el libro mostrara tu descripcion' }
+            : { ok: false, text: 'Sin sinopsis en español: escribe la descripcion en español' }
         );
       } else {
         // Same search the product page runs, on the values that will be saved.

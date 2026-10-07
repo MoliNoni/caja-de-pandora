@@ -98,7 +98,7 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
             <View style={styles.rule} />
             <ScrollView style={styles.synopsisScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
               <Text style={styles.synopsis}>
-                {synopsis === undefined ? 'Buscando la sinopsis…' : synopsis || 'Este libro no tiene sinopsis disponible.'}
+                {synopsis === undefined ? 'Buscando la sinopsis…' : synopsis || 'Sinopsis no disponible en español.'}
               </Text>
             </ScrollView>
             <Pressable onPress={() => settle(0)} accessibilityRole="button" accessibilityLabel="Cerrar el libro" hitSlop={8}>

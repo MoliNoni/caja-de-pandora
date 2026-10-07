@@ -16,7 +16,7 @@ import { getRecordPreviewUrl } from '../../lib/previews';
 import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
-import { getOpenLibrarySynopsis } from '../../lib/openlibrary';
+import { getBookSynopsis } from '../../lib/book-info';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
@@ -64,7 +64,7 @@ export default function ProductDetailScreen() {
 
   const isVinyl = product?.category === 'vinyl';
 
-  // Book synopsis for the inside page: Open Library first, the catalog description as fallback.
+  // Spanish synopsis for the inside page (see lib/book-info.ts for the sources).
   const [synopsis, setSynopsis] = useState<string | null | undefined>(undefined);
   const isBook = product?.category === 'book';
   const { isbn, titulo, autor, descripcion } = product ?? {};
@@ -72,8 +72,8 @@ export default function ProductDetailScreen() {
     if (!isBook || !titulo) return;
     let active = true;
     setSynopsis(undefined);
-    getOpenLibrarySynopsis({ isbn, titulo, autor }).then((text) => {
-      if (active) setSynopsis(text ?? (descripcion || null));
+    getBookSynopsis({ isbn, titulo, autor, descripcion }).then((text) => {
+      if (active) setSynopsis(text);
     });
     return () => {
       active = false;

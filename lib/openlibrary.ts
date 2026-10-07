@@ -240,32 +240,3 @@ export const getCacheSize = async (): Promise<number> => {
     return 0;
   }
 };
-
-/** Everything the admin form can prefill from an ISBN. Null when Open Library has no edition. */
-export type BookLookup = {
-  titulo?: string;
-  autor?: string;
-  editorial?: string;
-  anio?: string;
-  synopsis: string | null;
-  cover: string | null;
-};
-
-export const lookupBookByIsbn = async (isbn: string): Promise<BookLookup | null> => {
-  const clean = isbn.replace(/[^0-9Xx]/g, '');
-  if (!clean) return null;
-  const edition = await searchOpenLibraryByISBN(clean);
-  if (!edition) return null;
-  const [synopsis, cover] = await Promise.all([
-    getOpenLibrarySynopsis({ isbn: clean, titulo: edition.title, autor: edition.author }),
-    getOpenLibraryCoverUrl(clean),
-  ]);
-  return {
-    titulo: edition.title,
-    autor: edition.author,
-    editorial: edition.publishers?.[0]?.name,
-    anio: String(edition.publish_date ?? '').match(/\d{4}/)?.[0],
-    synopsis,
-    cover,
-  };
-};
