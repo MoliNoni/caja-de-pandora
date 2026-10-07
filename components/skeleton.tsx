@@ -48,6 +48,11 @@ export function Skeleton({ width = '100%', height, aspectRatio, radius = Radius.
   );
 }
 
+/** `disk` variant: circular placeholder matching the vinyl player. */
+export function SkeletonDisk({ size, style }: { size: number; style?: StyleProp<ViewStyle> }) {
+  return <Skeleton width={size} height={size} radius={size / 2} style={style} />;
+}
+
 /** Product card placeholder: 2:3 cover + 2 text lines + price chip. */
 export function SkeletonCard({ width }: { width?: DimensionValue }) {
   return (

@@ -6,6 +6,7 @@
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../lib/auth-context';
 import { CartProvider } from '../lib/cart-context';
+import { PlayerProvider } from '../lib/player-context';
 import { useTheme } from '../hooks/use-theme';
 
 // Main app layout with providers
@@ -14,17 +15,19 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Stack
-          screenOptions={{
-            contentStyle: { backgroundColor: theme.bg },
-            headerStyle: { backgroundColor: theme.surface },
-            headerTintColor: theme.ink,
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="cart" options={{ headerShown: false }} />
-          <Stack.Screen name="admin" options={{ headerShown: false }} />
-        </Stack>
+        <PlayerProvider>
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: theme.bg },
+              headerStyle: { backgroundColor: theme.surface },
+              headerTintColor: theme.ink,
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="cart" options={{ headerShown: false }} />
+            <Stack.Screen name="admin" options={{ headerShown: false }} />
+          </Stack>
+        </PlayerProvider>
       </CartProvider>
     </AuthProvider>
   );

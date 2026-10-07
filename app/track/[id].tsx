@@ -2,7 +2,7 @@
 // Deep-linkable route: /track/:id
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../lib/auth-context';
 import { showAlert } from '../../lib/dialog';
@@ -11,13 +11,16 @@ import { resolveProductImageUrl } from '../../lib/product-image';
 import { formatDuration, getTrackById, isTrackOwned, newIdempotencyKey, purchaseTrack, Track } from '../../lib/tracks';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
-import { Skeleton, SkeletonRegion } from '../../components/skeleton';
+import { VinylPlayer } from '../../components/vinyl-player';
+import { Skeleton, SkeletonDisk, SkeletonRegion } from '../../components/skeleton';
 import { useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
 export default function TrackDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useThemedStyles(makeStyles);
+  const { width } = useWindowDimensions();
+  const discSize = Math.min(width - 40, 320);
   const { user } = useAuth();
   const [track, setTrack] = useState<Track | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
@@ -80,7 +83,7 @@ export default function TrackDetailScreen() {
   if (status === 'loading') {
     return (
       <SkeletonRegion style={styles.container}>
-        <Skeleton aspectRatio={1} radius={16} style={styles.skeletonCover} />
+        <SkeletonDisk size={discSize} style={styles.skeletonCover} />
         <Skeleton height={26} width="75%" />
         <Skeleton height={18} width="45%" style={styles.skeletonGap} />
         <Skeleton height={28} width={96} style={styles.skeletonGap} />
@@ -102,18 +105,7 @@ export default function TrackDetailScreen() {
       <PatternBackground variant="contours" />
       <Stack.Screen options={{ title: track.title }} />
 
-      {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={styles.image}
-          resizeMode="contain"
-          accessibilityLabel={`Portada de ${product.titulo}`}
-        />
-      ) : (
-        <View style={[styles.image, styles.placeholder]}>
-          <Text style={styles.meta}>Sin imagen</Text>
-        </View>
-      )}
+      <VinylPlayer trackId={track.id} title={track.title} coverUri={imageUri} size={discSize} />
 
       <Text style={styles.title} accessibilityRole="header">{track.title}</Text>
       <Text style={styles.author}>{[product.autor, product.titulo].filter(Boolean).join(' · ')}</Text>
@@ -133,12 +125,10 @@ export default function TrackDetailScreen() {
 }
 
 const makeStyles = (t: Theme) => StyleSheet.create({
-  skeletonCover: { marginBottom: 20 },
+  skeletonCover: { marginBottom: 20, alignSelf: 'center' },
   skeletonGap: { marginTop: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  container: { padding: 20, backgroundColor: t.bg, flexGrow: 1 },
-  image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: t.surface, marginBottom: 20 },
-  placeholder: { justifyContent: 'center', alignItems: 'center' },
+  container: { padding: 20, alignItems: 'stretch', backgroundColor: t.bg, flexGrow: 1 },
   title: { fontSize: 22, fontWeight: '700', fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 16, color: t.inkMuted, marginTop: 4 },
   meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },

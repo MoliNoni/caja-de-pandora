@@ -1,0 +1,142 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
+
+import { isFocused } from '../hooks/focus';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import { showAlert } from '../lib/dialog';
+import { usePlayer } from '../lib/player-context';
+import type { Theme } from '../constants/theme';
+
+const TURN_MS = 1800; // 33⅓ rpm
+const STOP_MS = 600; // decelerate to rest on pause
+// Ease-out cubic starts at 3·d/T of the cruising speed: this arc keeps the speed continuous at pause.
+const STOP_DEG = ((360 / TURN_MS) * STOP_MS) / 3;
+const GROOVES = [0.46, 0.52, 0.58, 0.64, 0.7, 0.76, 0.82, 0.88, 0.94];
+
+type Props = { trackId: string; title: string; coverUri?: string | null; size: number };
+
+/** design.md#vinyl: black disc, cover as centre label, spins only while this track plays. */
+export function VinylPlayer({ trackId, title, coverUri, size }: Props) {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const reducedMotion = useReducedMotion();
+  const player = usePlayer();
+  const active = player.trackId === trackId;
+  const playing = active && player.isPlaying;
+
+  const rotation = useSharedValue(0);
+  const arm = useSharedValue(0);
+  const icon = useSharedValue(0); // 0 = play, 1 = pause
+
+  useEffect(() => {
+    const ms = reducedMotion ? 0 : 300;
+    arm.value = withTiming(playing ? 22 : 0, { duration: ms, easing: Easing.out(Easing.ease) });
+    icon.value = withTiming(playing ? 1 : 0, { duration: ms });
+    if (reducedMotion) {
+      cancelAnimation(rotation);
+    } else if (playing) {
+      rotation.value = withRepeat(
+        withTiming(rotation.value + 360, { duration: TURN_MS, easing: Easing.linear }),
+        -1
+      );
+    } else {
+      rotation.value = withTiming(rotation.value + STOP_DEG, {
+        duration: STOP_MS,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  }, [playing, reducedMotion, rotation, arm, icon]);
+
+  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
+  const armStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${arm.value}deg` }] }));
+  const playIcon = useAnimatedStyle(() => ({
+    opacity: 1 - icon.value,
+    transform: [{ scale: 1 - 0.4 * icon.value }],
+  }));
+  const pauseIcon = useAnimatedStyle(() => ({
+    opacity: icon.value,
+    transform: [{ scale: 0.6 + 0.4 * icon.value }],
+  }));
+
+  const label = playing ? 'Pause preview' : 'Play preview';
+  const onPress = async () => {
+    if (!(await player.toggle(trackId))) showAlert('Sin vista previa', 'No hay un fragmento disponible para esta canción.');
+  };
+
+  const center = size * 0.38;
+
+  return (
+    <View style={styles.wrap}>
+      <View style={{ width: size, height: size }}>
+        <Animated.View style={[styles.disc, { width: size, height: size, borderRadius: size / 2 }, spin]}>
+          <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+            {GROOVES.map((r) => (
+              <Circle key={r} cx={size / 2} cy={size / 2} r={(size / 2) * r} fill="none" stroke="#2A2A2A" strokeWidth={1} />
+            ))}
+          </Svg>
+          {coverUri ? (
+            <Image
+              source={{ uri: coverUri }}
+              style={{ width: center, height: center, borderRadius: center / 2 }}
+              accessibilityLabel={`Portada de ${title}`}
+            />
+          ) : (
+            <View style={{ width: center, height: center, borderRadius: center / 2, backgroundColor: theme.accent }} />
+          )}
+          <View style={styles.spindle} />
+        </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.arm, { height: size * 0.5, right: size * 0.04, top: -size * 0.02, transformOrigin: ['50%', 0, 0] }, armStyle]}
+        />
+      </View>
+
+      <Pressable
+        onPress={() => void onPress()}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ busy: active && player.loading }}
+        style={(state) => [styles.button, isFocused(state) && styles.focusRing]}
+      >
+        <Animated.View style={[styles.iconLayer, playIcon]}>
+          <Ionicons name="play" size={26} color={theme.onAccent} />
+        </Animated.View>
+        <Animated.View style={[styles.iconLayer, pauseIcon]}>
+          <Ionicons name="pause" size={26} color={theme.onAccent} />
+        </Animated.View>
+      </Pressable>
+
+      {reducedMotion && playing ? <Text style={styles.status}>Reproduciendo</Text> : null}
+    </View>
+  );
+}
+
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    wrap: { alignItems: 'center', gap: 16, marginBottom: 20 },
+    disc: { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    spindle: { position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: theme.bg },
+    arm: { position: 'absolute', width: 6, borderRadius: 3, backgroundColor: theme.inkMuted },
+    button: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.ink, outlineOffset: 2 },
+    status: { fontSize: 14, color: theme.inkMuted },
+  });
