@@ -25,7 +25,12 @@ const toTrack = (r: any): Track => ({
 export const formatDuration = (s: number | null) =>
   s == null ? '' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+// The tracks table and its functions are not deployed yet (PHASES.md S.2): skip the request
+// (it 404s) until EXPO_PUBLIC_TRACKS_ENABLED=true. Not a secret, only a feature switch.
+const TRACKS_ENABLED = process.env.EXPO_PUBLIC_TRACKS_ENABLED === 'true';
+
 export const getTracksByProduct = async (productId: string): Promise<Track[]> => {
+  if (!TRACKS_ENABLED) return [];
   const { data, error } = await supabase.from('tracks').select(COLUMNS).eq('product_id', productId);
   if (error) throw error;
   // Positions are text ("A1", "10"): natural order, not lexicographic.

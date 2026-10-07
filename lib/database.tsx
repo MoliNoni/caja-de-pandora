@@ -5,6 +5,7 @@
 // External API integrations for images
 // Search and filtering
 
+import { Image } from 'react-native';
 import { supabase } from './supabase';
 import { getOpenLibraryCoverUrl } from './openlibrary';
 import { getDiscogsCoverUrl } from './discogs';
@@ -310,6 +311,23 @@ export const getLatestProducts = async (
  * @param id - Product unique identifier
  * @returns Promise<Product> - Single product object
  */
+/** Last loaded catalog per category: tabs render it at once on first visit, then refresh. */
+export const catalogCache: Partial<Record<ProductCategory, Product[]>> = {};
+
+/** Warm a catalog (and its covers) in the background so the tab opens without a blank frame. */
+export const prefetchCatalog = async (category: ProductCategory) => {
+  if (catalogCache[category]) return;
+  const products = await getProductos(category);
+  catalogCache[category] = products;
+  const { resolveProductImageUrl } = await import('./product-image');
+  await Promise.all(
+    products.slice(0, 12).map(async (p) => {
+      const cover = await resolveProductImageUrl(p);
+      if (cover) await Image.prefetch(cover).catch(() => false);
+    })
+  );
+};
+
 /** Products the UI already holds (e.g. a tapped card), so the detail screen paints instantly. */
 export const productCache = new Map<string, Product>();
 

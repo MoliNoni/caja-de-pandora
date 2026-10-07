@@ -31,6 +31,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   getLatestProducts,
   getTopBestSellers,
+  prefetchCatalog,
   Product,
 } from '../../lib/database';
 import { PatternBackground } from '../../components/pattern-background';
@@ -108,6 +109,9 @@ export default function HomeScreen() {
       setBestSellersVinyls(vinyls);
       setLatestBooks(newBooks);
       setLatestVinyls(newVinyls);
+      // Warm both catalog tabs while the user is on the home screen.
+      void prefetchCatalog('book').catch(() => undefined);
+      void prefetchCatalog('vinyl').catch(() => undefined);
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {

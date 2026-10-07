@@ -18,7 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { getProductos, Product } from '../lib/database';
+import { catalogCache, getProductos, Product } from '../lib/database';
 import { PatternBackground } from './pattern-background';
 import { DancingText } from './dancing-text';
 import { ProductCard } from './product-card';
@@ -60,9 +60,9 @@ export const CatalogScreen = ({
       router.setParams({ focus: undefined });
     }, [focus, router])
   );
-  const [productos, setProductos] = useState<Product[]>([]);
-  const [filteredProductos, setFilteredProductos] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [productos, setProductos] = useState<Product[]>(catalogCache[category] ?? []);
+  const [filteredProductos, setFilteredProductos] = useState<Product[]>(catalogCache[category] ?? []);
+  const [loading, setLoading] = useState(!catalogCache[category]);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -85,6 +85,7 @@ export const CatalogScreen = ({
   const loadProductos = useCallback(async () => {
     try {
       const data = await getProductos(category);
+      catalogCache[category] = data;
       setProductos(data);
       setFilteredProductos(filterProducts(data, searchQuery));
     } catch (error) {
