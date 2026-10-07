@@ -19,6 +19,13 @@ export const Colors = {
     scrim: 'rgba(26, 16, 51, 0.5)',
     /** Display colors (letters, blobs, glows). Each keeps >= 3:1 against `bg` for large text. */
     vivid: ['#E0115F', '#E85D04', '#B7791F', '#0F9D7A', '#2563EB', '#7C3AED'],
+    /** Letter gradients for DancingText titles (start → end), darker stops for the light background. */
+    gradients: {
+      pandora: ['#C026D3', '#E0115F', '#E85D04'],
+      vinyl: ['#6D28D9', '#2563EB', '#0E7490'],
+      books: ['#0F7A55', '#0F766E', '#B45309'],
+      warm: ['#E0115F', '#C2410C'],
+    },
   },
   dark: {
     bg: '#0E0A1F',
@@ -32,6 +39,12 @@ export const Colors = {
     success: '#4ADE80',
     scrim: 'rgba(0, 0, 0, 0.6)',
     vivid: ['#FF4F8B', '#FF9F1C', '#FFD60A', '#2EE6B6', '#5EA8FF', '#B38CFF'],
+    gradients: {
+      pandora: ['#E879F9', '#FF4F8B', '#FFB020'],
+      vinyl: ['#B38CFF', '#5EA8FF', '#2EE6B6'],
+      books: ['#2EE6B6', '#A3E635', '#FFD60A'],
+      warm: ['#FF4F8B', '#FF9F1C'],
+    },
   },
 };
 

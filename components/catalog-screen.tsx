@@ -117,7 +117,12 @@ export const CatalogScreen = ({
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
       <View style={styles.header}>
-        <DancingText text={title} style={styles.title} containerStyle={styles.titleRow} />
+        <DancingText
+          text={title}
+          style={styles.title}
+          containerStyle={styles.titleRow}
+          colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
+        />
         <View style={styles.headerActions}>
           <ProfileMenu />
           <TouchableOpacity

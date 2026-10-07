@@ -20,6 +20,16 @@ const WAVE_UP_MS = 420;
 const WAVE_REST_MS = 2200; // pause between waves so the title settles and stays readable
 const sine = Easing.inOut(Easing.sin);
 
+/** Colour at t (0..1) along a list of #RRGGBB stops. */
+function gradientAt(stops: string[], t: number) {
+  if (stops.length === 1) return stops[0];
+  const x = t * (stops.length - 1);
+  const i = Math.min(Math.floor(x), stops.length - 2);
+  const [a, b] = [stops[i], stops[i + 1]].map((h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16)));
+  const mix = a.map((v, k) => Math.round(v + (b[k] - v) * (x - i)));
+  return `#${mix.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
 type Props = {
   text: string;
   style?: StyleProp<TextStyle>;
@@ -28,8 +38,8 @@ type Props = {
   wave?: boolean;
   /** Ms before the first letter enters. */
   delay?: number;
-  /** One colour per letter, cycling through theme.vivid. Off = inherit style.color. */
-  colorful?: boolean;
+  /** Gradient stops spread across the letters (#RRGGBB). Default: theme.gradients.pandora. */
+  colors?: string[];
 };
 
 function Letter({ char, index, color, style, wave, delay }: {
@@ -85,9 +95,11 @@ function Letter({ char, index, color, style, wave, delay }: {
 }
 
 /** Display title whose letters spring in one by one, then dance in a slow wave. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colorful = true }: Props) {
+export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors }: Props) {
   const theme = useTheme();
+  const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
+  const last = Math.max(text.replace(/ /g, '').length - 1, 1);
   let i = 0;
 
   return (
@@ -109,7 +121,7 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 style={style}
                 wave={wave}
                 delay={delay}
-                color={colorful ? theme.vivid[index % theme.vivid.length] : undefined}
+                color={gradientAt(stops, index / last)}
               />
             );
           })}

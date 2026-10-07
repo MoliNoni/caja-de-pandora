@@ -105,7 +105,13 @@ export default function TrackDetailScreen() {
       <PatternBackground variant="contours" />
       <Stack.Screen options={{ title: track.title }} />
 
-      <VinylPlayer trackId={track.id} title={track.title} coverUri={imageUri} size={discSize} />
+      <VinylPlayer
+        trackId={track.id}
+        title={track.title}
+        coverUri={imageUri}
+        size={discSize}
+        meta={{ title: track.title, subtitle: product.autor, cover: imageUri, href: `/track/${track.id}` }}
+      />
 
       <Text style={styles.title} accessibilityRole="header">{track.title}</Text>
       <Text style={styles.author}>{[product.autor, product.titulo].filter(Boolean).join(' · ')}</Text>

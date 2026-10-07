@@ -15,7 +15,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { showAlert } from '../lib/dialog';
-import { usePlayer, type ResolvePreview } from '../lib/player-context';
+import { usePlayer, type NowPlaying, type ResolvePreview } from '../lib/player-context';
 import type { Theme } from '../constants/theme';
 
 const TURN_MS = 1800; // 33⅓ rpm
@@ -31,10 +31,12 @@ type Props = {
   size: number;
   /** Custom preview source (e.g. iTunes for whole records). Default: the track-preview Edge Function. */
   resolve?: ResolvePreview;
+  /** Shown by the mini-player while this preview is loaded. */
+  meta?: NowPlaying;
 };
 
 /** design.md#vinyl: black disc, cover as centre label, spins only while this track plays. */
-export function VinylPlayer({ trackId, title, coverUri, size, resolve }: Props) {
+export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: Props) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const reducedMotion = useReducedMotion();
@@ -95,7 +97,7 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve }: Props) 
 
   const label = playing ? 'Pause preview' : 'Play preview';
   const onPress = async () => {
-    if (!(await player.toggle(trackId, resolve))) showAlert('Sin vista previa', 'No encontramos un fragmento para reproducir.');
+    if (!(await player.toggle(trackId, resolve, meta))) showAlert('Sin vista previa', 'No encontramos un fragmento para reproducir.');
   };
 
   const center = size * 0.38;

@@ -185,7 +185,6 @@ export default function HomeScreen() {
 
           <SectionCarousel
             title="Best Sellers en Libros"
-            subtitle="Los títulos más demandados por nuestros clientes"
             products={bestSellersBooks}
             isBestSeller
             featuredFirst
@@ -194,14 +193,12 @@ export default function HomeScreen() {
 
           <SectionCarousel
             title="Novedades en Libros"
-            subtitle="Los lanzamientos más recientes ordenados por fecha"
             products={latestBooks}
             onSeeAll={() => router.push('/(tabs)/explore')}
           />
 
           <SectionCarousel
             title="Best Sellers en Vinilos"
-            subtitle="Los discos más vendidos y recomendados"
             products={bestSellersVinyls}
             isBestSeller
             onSeeAll={() => router.push('/(tabs)/vinyl')}
@@ -209,7 +206,6 @@ export default function HomeScreen() {
 
           <SectionCarousel
             title="Novedades en Vinilos"
-            subtitle="Los vinilos recién agregados a la tienda"
             products={latestVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />

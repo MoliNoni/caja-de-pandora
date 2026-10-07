@@ -69,7 +69,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
         >
           <Ionicons name="arrow-back" size={24} color={theme.ink} />
         </TouchableOpacity>
-        <DancingText text="Tu carrito" style={styles.title} containerStyle={styles.titleRow} />
+        <DancingText text="Tu carrito" style={styles.title} containerStyle={styles.titleRow} colors={theme.gradients.warm} />
         <Text style={styles.itemCount}>{itemCount} items</Text>
       </View>
 

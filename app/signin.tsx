@@ -83,7 +83,7 @@ export default function SignInScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Animated.Text entering={FadeInDown.springify()} style={styles.logo}>CAJA DE PANDORA</Animated.Text>
-        <DancingText text="Hola de nuevo" style={styles.title} />
+        <DancingText text="Hola de nuevo" style={styles.title} colors={theme.gradients.warm} />
       </View>
 
       {/* Form */}

@@ -19,7 +19,7 @@ import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValu
 import { useRouter } from 'expo-router';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
-import { Product } from '../lib/database';
+import { Product, productCache } from '../lib/database';
 import { resolveProductImageUrl } from '../lib/product-image';
 import { useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
@@ -56,8 +56,13 @@ export const ProductCard = ({
   };
   const { addItem } = useCart();
   const router = useRouter();
-  const openDetail = onPress ?? (() => router.push({ pathname: '/product/[id]', params: { id: product.id } }));
   const [imageUri, setImageUri] = useState<string | null>(product.imageUrl);
+  const openDetail =
+    onPress ??
+    (() => {
+      productCache.set(product.id, { ...product, imageUrl: imageUri ?? product.imageUrl });
+      router.push({ pathname: '/product/[id]', params: { id: product.id } });
+    });
 
   // Load product cover image
   useEffect(() => {

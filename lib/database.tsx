@@ -310,6 +310,9 @@ export const getLatestProducts = async (
  * @param id - Product unique identifier
  * @returns Promise<Product> - Single product object
  */
+/** Products the UI already holds (e.g. a tapped card), so the detail screen paints instantly. */
+export const productCache = new Map<string, Product>();
+
 export const getProductoById = async (id: string): Promise<Product> => {
   try {
     const { data, error } = await supabase

@@ -7,16 +7,15 @@ import {
   View,
   Text,
   Image,
-  ScrollView,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getItunesPreviewUrl } from '../../lib/itunes';
 import { usePlayer } from '../../lib/player-context';
-import { getProductoById, Product } from '../../lib/database';
+import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { formatDuration, getTracksByProduct, Track } from '../../lib/tracks';
 import { Button } from '../../components/button';
@@ -33,19 +32,21 @@ export default function ProductDetailScreen() {
   const player = usePlayer();
   const { width } = useWindowDimensions();
   const discSize = Math.min(width - 40, 340);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
+  const cached = productCache.get(String(id)) ?? null;
+  const [product, setProduct] = useState<Product | null>(cached);
+  const [imageUri, setImageUri] = useState<string | null>(cached?.imageUrl || null);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cached ? 'ready' : 'loading');
 
   useEffect(() => {
     let active = true;
-    setStatus('loading');
+    if (!productCache.has(String(id))) setStatus('loading');
     getProductoById(String(id))
       .then(async (p) => {
         if (!active) return;
         setProduct(p);
-        setImageUri(p.imageUrl || null);
+        setImageUri((current) => current || p.imageUrl || null);
         setStatus('ready');
         if (p.category === 'vinyl') {
           getTracksByProduct(p.id)
@@ -55,7 +56,7 @@ export default function ProductDetailScreen() {
         const cover = await resolveProductImageUrl(p);
         if (active && cover) setImageUri(cover);
       })
-      .catch(() => active && setStatus('error'));
+      .catch(() => active && !productCache.has(String(id)) && setStatus('error'));
     return () => {
       active = false;
     };
@@ -68,11 +69,20 @@ export default function ProductDetailScreen() {
     [product?.autor, product?.titulo]
   );
 
+  const recordMeta = product
+    ? { title: product.titulo, subtitle: product.autor, cover: imageUri, href: `/product/${product.id}` }
+    : undefined;
+
+  // Resolve the preview up front: the tap then plays inside the browser's user-gesture window.
+  useEffect(() => {
+    if (isVinyl) void resolveRecord();
+  }, [isVinyl, resolveRecord]);
+
   // A record starts spinning (and playing) the moment it goes into the cart.
   const add = () => {
     if (!product) return;
     void addItem(product, 1);
-    if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord);
+    if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord, recordMeta);
   };
 
   if (status === 'loading') {
@@ -101,13 +111,13 @@ export default function ProductDetailScreen() {
   const inStock = product.stock > 0;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.container}>
       <PatternBackground />
       <Stack.Screen options={{ title: product.titulo }} />
 
       {isVinyl ? (
         <Animated.View entering={ZoomIn.springify().damping(12)}>
-          <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} />
+          <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
         </Animated.View>
       ) : imageUri ? (
         <Image
@@ -171,7 +181,7 @@ export default function ProductDetailScreen() {
         onPress={add}
         style={styles.addButton}
       />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
