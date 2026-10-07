@@ -24,6 +24,7 @@ import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { CartDrawer } from '../components/cart-drawer';
 import { ClickSpark } from '../components/click-spark';
+import { Confetti } from '../components/confetti';
 import { showAlert, showConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
@@ -290,6 +291,7 @@ export default function CartScreen() {
           </View>
         </View>
       )}
+      <Confetti play={purchaseReceipt !== null} />
     </SafeAreaView>
   );
 }
