@@ -49,6 +49,12 @@ export const seedTracks = async (productId: string, discogsReleaseId: string, de
   return data as { success: true; count: number };
 };
 
+// 30 s preview URL resolved server-side. refresh = the cached URL failed to play (signed URLs expire).
+export const getTrackPreviewUrl = async (trackId: string, refresh = false): Promise<string | null> => {
+  const { data, error } = await supabase.functions.invoke('track-preview', { body: { trackId, refresh } });
+  return error ? null : ((data?.previewUrl as string | undefined) ?? null);
+};
+
 export type PurchaseResult = 'purchased' | 'owned' | 'unauthorized' | 'error';
 
 // Not security-sensitive: only deduplicates retries of one purchase attempt.
