@@ -7,6 +7,7 @@
 
 import { Image } from 'react-native';
 import { supabase } from './supabase';
+import { writeCache } from './cache';
 import { getOpenLibraryCoverUrl } from './openlibrary';
 import { getDiscogsCoverUrl } from './discogs';
 import { sendOrderConfirmationEmail } from './email';
@@ -311,17 +312,27 @@ export const getLatestProducts = async (
  * @param id - Product unique identifier
  * @returns Promise<Product> - Single product object
  */
-/** Last loaded catalog per category: tabs render it at once on first visit, then refresh. */
-export const catalogCache: Partial<Record<ProductCategory, Product[]>> = {};
+export type HomeData = { books: Product[]; vinyls: Product[]; newBooks: Product[]; newVinyls: Product[] };
 
-/** Warm a catalog (and its covers) in the background so the tab opens without a blank frame. */
-export const prefetchCatalog = async (category: ProductCategory) => {
-  if (catalogCache[category]) return;
-  const products = await getProductos(category);
-  catalogCache[category] = products;
+export const getHomeData = async (): Promise<HomeData> => {
+  const [books, vinyls, newBooks, newVinyls] = await Promise.all([
+    getTopBestSellers('book'),
+    getTopBestSellers('vinyl'),
+    getLatestProducts('book'),
+    getLatestProducts('vinyl'),
+  ]);
+  return { books, vinyls, newBooks, newVinyls };
+};
+
+/** Warm every tab (data + first covers) at app start, so no tab opens on a blank frame. */
+export const prefetchScreens = async () => {
+  const [home, book, vinyl] = await Promise.all([getHomeData(), getProductos('book'), getProductos('vinyl')]);
+  writeCache('home', home);
+  writeCache('catalog:book', book);
+  writeCache('catalog:vinyl', vinyl);
   const { resolveProductImageUrl } = await import('./product-image');
   await Promise.all(
-    products.slice(0, 12).map(async (p) => {
+    [...book.slice(0, 8), ...vinyl.slice(0, 8)].map(async (p) => {
       const cover = await resolveProductImageUrl(p);
       if (cover) await Image.prefetch(cover).catch(() => false);
     })

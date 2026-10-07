@@ -20,7 +20,7 @@ import { useRouter } from 'expo-router';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { Product, productCache } from '../lib/database';
-import { resolveProductImageUrl } from '../lib/product-image';
+import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-image';
 import { useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -56,7 +56,8 @@ export const ProductCard = ({
   };
   const { addItem } = useCart();
   const router = useRouter();
-  const [imageUri, setImageUri] = useState<string | null>(product.imageUrl);
+  // undefined = cover still loading (neutral block), null = no cover exists.
+  const [imageUri, setImageUri] = useState<string | null | undefined>(() => peekProductImageUrl(product));
   const openDetail =
     onPress ??
     (() => {
@@ -67,10 +68,7 @@ export const ProductCard = ({
   // Load product cover image
   useEffect(() => {
     const fetchImage = async () => {
-      const coverUrl = await resolveProductImageUrl(product);
-      if (coverUrl) {
-        setImageUri(coverUrl);
-      }
+      setImageUri(await resolveProductImageUrl(product));
     };
     fetchImage();
   }, [product]);
@@ -106,7 +104,7 @@ export const ProductCard = ({
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
-            <Text style={styles.placeholderText}>Sin imagen</Text>
+            {imageUri === null && <Text style={styles.placeholderText}>Sin imagen</Text>}
           </View>
         )}
         {isBestSeller && (
@@ -194,7 +192,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   placeholderText: {
-    fontSize: 48,
+    fontSize: 13,
+    color: t.inkMuted,
   },
   bestSellerBadge: {
     position: 'absolute',

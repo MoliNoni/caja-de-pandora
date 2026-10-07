@@ -3,7 +3,9 @@
 // Provides auth and cart contexts
 // Sets up stack navigation
 
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { prefetchScreens } from '../lib/database';
 import { AuthProvider } from '../lib/auth-context';
 import { CartProvider } from '../lib/cart-context';
 import { PlayerProvider } from '../lib/player-context';
@@ -13,6 +15,9 @@ import { MiniPlayer } from '../components/mini-player';
 // Main app layout with providers
 export default function RootLayout() {
   const theme = useTheme();
+  useEffect(() => {
+    prefetchScreens().catch(() => undefined); // best effort: screens still load on their own
+  }, []);
   return (
     <AuthProvider>
       <CartProvider>

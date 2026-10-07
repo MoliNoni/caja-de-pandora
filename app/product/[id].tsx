@@ -12,7 +12,7 @@ import {
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
-import { getItunesPreviewUrl } from '../../lib/itunes';
+import { getRecordPreviewUrl } from '../../lib/previews';
 import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
@@ -57,7 +57,7 @@ export default function ProductDetailScreen() {
   const isVinyl = product?.category === 'vinyl';
   const recordKey = `record:${id}`;
   const resolveRecord = useCallback(
-    () => getItunesPreviewUrl(product?.autor, product?.titulo ?? ''),
+    () => getRecordPreviewUrl(product?.autor, product?.titulo ?? ''),
     [product?.autor, product?.titulo]
   );
 

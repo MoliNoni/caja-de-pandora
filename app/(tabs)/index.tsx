@@ -28,12 +28,8 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  getLatestProducts,
-  getTopBestSellers,
-  prefetchCatalog,
-  Product,
-} from '../../lib/database';
+import { getHomeData, type HomeData } from '../../lib/database';
+import { useCachedState } from '../../lib/cache';
 import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
 import { HeroButton } from '../../components/hero-button';
@@ -90,37 +86,22 @@ export default function HomeScreen() {
   const { itemCount } = useCart();
   const badgePop = useBadgePop(itemCount);
 
-  const [bestSellersBooks, setBestSellersBooks] = useState<Product[]>([]);
-  const [bestSellersVinyls, setBestSellersVinyls] = useState<Product[]>([]);
-  const [latestBooks, setLatestBooks] = useState<Product[]>([]);
-  const [latestVinyls, setLatestVinyls] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [home, setHome] = useCachedState<HomeData>('home');
+  const loading = home === undefined;
+  // Bumped on every visit: remounting the sections replays their entrance each time.
+  const [visit, setVisit] = useState(0);
 
   const loadHomeData = useCallback(async () => {
     try {
-      const [books, vinyls, newBooks, newVinyls] = await Promise.all([
-        getTopBestSellers('book'),
-        getTopBestSellers('vinyl'),
-        getLatestProducts('book'),
-        getLatestProducts('vinyl'),
-      ]);
-
-      setBestSellersBooks(books);
-      setBestSellersVinyls(vinyls);
-      setLatestBooks(newBooks);
-      setLatestVinyls(newVinyls);
-      // Warm both catalog tabs while the user is on the home screen.
-      void prefetchCatalog('book').catch(() => undefined);
-      void prefetchCatalog('vinyl').catch(() => undefined);
+      setHome(await getHomeData());
     } catch (error) {
       console.error('Error loading home data:', error);
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [setHome]);
 
   useFocusEffect(
     useCallback(() => {
+      setVisit((v) => v + 1);
       loadHomeData();
     }, [loadHomeData])
   );
@@ -151,7 +132,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {loading ? (
+      {loading || !home ? (
         <SkeletonRegion style={styles.scrollContent}>
           {[0, 1].map((row) => (
             <View key={row} style={styles.skeletonSection}>
@@ -165,7 +146,7 @@ export default function HomeScreen() {
           ))}
         </SkeletonRegion>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView key={visit} contentContainerStyle={styles.scrollContent}>
           <View style={styles.hero}>
             <View style={styles.heroTop}>
               <Animated.Text entering={FadeInDown.springify()} style={styles.eyebrow}>
@@ -189,7 +170,7 @@ export default function HomeScreen() {
 
           <SectionCarousel
             title="Best Sellers en Libros"
-            products={bestSellersBooks}
+            products={home.books}
             isBestSeller
             featuredFirst
             onSeeAll={() => router.push('/(tabs)/explore')}
@@ -197,20 +178,20 @@ export default function HomeScreen() {
 
           <SectionCarousel
             title="Novedades en Libros"
-            products={latestBooks}
+            products={home.newBooks}
             onSeeAll={() => router.push('/(tabs)/explore')}
           />
 
           <SectionCarousel
             title="Best Sellers en Vinilos"
-            products={bestSellersVinyls}
+            products={home.vinyls}
             isBestSeller
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
 
           <SectionCarousel
             title="Novedades en Vinilos"
-            products={latestVinyls}
+            products={home.newVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
         </ScrollView>

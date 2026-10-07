@@ -4,7 +4,7 @@
 // Shows cart with item count
 // Manages search and product filtering
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { catalogCache, getProductos, Product } from '../lib/database';
+import { getProductos, Product } from '../lib/database';
+import { useCachedState } from '../lib/cache';
 import { PatternBackground } from './pattern-background';
 import { DancingText } from './dancing-text';
 import { ProductCard } from './product-card';
@@ -60,9 +61,11 @@ export const CatalogScreen = ({
       router.setParams({ focus: undefined });
     }, [focus, router])
   );
-  const [productos, setProductos] = useState<Product[]>(catalogCache[category] ?? []);
-  const [filteredProductos, setFilteredProductos] = useState<Product[]>(catalogCache[category] ?? []);
-  const [loading, setLoading] = useState(!catalogCache[category]);
+  const [cached, setProductos] = useCachedState<Product[]>(`catalog:${category}`);
+  const productos = useMemo(() => cached ?? [], [cached]);
+  const loading = cached === undefined;
+  // Bumped on every visit: remounting the list replays the card entrance each time.
+  const [visit, setVisit] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -84,20 +87,22 @@ export const CatalogScreen = ({
   // Load products from database
   const loadProductos = useCallback(async () => {
     try {
-      const data = await getProductos(category);
-      catalogCache[category] = data;
-      setProductos(data);
-      setFilteredProductos(filterProducts(data, searchQuery));
+      setProductos(await getProductos(category));
     } catch (error) {
       console.error('Error loading productos:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
-  }, [category, filterProducts, searchQuery]);
+  }, [category, setProductos]);
+
+  const filteredProductos = useMemo(
+    () => filterProducts(productos, searchQuery),
+    [filterProducts, productos, searchQuery]
+  );
 
   useFocusEffect(
     useCallback(() => {
+      setVisit((v) => v + 1);
       loadProductos();
     }, [loadProductos])
   );
@@ -111,7 +116,6 @@ export const CatalogScreen = ({
   // Update search and filter products
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    setFilteredProductos(filterProducts(productos, text));
   };
 
   return (
@@ -169,6 +173,7 @@ export const CatalogScreen = ({
         </View>
       ) : (
         <FlatList
+          key={visit}
           data={filteredProductos}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
