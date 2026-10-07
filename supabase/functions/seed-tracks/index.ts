@@ -76,15 +76,16 @@ Deno.serve(async (req: Request) => {
 
     // ignoreDuplicates: re-seeding adds missing tracks and never resets prices edited by an admin.
     // Runs with the caller's JWT, so the admin-only RLS policy is enforced as well.
-    const { error } = await caller.client
+    const { data: inserted, error } = await caller.client
       .from('tracks')
-      .upsert([...rows.values()], { onConflict: 'product_id,position', ignoreDuplicates: true });
+      .upsert([...rows.values()], { onConflict: 'product_id,position', ignoreDuplicates: true })
+      .select('id');
     if (error) {
       console.error('seed-tracks upsert failed', error);
       const noProduct = error.code === '23503';
       return jsonResponse(req, { error: noProduct ? 'Product not found' : 'Internal error' }, noProduct ? 404 : 500);
     }
-    return jsonResponse(req, { success: true, count: rows.size });
+    return jsonResponse(req, { success: true, parsed: rows.size, inserted: inserted?.length ?? 0 });
   } catch (e) {
     console.error('seed-tracks error', e);
     return jsonResponse(req, { error: 'Internal error' }, 500);

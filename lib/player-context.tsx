@@ -23,6 +23,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
   const [trackId, setTrackId] = useState<string | null>(null);
+  const loadedTrackId = useRef<string | null>(null); // id of the source actually loaded in the player
   const request = useRef(0); // invalidates in-flight loads when another track is requested
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -49,6 +50,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
       player.replace(url);
+      loadedTrackId.current = id;
       player.play();
       clearWatchdog();
       watchdog.current = setTimeout(() => {
@@ -63,7 +65,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const play = useCallback(
     async (id: string) => {
-      if (id === trackId && status.isLoaded) {
+      if (id === trackId && loadedTrackId.current === id && status.isLoaded) {
         if (status.duration > 0 && status.currentTime >= status.duration - 0.1) await player.seekTo(0);
         player.play();
         return true;

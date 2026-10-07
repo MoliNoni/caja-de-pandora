@@ -46,7 +46,7 @@ export const seedTracks = async (productId: string, discogsReleaseId: string, de
     body: { productId, discogsReleaseId, defaultPrice },
   });
   if (error) throw error;
-  return data as { success: true; count: number };
+  return data as { success: true; parsed: number; inserted: number };
 };
 
 // 30 s preview URL resolved server-side. refresh = the cached URL failed to play (signed URLs expire).
@@ -69,8 +69,15 @@ export const purchaseTrack = async (trackId: string, idempotencyKey: string): Pr
   return status === 401 ? 'unauthorized' : status === 409 ? 'owned' : 'error';
 };
 
-// RLS limits this to the signed-in user's own purchases.
+// Filtered by user_id explicitly: RLS lets admins read every purchase.
 export const isTrackOwned = async (trackId: string): Promise<boolean> => {
-  const { data } = await supabase.from('track_purchases').select('id').eq('track_id', trackId).maybeSingle();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return false;
+  const { data } = await supabase
+    .from('track_purchases')
+    .select('id')
+    .eq('track_id', trackId)
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
   return !!data;
 };

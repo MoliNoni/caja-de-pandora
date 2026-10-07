@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -39,6 +39,8 @@ export function VinylPlayer({ trackId, title, coverUri, size }: Props) {
   const arm = useSharedValue(0);
   const icon = useSharedValue(0); // 0 = play, 1 = pause
 
+  const wasPlaying = useRef(false);
+
   useEffect(() => {
     const ms = reducedMotion ? 0 : 300;
     arm.value = withTiming(playing ? 22 : 0, { duration: ms, easing: Easing.out(Easing.ease) });
@@ -50,12 +52,13 @@ export function VinylPlayer({ trackId, title, coverUri, size }: Props) {
         withTiming(rotation.value + 360, { duration: TURN_MS, easing: Easing.linear }),
         -1
       );
-    } else {
+    } else if (wasPlaying.current) {
       rotation.value = withTiming(rotation.value + STOP_DEG, {
         duration: STOP_MS,
         easing: Easing.out(Easing.cubic),
       });
     }
+    wasPlaying.current = playing;
   }, [playing, reducedMotion, rotation, arm, icon]);
 
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
