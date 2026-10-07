@@ -5,13 +5,13 @@ import { useEffect } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withDelay,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -28,7 +28,19 @@ type Props = {
 };
 
 const OPEN_DEG = 165;
-const SPRING = { damping: 17, stiffness: 120 };
+// No springs: an overshoot below 0 turns into a positive rotateY and the cover swings behind
+// the book like a door. Opening slows as the spine resists lying flat; closing falls shut
+// faster and faster, then lands with a small bounce toward the reader, never past closed.
+const OPEN = { duration: 700, easing: Easing.out(Easing.cubic) };
+const FALL = { duration: 420, easing: Easing.in(Easing.cubic) };
+const shut = () => {
+  'worklet';
+  return withSequence(
+    withTiming(0, FALL),
+    withTiming(0.03, { duration: 90, easing: Easing.out(Easing.quad) }),
+    withTiming(0, { duration: 160, easing: Easing.in(Easing.quad) })
+  );
+};
 const PAGE_EDGES = [3, 6, 9];
 
 export function BookCover({ uri, title, author, synopsis, width }: Props) {
@@ -44,12 +56,12 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
 
   // One peek on arrival hints that the cover turns.
   useEffect(() => {
-    if (!reducedMotion) open.value = withDelay(500, withSequence(withTiming(0.18, { duration: 420 }), withSpring(0, SPRING)));
+    if (!reducedMotion) open.value = withDelay(500, withSequence(withTiming(0.16, { duration: 420, easing: Easing.out(Easing.quad) }), shut()));
   }, [open, reducedMotion]);
 
   const settle = (to: number) => {
     'worklet';
-    open.value = reducedMotion ? withTiming(to, { duration: 0 }) : withSpring(to, SPRING);
+    open.value = reducedMotion ? withTiming(to, { duration: 0 }) : to === 1 ? withTiming(1, OPEN) : shut();
   };
   const pan = Gesture.Pan()
     // Horizontal only: vertical drags keep scrolling the screen and the synopsis.
@@ -66,16 +78,17 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
       settle(e.velocityX < -500 ? 1 : e.velocityX > 500 ? 0 : Math.round(open.value));
     });
 
-  const bookStyle = useAnimatedStyle((): ViewStyle => ({ transform: [{ translateX: shift * open.value }] }));
+  const bookStyle = useAnimatedStyle((): ViewStyle => ({ transform: [{ translateX: shift * Math.min(1, Math.max(0, open.value)) }] }));
   // Hinge on the spine without transformOrigin: move the left edge to the centre, rotate, move back.
   // Negative rotateY lifts the free edge toward the reader, as a real cover opens.
   const coverStyle = useAnimatedStyle((): ViewStyle => {
-    const lift = Math.sin(Math.PI * open.value);
+    const o = Math.min(1, Math.max(0, open.value)); // never past closed or fully open
+    const lift = Math.sin(Math.PI * o);
     return {
       transform: [
         { perspective: 1400 },
         { translateX: -width / 2 },
-        { rotateY: `${-OPEN_DEG * open.value}deg` },
+        { rotateY: `${-OPEN_DEG * o}deg` },
         { translateX: width / 2 },
         { scale: 1 + 0.04 * lift },
       ],
