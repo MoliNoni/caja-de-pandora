@@ -21,7 +21,11 @@ Deno.serve(async (req: Request) => {
   if (!parsed.success) return jsonResponse(req, { error: 'Bad request' }, 400);
 
   const apiKey = Deno.env.get('BREVO_API_KEY');
-  if (!apiKey) return jsonResponse(req, { error: 'Internal error' }, 500);
+  const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL');
+  if (!apiKey || !senderEmail) {
+    console.error('Missing config: BREVO_API_KEY and BREVO_SENDER_EMAIL are required');
+    return jsonResponse(req, { error: 'Internal error' }, 500);
+  }
 
   try {
     // RLS limits this to the caller's own orders (admins see all, hence the user_id check below).
@@ -72,7 +76,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         sender: {
           name: Deno.env.get('BREVO_SENDER_NAME') ?? 'Librería Caja de Pandora',
-          email: Deno.env.get('BREVO_SENDER_EMAIL'),
+          email: senderEmail,
         },
         to: [{ email: order.cliente.email }],
         subject: 'Confirmación de compra - Librería Caja de Pandora',
@@ -81,9 +85,13 @@ Deno.serve(async (req: Request) => {
       }),
     });
 
-    if (!response.ok) return jsonResponse(req, { error: 'Email delivery failed' }, 502);
+    if (!response.ok) {
+      console.error('brevo failure', response.status);
+      return jsonResponse(req, { error: 'Email delivery failed' }, 502);
+    }
     return jsonResponse(req, { success: true });
-  } catch {
+  } catch (e) {
+    console.error('send-order-confirmation-email error', e);
     return jsonResponse(req, { error: 'Internal error' }, 500);
   }
 });

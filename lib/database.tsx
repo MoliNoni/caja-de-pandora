@@ -444,13 +444,13 @@ export const deleteProducto = async (id: string) => {
 };
 
 // Obtener órdenes del cliente
-export const getClienteOrdenes = async (clienteId: string) => {
+export const getClienteOrdenes = async (userId: string) => {
   try {
-    // clienteId is the auth user id; RLS also lets admins read every order, so filter by own profile.
+    // userId is the auth user id; RLS also lets admins read every order, so filter by own profile.
     const { data: cliente, error: clienteError } = await supabase
       .from('clientes')
       .select('id')
-      .eq('user_id', clienteId)
+      .eq('user_id', userId)
       .single();
 
     if (clienteError || !cliente) {
@@ -533,7 +533,7 @@ export const procesarCompra = async (
     if (userEmail) {
       try {
         await sendOrderConfirmationEmail(order.id);
-        emailStatus = `Correo de confirmación enviado a ${userEmail}`;
+        emailStatus = 'Se envió un correo de confirmación al correo de tu cuenta.';
       } catch (sendError) {
         console.warn('No se pudo enviar el correo de confirmación:', sendError);
         const errorMessage =
