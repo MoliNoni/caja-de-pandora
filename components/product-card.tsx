@@ -166,11 +166,10 @@ export const ProductCard = ({
           {product.titulo}
         </Text>
 
-        {product.autor && (
-          <Text style={styles.autor} numberOfLines={1}>
-            {product.autor}
-          </Text>
-        )}
+        {/* Optional lines keep their slot (blank) so every card has the same height. */}
+        <Text style={styles.autor} numberOfLines={1}>
+          {product.autor || ' '}
+        </Text>
 
         <View style={styles.priceContainer}>
           <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
@@ -181,9 +180,9 @@ export const ProductCard = ({
           )}
         </View>
 
-        {product.vendidos > 0 && (
-          <Text style={styles.vendidos}>{product.vendidos} vendidos</Text>
-        )}
+        <Text style={styles.vendidos}>
+          {product.vendidos > 0 ? `${product.vendidos} vendidos` : ' '}
+        </Text>
 
         <Button
           label={product.stock > 0 ? 'Agregar al carrito' : 'Agotado'}
@@ -275,6 +274,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontFamily: Fonts.serif,
+    lineHeight: 20,
+    // Always two lines tall, so one-line titles don't shrink the card.
+    minHeight: 40,
     marginBottom: 4,
     color: t.ink,
   },
