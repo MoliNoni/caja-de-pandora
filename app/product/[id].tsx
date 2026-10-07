@@ -3,13 +3,14 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  Pressable,
   View,
   Text,
   Image,
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getProductoById, Product } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
@@ -119,12 +120,18 @@ export default function ProductDetailScreen() {
         <View style={styles.tracklist}>
           <Text style={styles.tracksTitle} accessibilityRole="header">Canciones</Text>
           {tracks.map((track) => (
-            <View key={track.id} style={styles.trackRow}>
+            <Pressable
+              key={track.id}
+              style={styles.trackRow}
+              accessibilityRole="link"
+              accessibilityLabel={`${track.title}, $${track.price.toFixed(2)}`}
+              onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+            >
               <Text style={styles.trackPos}>{track.position}</Text>
               <Text style={styles.trackName} numberOfLines={2}>{track.title}</Text>
               <Text style={styles.trackMeta}>{formatDuration(track.durationS)}</Text>
               <Text style={styles.trackPrice}>${track.price.toFixed(2)}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       )}

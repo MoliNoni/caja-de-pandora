@@ -48,3 +48,23 @@ export const seedTracks = async (productId: string, discogsReleaseId: string, de
   if (error) throw error;
   return data as { success: true; count: number };
 };
+
+export type PurchaseResult = 'purchased' | 'owned' | 'unauthorized' | 'error';
+
+// Not security-sensitive: only deduplicates retries of one purchase attempt.
+export const newIdempotencyKey = () =>
+  globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
+// Price is resolved server-side; only the track id and an idempotency key are sent.
+export const purchaseTrack = async (trackId: string, idempotencyKey: string): Promise<PurchaseResult> => {
+  const { error } = await supabase.functions.invoke('purchase-track', { body: { trackId, idempotencyKey } });
+  if (!error) return 'purchased';
+  const status = (error as any).context?.status;
+  return status === 401 ? 'unauthorized' : status === 409 ? 'owned' : 'error';
+};
+
+// RLS limits this to the signed-in user's own purchases.
+export const isTrackOwned = async (trackId: string): Promise<boolean> => {
+  const { data } = await supabase.from('track_purchases').select('id').eq('track_id', trackId).maybeSingle();
+  return !!data;
+};
