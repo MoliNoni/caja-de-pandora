@@ -89,11 +89,38 @@ export type RecordLookup = {
   cover: string | null;
 };
 
-export const lookupDiscogsRelease = async (releaseId: string): Promise<RecordLookup | null> => {
+// One proxy request per release per session, shared by the admin lookup and the tracklist.
+const releaseCache = new Map<string, Promise<any | null>>();
+const fetchRelease = (releaseId: string) => {
   const id = releaseId.trim();
-  if (!/^\d{1,12}$/.test(id)) return null;
-  const { data, error } = await supabase.functions.invoke('discogs-proxy', { body: { path: `releases/${id}` } });
-  if (error || !data?.title) return null;
+  if (!/^\d{1,12}$/.test(id)) return Promise.resolve(null);
+  let pending = releaseCache.get(id);
+  if (!pending) {
+    pending = supabase.functions
+      .invoke('discogs-proxy', { body: { path: `releases/${id}` } })
+      .then(({ data, error }) => (error || !data?.title ? null : data))
+      .catch(() => {
+        releaseCache.delete(id); // network failure: retry next time
+        return null;
+      });
+    releaseCache.set(id, pending);
+  }
+  return pending;
+};
+
+export type Track = { position: string; title: string; duration: string };
+
+/** Songs of a release (headings and index rows dropped); empty when unknown. */
+export const getDiscogsTracklist = async (releaseId: string): Promise<Track[]> => {
+  const data = await fetchRelease(releaseId);
+  return (data?.tracklist ?? [])
+    .filter((t: any) => (t.type_ ?? 'track') === 'track' && t.title)
+    .map((t: any) => ({ position: String(t.position ?? ''), title: String(t.title), duration: String(t.duration ?? '') }));
+};
+
+export const lookupDiscogsRelease = async (releaseId: string): Promise<RecordLookup | null> => {
+  const data = await fetchRelease(releaseId);
+  if (!data) return null;
   const image = data.images?.find((img: any) => img.type === 'primary') ?? data.images?.[0];
   return {
     titulo: data.title,

@@ -19,6 +19,7 @@ import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { getBookSynopsis } from '../../lib/book-info';
+import { getDiscogsTracklist, type Track } from '../../lib/discogs';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
@@ -30,6 +31,8 @@ import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
+const TRACKS_SHOWN = 5;
+
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useThemedStyles(makeStyles);
@@ -39,10 +42,11 @@ export default function ProductDetailScreen() {
   const burst = useBurst();
   const fly = useFlyToCart();
   const { width, height } = useWindowDimensions();
-  // Media gets ~40 % of the screen height so the whole page fits a phone without scrolling.
-  const mediaH = height * 0.4;
-  const discSize = Math.min(width - 40, 340, mediaH / 0.9); // deck is 0.9 x its width tall
-  const bookWidth = Math.min(width * 0.72, 290, mediaH / 1.5); // book is 1.5 x its width tall
+  // The media box takes whatever height the info leaves (measured), so the book or deck grows to
+  // fill the screen instead of leaving a gap above the button. First frame uses an estimate.
+  const [mediaBox, setMediaBox] = useState(height * 0.45);
+  const discSize = Math.min(width - 40, 340, (mediaBox - 8) / 0.9); // deck is 0.9 x its width tall
+  const bookWidth = Math.min(width * 0.8, 320, (mediaBox - 18) / 1.5); // book is 1.5 x its width tall
   const [expanded, setExpanded] = useState(false);
   // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
   const cached = productCache.get(String(id)) ?? null;
@@ -85,6 +89,19 @@ export default function ProductDetailScreen() {
       active = false;
     };
   }, [isBook, isbn, titulo, autor, descripcion]);
+  // Records list their songs (Discogs, via the proxy) in the room the deck can't use.
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [allTracks, setAllTracks] = useState(false);
+  const discogsId = product?.discogs_id;
+  useEffect(() => {
+    if (!isVinyl || !discogsId) return;
+    let active = true;
+    getDiscogsTracklist(discogsId).then((list) => active && setTracks(list));
+    return () => {
+      active = false;
+    };
+  }, [isVinyl, discogsId]);
+
   const recordKey = `record:${id}`;
   const resolveRecord = useCallback(
     () => getRecordPreviewUrl(product?.autor, product?.titulo ?? ''),
@@ -116,7 +133,7 @@ export default function ProductDetailScreen() {
       <SafeAreaView style={styles.screen}>
         {back}
         <SkeletonRegion style={styles.content}>
-          <Skeleton height={mediaH} radius={16} style={styles.skeletonCover} />
+          <Skeleton height={mediaBox} radius={16} style={styles.skeletonCover} />
           <Skeleton height={24} width="75%" />
           <Skeleton height={16} width="45%" style={styles.skeletonGap} />
           <Skeleton height={24} width={96} style={styles.skeletonGap} />
@@ -154,13 +171,18 @@ export default function ProductDetailScreen() {
       {back}
 
       <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.content}>
-        {isVinyl ? (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.media}>
-            <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
-          </Animated.View>
-        ) : (
-          <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={bookWidth} />
-        )}
+        {/* Flexible box: its height comes from the free space, never from the media inside it. */}
+        <View style={styles.mediaBox} onLayout={(e) => setMediaBox(Math.round(e.nativeEvent.layout.height))}>
+          <View style={styles.mediaFill}>
+            {isVinyl ? (
+              <Animated.View entering={FadeIn.duration(200)}>
+                <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
+              </Animated.View>
+            ) : (
+              <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={bookWidth} />
+            )}
+          </View>
+        </View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
@@ -188,6 +210,24 @@ export default function ProductDetailScreen() {
             ) : null}
           </>
         ) : null}
+
+        {tracks.length > 0 ? (
+          <View style={styles.tracks}>
+            <Text style={styles.tracksTitle}>Canciones</Text>
+            {(allTracks ? tracks : tracks.slice(0, TRACKS_SHOWN)).map((t, i) => (
+              <View key={`${t.position}-${i}`} style={styles.trackRow}>
+                <Text style={styles.trackPos}>{t.position || i + 1}</Text>
+                <Text style={styles.trackTitle} numberOfLines={1}>{t.title}</Text>
+                {!!t.duration && <Text style={styles.trackTime}>{t.duration}</Text>}
+              </View>
+            ))}
+            {tracks.length > TRACKS_SHOWN ? (
+              <Pressable onPress={() => setAllTracks((v) => !v)} accessibilityRole="button" hitSlop={8}>
+                <Text style={styles.more}>{allTracks ? 'Ver menos' : `Ver las ${tracks.length} canciones`}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </Animated.ScrollView>
 
       {/* Always in reach: the main action never scrolls away. */}
@@ -204,7 +244,15 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   skeletonCover: { marginBottom: 16 },
   skeletonGap: { marginTop: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  media: { alignItems: 'center', marginBottom: 12 },
+  // minHeight keeps the media readable when a long text makes the page scroll.
+  mediaBox: { flex: 1, minHeight: 260, marginBottom: 8 },
+  mediaFill: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  tracks: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border },
+  tracksTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: t.inkMuted, marginBottom: 6 },
+  trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  trackPos: { width: 26, fontSize: 12, fontWeight: '700', color: t.inkMuted },
+  trackTitle: { flex: 1, fontSize: 14, color: t.ink },
+  trackTime: { fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
   title: { fontSize: 24, lineHeight: 29, fontWeight: '800', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 15, color: t.inkMuted, marginTop: 2 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
