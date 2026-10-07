@@ -28,7 +28,6 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
             <Stack.Screen name="product/[id]" options={{ title: '' }} />
-            <Stack.Screen name="track/[id]" options={{ title: '' }} />
             <Stack.Screen name="admin" options={{ headerShown: false }} />
           </Stack>
           <MiniPlayer />

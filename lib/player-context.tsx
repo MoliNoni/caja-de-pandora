@@ -1,9 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { getTrackPreviewUrl } from './tracks';
 
 // Single global player: starting a track replaces whatever was playing.
-/** Resolves a playable URL; refresh = the previous URL failed to load. Default: the track-preview Edge Function. */
+/** Resolves a playable URL; refresh = the previous URL failed to load. */
 export type ResolvePreview = (refresh: boolean) => Promise<string | null>;
 /** What the mini-player shows for the loaded preview. */
 export type NowPlaying = { title: string; subtitle?: string; cover?: string | null; href: string };
@@ -15,8 +14,9 @@ interface PlayerContextType {
   isPlaying: boolean;
   loading: boolean;
   /** Resolves false when no preview could be loaded for the track. */
-  play: (trackId: string, resolve?: ResolvePreview, meta?: NowPlaying) => Promise<boolean>;
+  play: (trackId: string, resolve: ResolvePreview, meta?: NowPlaying) => Promise<boolean>;
   pause: () => void;
+  /** resolve may be omitted to resume the loaded preview (e.g. from the mini-player). */
   toggle: (trackId: string, resolve?: ResolvePreview, meta?: NowPlaying) => Promise<boolean>;
 }
 
@@ -33,6 +33,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const loadedTrackId = useRef<string | null>(null); // id of the source actually loaded in the player
   const request = useRef(0); // invalidates in-flight loads when another track is requested
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastResolve = useRef<ResolvePreview | null>(null); // source of the loaded preview
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
@@ -71,8 +72,9 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const play = useCallback(
-    async (id: string, resolve?: ResolvePreview, meta?: NowPlaying) => {
+    async (id: string, resolve: ResolvePreview, meta?: NowPlaying) => {
       if (meta) setNowPlaying(meta);
+      lastResolve.current = resolve;
       if (id === trackId && loadedTrackId.current === id && status.isLoaded) {
         if (status.duration > 0 && status.currentTime >= status.duration - 0.1) await player.seekTo(0);
         player.play();
@@ -80,7 +82,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       }
       player.pause();
       setTrackId(id);
-      return load(id, false, resolve ?? ((refresh) => getTrackPreviewUrl(id, refresh)));
+      return load(id, false, resolve);
     },
     [load, player, status.currentTime, status.duration, status.isLoaded, trackId]
   );
@@ -93,7 +95,8 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         player.pause();
         return true;
       }
-      return play(id, resolve, meta);
+      const source = resolve ?? (id === trackId ? lastResolve.current : null);
+      return source ? play(id, source, meta) : false;
     },
     [play, player, status.playing, trackId]
   );

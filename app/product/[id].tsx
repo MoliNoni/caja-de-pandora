@@ -3,7 +3,6 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Pressable,
   View,
   Text,
   Image,
@@ -11,13 +10,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getItunesPreviewUrl } from '../../lib/itunes';
 import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
-import { formatDuration, getTracksByProduct, Track } from '../../lib/tracks';
 import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
@@ -36,7 +34,6 @@ export default function ProductDetailScreen() {
   const cached = productCache.get(String(id)) ?? null;
   const [product, setProduct] = useState<Product | null>(cached);
   const [imageUri, setImageUri] = useState<string | null>(cached?.imageUrl || null);
-  const [tracks, setTracks] = useState<Track[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cached ? 'ready' : 'loading');
 
   useEffect(() => {
@@ -48,11 +45,6 @@ export default function ProductDetailScreen() {
         setProduct(p);
         setImageUri((current) => current || p.imageUrl || null);
         setStatus('ready');
-        if (p.category === 'vinyl') {
-          getTracksByProduct(p.id)
-            .then((t) => active && setTracks(t))
-            .catch(() => undefined); // tracklist is optional; the product page still works without it
-        }
         const cover = await resolveProductImageUrl(p);
         if (active && cover) setImageUri(cover);
       })
@@ -154,25 +146,6 @@ export default function ProductDetailScreen() {
 
       {!!product.descripcion && <Text style={styles.description}>{product.descripcion}</Text>}
 
-      {tracks.length > 0 && (
-        <View style={styles.tracklist}>
-          <Text style={styles.tracksTitle} accessibilityRole="header">Canciones</Text>
-          {tracks.map((track) => (
-            <Pressable
-              key={track.id}
-              style={styles.trackRow}
-              accessibilityRole="link"
-              accessibilityLabel={`${track.title}, $${track.price.toFixed(2)}`}
-              onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
-            >
-              <Text style={styles.trackPos}>{track.position}</Text>
-              <Text style={styles.trackName} numberOfLines={2}>{track.title}</Text>
-              <Text style={styles.trackMeta}>{formatDuration(track.durationS)}</Text>
-              <Text style={styles.trackPrice}>${track.price.toFixed(2)}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
 
       <Button
         label={inStock ? 'Agregar al carrito' : 'Agotado'}
@@ -200,12 +173,5 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   meta: { fontSize: 13, color: t.inkMuted, marginTop: 2 },
   description: { fontSize: 15, color: t.ink, lineHeight: 22, marginTop: 16 },
   errorText: { fontSize: 16, color: t.inkMuted },
-  tracklist: { marginTop: 24 },
-  tracksTitle: { fontSize: 18, fontWeight: '700', fontFamily: Fonts.serif, color: t.ink, marginBottom: 8 },
-  trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.inkMuted },
-  trackPos: { width: 28, fontSize: 13, color: t.inkMuted },
-  trackName: { flex: 1, fontSize: 15, color: t.ink },
-  trackMeta: { fontSize: 13, color: t.inkMuted },
-  trackPrice: { fontSize: 14, fontWeight: '600', color: t.accent, minWidth: 52, textAlign: 'right' },
   addButton: { marginTop: 24 },
 });

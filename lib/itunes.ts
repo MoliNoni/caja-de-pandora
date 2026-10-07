@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 
-// 30 s previews from the public iTunes Search API (no key). Used for vinyl records,
-// which have no per-track rows until the tracks backend is deployed (PHASES.md S.2).
+// 30 s previews from the public iTunes Search API (no key), played on vinyl product pages.
 const cache = new Map<string, string | null>();
 
 type SearchResponse = { results?: { previewUrl?: string }[] };

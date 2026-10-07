@@ -29,13 +29,13 @@ type Props = {
   title: string;
   coverUri?: string | null;
   size: number;
-  /** Custom preview source (e.g. iTunes for whole records). Default: the track-preview Edge Function. */
-  resolve?: ResolvePreview;
+  /** Where the preview URL comes from (iTunes for records). */
+  resolve: ResolvePreview;
   /** Shown by the mini-player while this preview is loaded. */
   meta?: NowPlaying;
 };
 
-/** design.md#vinyl: black disc, cover as centre label, spins only while this track plays. */
+/** design.md#vinyl: black disc, cover as centre label, spins only while this record plays. */
 export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: Props) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
