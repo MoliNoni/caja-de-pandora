@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  Platform,
   type GestureResponderEvent,
   type ViewStyle,
 } from 'react-native';
@@ -51,12 +52,40 @@ export const ProductCard = ({
   const styles = useThemedStyles(makeStyles);
   const reducedMotion = useReducedMotion();
   const lift = useSharedValue(0);
+  // Cursor position over the card, -1..1 on each axis (web only).
+  const tiltX = useSharedValue(0);
+  const tiltY = useSharedValue(0);
   const liftStyle = useAnimatedStyle((): ViewStyle => ({
-    transform: [{ translateY: -6 * lift.value }, { rotate: `${-0.6 * lift.value}deg` }, { scale: 1 + 0.02 * lift.value }],
+    transform: [
+      { perspective: 800 },
+      { translateY: -6 * lift.value },
+      { rotateX: `${-7 * tiltY.value}deg` },
+      { rotateY: `${7 * tiltX.value}deg` },
+      { scale: 1 + 0.02 * lift.value },
+    ],
   }));
+  // Glare follows the cursor across the card.
+  const glareStyle = useAnimatedStyle((): ViewStyle => ({
+    opacity: 0.35 * lift.value,
+    transform: [{ translateX: `${50 * tiltX.value}%` }, { translateY: `${50 * tiltY.value}%` }],
+  }));
+  const spring = { damping: 14, stiffness: 220 };
   const hover = (on: boolean) => {
-    if (!reducedMotion) lift.value = withSpring(on ? 1 : 0, { damping: 14, stiffness: 220 });
+    if (reducedMotion) return;
+    lift.value = withSpring(on ? 1 : 0, spring);
+    if (!on) {
+      tiltX.value = withSpring(0, spring);
+      tiltY.value = withSpring(0, spring);
+    }
   };
+  const tilt =
+    Platform.OS === 'web' && !reducedMotion
+      ? (e: { nativeEvent: { clientX: number; clientY: number }; currentTarget: unknown }) => {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          tiltX.value = withSpring(((e.nativeEvent.clientX - r.left) / r.width) * 2 - 1, spring);
+          tiltY.value = withSpring(((e.nativeEvent.clientY - r.top) / r.height) * 2 - 1, spring);
+        }
+      : undefined;
   const { addItem } = useCart();
   const theme = useTheme();
   const burst = useBurst();
@@ -98,7 +127,13 @@ export const ProductCard = ({
       ]}
     >
       {/* Hover-only wrapper (web): not focusable, no action of its own. */}
-      <Pressable focusable={false} accessible={false} onHoverIn={() => hover(true)} onHoverOut={() => hover(false)}>
+      <Pressable
+        focusable={false}
+        accessible={false}
+        onHoverIn={() => hover(true)}
+        onHoverOut={() => hover(false)}
+        onPointerMove={tilt}
+      >
       <TouchableOpacity
         onPress={(e) => {
           burst(e, burstColors, 'md');
@@ -162,6 +197,7 @@ export const ProductCard = ({
         />
       </View>
       </Pressable>
+      {tilt && <Animated.View pointerEvents="none" style={[styles.glare, glareStyle]} />}
     </Animated.View>
   );
 };
@@ -287,6 +323,16 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 12,
     fontWeight: '500',
     opacity: 0.8,
+  },
+  glare: {
+    position: 'absolute',
+    top: '-25%',
+    left: '-25%',
+    width: '150%',
+    height: '150%',
+    borderRadius: 9999,
+    // Web-only view: react-native-web passes backgroundImage through as CSS.
+    ...({ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 45%)' } as ViewStyle),
   },
   addButton: {
     marginTop: 8,
