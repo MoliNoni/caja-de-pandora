@@ -71,13 +71,14 @@ export const purchaseTrack = async (trackId: string, idempotencyKey: string): Pr
 
 // Filtered by user_id explicitly: RLS lets admins read every purchase.
 export const isTrackOwned = async (trackId: string): Promise<boolean> => {
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return false;
+  const { data: auth } = await supabase.auth.getSession();
+  const userId = auth.session?.user.id;
+  if (!userId) return false;
   const { data } = await supabase
     .from('track_purchases')
     .select('id')
     .eq('track_id', trackId)
-    .eq('user_id', auth.user.id)
+    .eq('user_id', userId)
     .maybeSingle();
   return !!data;
 };
