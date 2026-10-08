@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
-// 30 s previews for vinyl product pages from public catalogs (no keys): iTunes first, Deezer as fallback.
+// Previews from public catalogs (no keys). Records: iTunes songs, Deezer as fallback. Books: iTunes
+// audiobook samples (the opening of the professional narration), Spanish storefronts first.
 // Web loads both via JSONP: iTunes sits behind Akamai and some edges answer without CORS headers,
 // and Deezer sends none at all, so fetch() fails in the browser. A <script> load is not subject to CORS.
 const cache = new Map<string, string | null>();
@@ -74,5 +75,49 @@ export const getRecordPreviewUrl = async (artist: string | undefined, album: str
     }
   }
   if (!failed) cache.set(term, null); // both answered "no match": don't ask again this session
+  return null;
+};
+
+// "Guía de lectura", summaries and the like are not the book itself.
+// Leading article dropped: "El Quijote" is listed as "Don Quijote de la Mancha".
+const ARTICLE = /^(el|la|los|las|un|una|the|a)\s+/;
+const NOT_THE_BOOK = /gu[ií]a|resumen|summary|an[aá]lisis|study guide/i;
+// Drop combining accents (U+0300..U+036F) after NFD so "Celestína" matches "celestina".
+const fold = (t: string) =>
+  [...t.normalize('NFD')].filter((c) => c.charCodeAt(0) < 0x300 || c.charCodeAt(0) > 0x36f).join('').toLowerCase();
+
+async function audiobookFrom(country: string, title: string, author: string | undefined) {
+  const json = await getJson<{ results?: { previewUrl?: string; collectionName?: string }[] }>(
+    `https://itunes.apple.com/search?media=audiobook&limit=10&country=${country}&term=${encodeURIComponent(
+      [title, author].filter(Boolean).join(' ')
+    )}`,
+    'callback'
+  );
+  // Match on the first words of the title ("Sapiens: De animales a dioses" -> "sapiens").
+  const key = fold(title).split(/[:(]/)[0].trim().replace(ARTICLE, '').split(/\s+/).slice(0, 3).join(' ');
+  const hit = json.results?.find(
+    (r) => isHttps(r.previewUrl) && !NOT_THE_BOOK.test(r.collectionName ?? '') && fold(r.collectionName ?? '').includes(key)
+  );
+  return hit?.previewUrl ?? null;
+}
+
+export const getAudiobookPreviewUrl = async (author: string | undefined, title: string): Promise<string | null> => {
+  const cacheKey = `book:${author ?? ''}:${title}`;
+  if (!title.trim()) return null;
+  if (cache.has(cacheKey)) return cache.get(cacheKey) ?? null;
+  let failed = false;
+  for (const country of ['es', 'mx', 'us']) {
+    try {
+      const url = await audiobookFrom(country, title, author);
+      if (url) {
+        cache.set(cacheKey, url);
+        return url;
+      }
+    } catch (error) {
+      failed = true;
+      console.warn(`[preview] iTunes audiobook (${country}) failed for "${title}":`, error);
+    }
+  }
+  if (!failed) cache.set(cacheKey, null);
   return null;
 };

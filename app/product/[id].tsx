@@ -14,7 +14,7 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
-import { getRecordPreviewUrl } from '../../lib/previews';
+import { getAudiobookPreviewUrl, getRecordPreviewUrl } from '../../lib/previews';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { getBookSynopsis } from '../../lib/book-info';
@@ -23,6 +23,7 @@ import { Button } from '../../components/button';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
 import { BookCover } from '../../components/book-cover';
+import { ListenButton } from '../../components/listen-button';
 import { useBurst } from '../../components/pixel-burst';
 import { useFlyToCart } from '../../components/fly-to-cart';
 import { AppHeader } from '../../components/app-header';
@@ -107,6 +108,12 @@ export default function ProductDetailScreen() {
     [product?.autor, product?.titulo]
   );
 
+  // Books: the opening of the professional audiobook narration (iTunes sample).
+  const resolveBook = useCallback(
+    () => getAudiobookPreviewUrl(product?.autor, product?.titulo ?? ''),
+    [product?.autor, product?.titulo]
+  );
+
   const recordMeta = product
     ? { title: product.titulo, subtitle: product.autor, cover: imageUri, href: `/product/${product.id}` }
     : undefined;
@@ -186,6 +193,9 @@ export default function ProductDetailScreen() {
             {product.titulo}
           </Text>
           {!!product.autor && <Text style={styles.author} numberOfLines={1}>{product.autor}</Text>}
+          {!isVinyl && (
+            <ListenButton trackId={`book:${product.id}`} resolve={resolveBook} meta={recordMeta} label="Escuchar el comienzo" />
+          )}
         </Animated.View>
 
         <View style={styles.priceRow}>
