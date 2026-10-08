@@ -1,17 +1,36 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
-import { Fonts, Spacing, type Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
-import { useThemedStyles } from '../hooks/use-theme';
+import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { productCache, type Product } from '../lib/database';
+import { showAlert } from '../lib/dialog';
+import { usePlayer } from '../lib/player-context';
 import { getRecordPreviewUrl } from '../lib/previews';
-import { VinylPlayer } from './vinyl-player';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const SLEEVE = 168;
+const DISC = 156;
+const BOOK_W = 112;
+const DISC_OUT = 74; // how far the record slides out of its sleeve
+const TURN_MS = 1800; // 33⅓ rpm
 
 /** Same pick for everyone during a calendar week; rotates on its own, no admin step needed. */
 const pickOfTheWeek = (products: Product[]) => {
@@ -20,99 +39,168 @@ const pickOfTheWeek = (products: Product[]) => {
   return pool.length ? pool[Math.floor(Date.now() / WEEK_MS) % pool.length] : undefined;
 };
 
-type Props = { books: Product[]; vinyls: Product[] };
-
-/** Home feature: one book to read and one record to play, side by side. */
-export function WeeklyPick({ books, vinyls }: Props) {
-  const styles = useThemedStyles(makeStyles);
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const book = useMemo(() => pickOfTheWeek(books), [books]);
-  const record = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
-  const resolveRecord = useCallback(() => getRecordPreviewUrl(record?.autor, record?.titulo ?? ''), [record?.autor, record?.titulo]);
-
-  if (!book || !record) return null;
-
-  const stacked = width < 640;
-  const discSize = Math.min(stacked ? width - 96 : 220, 240);
-  const open = (p: Product) => {
-    productCache.set(p.id, p);
-    router.push({ pathname: '/product/[id]', params: { id: p.id } });
-  };
-
-  const link = (p: Product, label: string) => (
-    <Pressable
-      onPress={() => open(p)}
-      accessibilityRole="link"
-      accessibilityLabel={`${label}: ${p.titulo}`}
-      style={(state) => [styles.link, isFocused(state) && styles.focusRing]}
-    >
-      <Text style={styles.linkText}>{label} →</Text>
-    </Pressable>
-  );
+/** A record with the album cover as its label. Spins while its preview plays, then coasts to a stop. */
+function Record({ cover, spinning }: { cover?: string | null; spinning: boolean }) {
+  const reducedMotion = useReducedMotion();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    if (reducedMotion) return;
+    if (spinning) {
+      turn.value = withRepeat(withTiming(turn.value + 360, { duration: TURN_MS, easing: Easing.linear }), -1);
+    } else {
+      cancelAnimation(turn);
+      turn.value = withTiming(turn.value + 50, { duration: 700, easing: Easing.out(Easing.cubic) });
+    }
+  }, [spinning, reducedMotion, turn]);
+  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  const r = DISC / 2;
+  const label = DISC * 0.36;
 
   return (
-    <Animated.View entering={FadeInDown.delay(450).springify()} style={styles.card}>
-      <Text style={styles.eyebrow}>La recomendación de la semana</Text>
-      <Text style={styles.heading} accessibilityRole="header">
-        Un libro para leer, un disco para escuchar
-      </Text>
-
-      <View style={[styles.row, stacked && styles.stack]}>
-        <View style={styles.panel}>
-          <Pressable onPress={() => open(book)} accessibilityRole="link" accessibilityLabel={`Ver libro: ${book.titulo}`} style={(state) => [styles.coverWrap, isFocused(state) && styles.focusRing]}>
-            <Image source={{ uri: book.imageUrl }} style={styles.cover} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
-          </Pressable>
-          <Text style={styles.kind}>Para leer</Text>
-          <Text style={styles.title} numberOfLines={2}>{book.titulo}</Text>
-          <Text style={styles.author}>{book.autor}</Text>
-          {book.descripcion ? <Text style={styles.blurb} numberOfLines={3}>{book.descripcion}</Text> : null}
-          {link(book, 'Ver libro')}
-        </View>
-
-        <View style={styles.panel}>
-          <VinylPlayer
-            trackId={`record:${record.id}`}
-            title={record.titulo}
-            coverUri={record.imageUrl}
-            size={discSize}
-            resolve={resolveRecord}
-            meta={{ title: record.titulo, subtitle: record.autor, cover: record.imageUrl, href: `/product/${record.id}` }}
-          />
-          <Text style={styles.kind}>Para escuchar</Text>
-          <Text style={styles.title} numberOfLines={2}>{record.titulo}</Text>
-          <Text style={styles.author}>{record.autor}</Text>
-          {link(record, 'Ver disco')}
-        </View>
-      </View>
+    <Animated.View style={[{ width: DISC, height: DISC }, spin]}>
+      <Svg width={DISC} height={DISC} style={StyleSheet.absoluteFill}>
+        <Circle cx={r} cy={r} r={r} fill="#0B0B0D" />
+        {Array.from({ length: 9 }, (_, i) => (
+          <Circle key={i} cx={r} cy={r} r={r * (0.46 + i * 0.058)} fill="none" stroke="#fff" strokeOpacity={i % 2 ? 0.05 : 0.09} strokeWidth={0.8} />
+        ))}
+      </Svg>
+      <Image source={cover ? { uri: cover } : undefined} style={[styles.label, { width: label, height: label, borderRadius: label / 2, left: r - label / 2, top: r - label / 2 }]} contentFit="cover" />
+      <View style={[styles.spindle, { left: r - 3, top: r - 3 }]} />
     </Animated.View>
   );
 }
 
+type Props = { books: Product[]; vinyls: Product[] };
+
+/** Home feature: this week's book and record staged as one object, tied by a single sentence. */
+export function WeeklyPick({ books, vinyls }: Props) {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const router = useRouter();
+  const player = usePlayer();
+  const reducedMotion = useReducedMotion();
+  const wide = useWindowDimensions().width >= 720;
+  const book = useMemo(() => pickOfTheWeek(books), [books]);
+  const record = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
+
+  const trackId = record ? `record:${record.id}` : '';
+  const resolve = useCallback(() => getRecordPreviewUrl(record?.autor, record?.titulo ?? ''), [record?.autor, record?.titulo]);
+  // Resolve the preview up front so the tap plays inside the browser's user-gesture window.
+  useEffect(() => {
+    if (record) void resolve();
+  }, [record, resolve]);
+  const active = player.trackId === trackId;
+  const playing = active && (player.isPlaying || player.loading);
+
+  // The record slides out of its sleeve once the stage is in place.
+  const slide = useSharedValue(reducedMotion ? DISC_OUT : 0);
+  useEffect(() => {
+    if (!reducedMotion) slide.value = withDelay(420, withSpring(DISC_OUT, { damping: 16, stiffness: 120 }));
+  }, [reducedMotion, slide]);
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
+
+  if (!book || !record) return null;
+
+  const open = (p: Product) => {
+    productCache.set(p.id, p);
+    router.push({ pathname: '/product/[id]', params: { id: p.id } });
+  };
+  const listen = async () => {
+    const meta = { title: record.titulo, subtitle: record.autor, cover: record.imageUrl, href: `/product/${record.id}` };
+    if (!(await player.toggle(trackId, resolve, meta))) showAlert('Sin vista previa', 'No encontramos un fragmento para reproducir.');
+  };
+
+  return (
+    <View style={[styles.section, wide && styles.sectionWide]}>
+      <View style={styles.stage}>
+        {/* Back to front: record, its sleeve, then the book leaning on the sleeve. */}
+        <Animated.View style={[styles.disc, slideStyle]}>
+          <Record cover={record.imageUrl} spinning={playing} />
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(120).springify().damping(18)} style={styles.sleeveSlot}>
+          <Pressable
+            onPress={() => open(record)}
+            accessibilityRole="link"
+            accessibilityLabel={`Ver disco: ${record.titulo}`}
+            style={(state) => [styles.sleeve, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+          >
+            <Image source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(220).springify().damping(18)} style={styles.bookSlot}>
+          <Pressable
+            onPress={() => open(book)}
+            accessibilityRole="link"
+            accessibilityLabel={`Ver libro: ${book.titulo}`}
+            style={(state) => [styles.book, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+          >
+            <Image source={{ uri: book.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+            {/* Spine shading so it reads as a book, not a flat card. */}
+            <View style={styles.spine} />
+          </Pressable>
+        </Animated.View>
+      </View>
+
+      <Animated.View entering={FadeInDown.delay(320).springify().damping(18)} style={styles.copy}>
+        <Text style={styles.kicker}>Esta semana</Text>
+        <Text style={styles.sentence}>
+          Lee <Text style={styles.em} onPress={() => open(book)}>{book.titulo}</Text> mientras suena{' '}
+          <Text style={styles.em} onPress={() => open(record)}>{record.titulo}</Text>.
+        </Text>
+        <Text style={styles.byline}>
+          {book.autor} · {record.autor}
+        </Text>
+        <Pressable
+          onPress={listen}
+          accessibilityRole="button"
+          accessibilityLabel={playing ? `Pausar ${record.titulo}` : `Escuchar ${record.titulo}`}
+          accessibilityState={{ busy: active && player.loading }}
+          style={(state) => [styles.play, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+        >
+          <Ionicons name={playing ? 'pause' : 'play'} size={16} color={theme.onAccent} />
+          <Text style={styles.playText}>{playing ? 'Pausar' : 'Escuchar el disco'}</Text>
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  label: { position: 'absolute' },
+  spindle: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: '#0B0B0D' },
+});
+
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
-    card: {
-      marginHorizontal: 8,
-      marginBottom: 28,
-      padding: Spacing.xl,
-      borderRadius: 24,
-      backgroundColor: t.surface,
-      borderWidth: 1,
-      borderColor: t.border,
-      boxShadow: '0 18px 44px rgba(26,16,51,0.12)',
+    section: { marginHorizontal: 8, marginBottom: 36, gap: 20 },
+    sectionWide: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+    stage: { height: SLEEVE + 56, width: 16 + 90 + SLEEVE + DISC_OUT + 8 },
+    disc: { position: 'absolute', left: 90 + (SLEEVE - DISC) / 2, top: 18 + (SLEEVE - DISC) / 2 },
+    sleeveSlot: { position: 'absolute', left: 90, top: 18, transform: [{ rotate: '2deg' }] },
+    sleeve: { width: SLEEVE, height: SLEEVE, borderRadius: 4, overflow: 'hidden', boxShadow: '0 16px 32px rgba(0,0,0,0.35)' },
+    bookSlot: { position: 'absolute', left: 8, top: 44, transform: [{ rotate: '-7deg' }] },
+    book: { width: BOOK_W, height: BOOK_W * 1.5, borderRadius: 3, overflow: 'hidden', boxShadow: '0 18px 30px rgba(0,0,0,0.45)' },
+    spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, backgroundColor: 'rgba(0,0,0,0.22)' },
+    fill: { width: '100%', height: '100%' },
+    pressed: { transform: [{ scale: 0.97 }] },
+    copy: { flex: 1, maxWidth: 440 },
+    kicker: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, fontFamily: Fonts.serif, color: t.ink, marginBottom: 6 },
+    sentence: { fontSize: 20, lineHeight: 28, fontFamily: Fonts.serif, color: t.inkMuted },
+    em: { color: t.ink, fontWeight: '800' },
+    byline: { marginTop: 6, fontSize: 13, color: t.inkMuted },
+    play: {
+      marginTop: 16,
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+      borderRadius: 999,
+      backgroundColor: t.accent,
     },
-    eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', color: t.accent },
-    heading: { fontSize: 26, lineHeight: 32, fontWeight: '800', fontFamily: Fonts.serif, color: t.ink, marginTop: 6, marginBottom: Spacing.xl },
-    row: { flexDirection: 'row', gap: Spacing.xxl, alignItems: 'flex-start' },
-    stack: { flexDirection: 'column', alignItems: 'center' },
-    panel: { flex: 1, minWidth: 0, alignItems: 'center', width: '100%' },
-    coverWrap: { borderRadius: 10 },
-    cover: { width: 150, height: 225, borderRadius: 10, boxShadow: '0 14px 30px rgba(0,0,0,0.25)' },
-    kind: { marginTop: Spacing.lg, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: t.inkMuted },
-    title: { marginTop: 4, fontSize: 19, lineHeight: 24, fontWeight: '800', fontFamily: Fonts.serif, color: t.ink, textAlign: 'center' },
-    author: { marginTop: 2, fontSize: 14, color: t.inkMuted, textAlign: 'center' },
-    blurb: { marginTop: Spacing.sm, fontSize: 14, lineHeight: 20, color: t.inkMuted, textAlign: 'center', maxWidth: 320 },
-    link: { marginTop: Spacing.md, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 },
-    linkText: { fontSize: 14, fontWeight: '800', color: t.accent },
+    playText: { fontSize: 15, fontWeight: '800', color: t.onAccent },
     focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: t.accent, outlineOffset: 2 },
   });
