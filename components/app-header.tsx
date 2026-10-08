@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RollingNumber } from './rolling-number';
 import { useIsFocused } from '@react-navigation/native';
 import { router, type Href } from 'expo-router';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -131,10 +131,12 @@ type Props = {
   actions?: boolean;
   /** Where "back" goes when there is no history (e.g. after a reload on a deep link). */
   fallback?: Href;
+  /** Screen title on the left, sharing the row with the actions instead of sitting under an empty bar. */
+  title?: ReactNode;
 };
 
 /** Shared top bar: back arrow on the left (secondary screens), profile and cart on the right. */
-export function AppHeader({ back = false, actions = true, fallback = '/' }: Props) {
+export function AppHeader({ back = false, actions = true, fallback = '/', title }: Props) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
 
@@ -152,6 +154,7 @@ export function AppHeader({ back = false, actions = true, fallback = '/' }: Prop
             <Ionicons name="arrow-back" size={20} color={theme.ink} />
           </Pressable>
         ) : null}
+        {title}
       </View>
       {actions ? (
         <View style={styles.actions}>

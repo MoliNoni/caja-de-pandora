@@ -132,12 +132,14 @@ export const CatalogScreen = ({
   return (
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
-      <AppHeader />
-      <DancingText
-        text={title}
-        style={styles.title}
-        containerStyle={styles.titleRow}
-        colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
+      <AppHeader
+        title={
+          <DancingText
+            text={title}
+            style={styles.title}
+            colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
+          />
+        }
       />
 
       <View style={styles.searchContainer}>
@@ -207,11 +209,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.bg,
   },
   listArea: { flex: 1 },
-  titleRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
   title: {
     fontSize: 36,
     lineHeight: 42,
@@ -220,36 +217,12 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontFamily: Fonts.serif,
     color: t.ink,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  cartButton: {
-    position: 'relative',
-    padding: 8,
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: t.danger,
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cartBadgeText: {
-    color: t.onAccent,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginTop: 4,
+    marginBottom: 12,
     paddingHorizontal: 12,
     backgroundColor: t.surface,
     borderRadius: 8,
