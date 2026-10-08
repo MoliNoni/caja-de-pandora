@@ -3,6 +3,7 @@
 // Shows featured books and vinyl
 // Modular sections and carousel support
 
+import { WeeklyPick } from '../../components/weekly-pick';
 import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -112,6 +113,8 @@ export default function HomeScreen() {
               />
             </Animated.View>
           </Animated.View>
+
+          <WeeklyPick books={[...home.books, ...home.newBooks]} vinyls={[...home.vinyls, ...home.newVinyls]} />
 
           <SectionCarousel
             title="Best Sellers en Libros"
