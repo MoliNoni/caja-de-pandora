@@ -8,7 +8,8 @@ interface AuthContextType {
   user: any;
   profile: Cliente | null;
   isAdmin: boolean;
-  signUp: (email: string, password: string, userData: any) => Promise<void>;
+  /** Resolves true when the account is signed in right away (no email confirmation pending). */
+  signUp: (email: string, password: string, userData: any) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       // The profile row is created by the on_auth_user_created DB trigger from this metadata.
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -95,6 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) throw error;
+      return !!data.session;
     } catch (error) {
       throw error;
     } finally {

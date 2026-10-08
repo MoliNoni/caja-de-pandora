@@ -190,7 +190,7 @@ export default function OrdersScreen() {
               {/* Header orden */}
               <View style={styles.ordenHeader}>
                 <View>
-                  <Text style={styles.ordenId}>Orden #{item.id.slice(0, 8)}</Text>
+                  <Text style={styles.ordenId}>Pedido N.º {item.id.replace(/-/g, '').slice(0, 8).toUpperCase()}</Text>
                   <Text style={styles.ordenFecha}>
                     {new Date(item.fechaCreacion).toLocaleDateString('es-ES')}
                   </Text>

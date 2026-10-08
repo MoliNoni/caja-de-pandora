@@ -568,13 +568,7 @@ export const procesarCompra = async (
         emailStatus = 'Se envió un correo de confirmación al correo de tu cuenta.';
       } catch (sendError) {
         console.warn('No se pudo enviar el correo de confirmación:', sendError);
-        const errorMessage =
-          sendError instanceof Error
-            ? sendError.message
-            : typeof sendError === 'string'
-            ? sendError
-            : JSON.stringify(sendError);
-        emailStatus = `No se pudo enviar el correo de confirmación. ${errorMessage}`;
+        emailStatus = 'Tu compra quedó registrada, pero no pudimos enviarte el correo de confirmación.';
       }
     } else {
       emailStatus = 'No se encontró un correo para enviar la confirmación.';

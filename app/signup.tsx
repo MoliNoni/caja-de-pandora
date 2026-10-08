@@ -74,7 +74,7 @@ export default function SignUpScreen() {
       // Pequeño delay para evitar race conditions
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      await signUp(formData.email, formData.password, {
+      const signedIn = await signUp(formData.email, formData.password, {
         nombre: formData.nombre,
         apellido: formData.apellido,
         telefono: formData.telefono,
@@ -83,8 +83,13 @@ export default function SignUpScreen() {
         codigoPostal: formData.codigoPostal,
       });
 
-      showAlert('¡Registro exitoso!', 'Tu cuenta ha sido creada. Ahora inicia sesión.');
-      router.push('/signin');
+      if (signedIn) {
+        showAlert('¡Bienvenido!', 'Tu cuenta fue creada y ya iniciaste sesión.');
+        router.replace('/');
+      } else {
+        showAlert('Confirma tu correo', 'Te enviamos un enlace para activar tu cuenta.');
+        router.replace('/signin');
+      }
     } catch (error: any) {
       const message = error.message || 'No se pudo registrar';
 

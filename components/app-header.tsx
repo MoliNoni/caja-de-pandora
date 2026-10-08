@@ -133,7 +133,7 @@ type Props = {
   fallback?: Href;
 };
 
-/** Shared top bar: brand mark on the left (or back), profile and cart on the right. */
+/** Shared top bar: back arrow on the left (secondary screens), profile and cart on the right. */
 export function AppHeader({ back = false, actions = true, fallback = '/' }: Props) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -152,14 +152,6 @@ export function AppHeader({ back = false, actions = true, fallback = '/' }: Prop
             <Ionicons name="arrow-back" size={20} color={theme.ink} />
           </Pressable>
         ) : null}
-        <Pressable
-          onPress={() => router.navigate('/')}
-          accessibilityRole="link"
-          accessibilityLabel="Caja de Pandora, inicio"
-          style={(state) => [styles.brand, isFocused(state) && styles.focusRing]}
-        >
-          <SpinningRecord size={32} />
-        </Pressable>
       </View>
       {actions ? (
         <View style={styles.actions}>
@@ -181,7 +173,6 @@ const makeStyles = (t: Theme) =>
       paddingVertical: 10,
     },
     left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-    brand: { borderRadius: 999, padding: 4 },
     actions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     backButton: { backgroundColor: t.surface, borderWidth: 1, borderColor: t.border },

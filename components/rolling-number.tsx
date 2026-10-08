@@ -6,7 +6,7 @@ import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-na
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const DIGITS = '0123456789'.split('');
-const SPRING = { damping: 15, stiffness: 160 };
+const SPRING = { damping: 22, stiffness: 420, overshootClamping: true };
 
 function Digit({ digit, height, style }: { digit: number; height: number; style: StyleProp<TextStyle> }) {
   const reducedMotion = useReducedMotion();

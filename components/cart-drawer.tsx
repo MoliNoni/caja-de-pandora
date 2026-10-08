@@ -105,7 +105,11 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     <TouchableOpacity
                       onPress={(e) => {
                         burst(e, theme.gradients.warm, 'sm');
-                        updateQuantity(item.id, item.cantidad - 1);
+                        if (item.cantidad > 1) updateQuantity(item.id, item.cantidad - 1);
+                        else
+                          showDestructiveConfirm('Quitar del carrito', `¿Quieres quitar "${item.titulo}" del carrito?`, 'Quitar', () =>
+                            removeItem(item.id)
+                          );
                       }}
                       disabled={loading}
                       style={styles.quantityButton}

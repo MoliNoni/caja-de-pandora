@@ -11,7 +11,6 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  TouchableOpacity,
   Platform,
   ScrollView,
 } from 'react-native';
@@ -29,6 +28,10 @@ import { showAlert, showConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
+const money = (n: number) => `$${n.toFixed(2)}`;
+/** Short, human order number (the full id stays server-side). */
+const orderNumber = (id: string) => id.replace(/-/g, '').slice(0, 8).toUpperCase();
+
 // Cart screen component
 export default function CartScreen() {
   const theme = useTheme();
@@ -37,7 +40,6 @@ export default function CartScreen() {
   const { items, total, itemCount, clearCart } = useCart();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [purchaseReceipt, setPurchaseReceipt] = useState<PurchaseReceipt | null>(null);
 
   const closeReceipt = () => {
@@ -45,19 +47,16 @@ export default function CartScreen() {
     router.push('/');
   };
 
-  // Web: Escape dismisses the topmost custom overlay (RN Modal handles it natively elsewhere).
-  const overlayOpen = showCheckoutConfirm || purchaseReceipt !== null;
+  // Web: Escape closes the receipt (the checkout confirm is a native Modal and handles it itself).
   useEffect(() => {
-    if (Platform.OS !== 'web' || !overlayOpen) return;
+    if (Platform.OS !== 'web' || !purchaseReceipt) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (purchaseReceipt) closeReceipt();
-      else setShowCheckoutConfirm(false);
+      if (event.key === 'Escape') closeReceipt();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayOpen, purchaseReceipt]);
+  }, [purchaseReceipt]);
 
   // Handle checkout process
   const processCheckout = async () => {
@@ -97,14 +96,9 @@ export default function CartScreen() {
       return;
     }
 
-    if (Platform.OS === 'web') {
-      setShowCheckoutConfirm(true);
-      return;
-    }
-
     showConfirm(
       'Confirmar compra',
-      `Vas a comprar ${itemCount} producto(s) por un total de $${total.toFixed(2)}. Deseas continuar?`,
+      `Vas a comprar ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'} por un total de ${money(total)}. ¿Deseas continuar?`,
       () => {
         void processCheckout();
       }
@@ -115,46 +109,6 @@ export default function CartScreen() {
     <SafeAreaView style={styles.container}>
       <PatternBackground />
       <CartDrawer onCheckout={handleCheckout} onClose={() => router.back()} loading={loading} />
-      {showCheckoutConfirm && (
-        <View style={styles.confirmOverlay}>
-          <TouchableOpacity
-            style={styles.confirmBackdrop}
-            onPress={() => setShowCheckoutConfirm(false)}
-            activeOpacity={1}
-            accessible={false}
-          />
-          <View
-            style={styles.confirmCard}
-            role="dialog"
-            aria-modal
-            aria-label="Confirmar compra"
-            accessibilityViewIsModal
-          >
-            <Text style={styles.confirmEyebrow}>Confirmacion</Text>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Revisa tu compra</Text>
-            <Text style={styles.confirmMessage}>
-              Vas a comprar {itemCount} producto(s) por un total de $
-              {total.toFixed(2)}.
-            </Text>
-            <View style={styles.confirmActions}>
-              <Button
-                label="Cancelar"
-                variant="outline"
-                style={styles.confirmButton}
-                onPress={() => setShowCheckoutConfirm(false)}
-              />
-              <Button
-                label="Confirmar pago"
-                style={styles.confirmButton}
-                onPress={() => {
-                  setShowCheckoutConfirm(false);
-                  void processCheckout();
-                }}
-              />
-            </View>
-          </View>
-        </View>
-      )}
       {loading && (
         <View style={styles.loadingOverlay} accessibilityLiveRegion="polite">
           <View style={styles.loadingCard}>
@@ -184,92 +138,45 @@ export default function CartScreen() {
                   <ClickSpark play={!!purchaseReceipt} />
                 </View>
               </View>
-              <Text style={styles.receiptTitle} accessibilityRole="header">Detalle de compra</Text>
+              <Text style={styles.receiptTitle} accessibilityRole="header">Gracias por tu compra</Text>
               <Text style={styles.receiptMessage}>
-                Tu pedido fue registrado correctamente. Aqui tienes el resumen.
+                Pedido N.º {orderNumber(purchaseReceipt.encabezado.id)} ·{' '}
+                {new Date(purchaseReceipt.encabezado.fecha).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })}
               </Text>
-              {purchaseReceipt?.emailStatus ? (
-                <Text style={styles.receiptNotice}>{purchaseReceipt.emailStatus}</Text>
-              ) : null}
 
               <View style={styles.receiptSection}>
-                <Text style={styles.sectionTitle} accessibilityRole="header">Encabezado</Text>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Id</Text>
-                  <Text style={styles.dataValue}>{purchaseReceipt.encabezado.id}</Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Id cliente</Text>
-                  <Text style={styles.dataValue}>
-                    {purchaseReceipt.encabezado.idCliente}
-                  </Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Fecha</Text>
-                  <Text style={styles.dataValue}>
-                    {new Date(purchaseReceipt.encabezado.fecha).toLocaleString('es-CO')}
-                  </Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Subtotal</Text>
-                  <Text style={styles.dataValue}>
-                    ${purchaseReceipt.encabezado.subtotal.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Descuento total</Text>
-                  <Text style={styles.dataValue}>
-                    ${purchaseReceipt.encabezado.descuentoTotal.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Total</Text>
-                  <Text style={styles.totalValue}>
-                    ${purchaseReceipt.encabezado.total.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.receiptSection}>
-                <Text style={styles.sectionTitle} accessibilityRole="header">Detalle compra</Text>
                 {purchaseReceipt.detalles.map((detalle) => (
-                  <View key={detalle.id} style={styles.detailCard}>
-                    <Text style={styles.detailTitle}>{detalle.titulo}</Text>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Id</Text>
-                      <Text style={styles.dataValue}>{detalle.id}</Text>
-                    </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Id encabezado</Text>
-                      <Text style={styles.dataValue}>{detalle.idEncabezado}</Text>
-                    </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Id producto</Text>
-                      <Text style={styles.dataValue}>{detalle.idProducto}</Text>
-                    </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Cantidad</Text>
-                      <Text style={styles.dataValue}>{detalle.cantidad}</Text>
-                    </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Valor</Text>
-                      <Text style={styles.dataValue}>${detalle.valor.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Descuento</Text>
-                      <Text style={styles.dataValue}>
-                        ${detalle.descuento.toFixed(2)}
+                  <View key={detalle.id} style={styles.lineRow}>
+                    <View style={styles.lineInfo}>
+                      <Text style={styles.lineTitle} numberOfLines={2}>{detalle.titulo}</Text>
+                      <Text style={styles.lineMeta}>
+                        {detalle.cantidad} × {money(detalle.valor)}
                       </Text>
                     </View>
-                    <View style={styles.dataRow}>
-                      <Text style={styles.dataLabel}>Subtotal</Text>
-                      <Text style={styles.totalValue}>
-                        ${detalle.subtotal.toFixed(2)}
-                      </Text>
-                    </View>
+                    <Text style={styles.lineAmount}>{money(detalle.subtotal)}</Text>
                   </View>
                 ))}
+
+                <View style={styles.divider} />
+                <View style={styles.sumRow}>
+                  <Text style={styles.sumLabel}>Subtotal</Text>
+                  <Text style={styles.sumValue}>{money(purchaseReceipt.encabezado.subtotal)}</Text>
+                </View>
+                {purchaseReceipt.encabezado.descuentoTotal > 0 ? (
+                  <View style={styles.sumRow}>
+                    <Text style={styles.sumLabel}>Descuento</Text>
+                    <Text style={styles.sumValue}>−{money(purchaseReceipt.encabezado.descuentoTotal)}</Text>
+                  </View>
+                ) : null}
+                <View style={styles.sumRow}>
+                  <Text style={styles.totalLabel}>Total pagado</Text>
+                  <Text style={styles.totalValue}>{money(purchaseReceipt.encabezado.total)}</Text>
+                </View>
               </View>
+
+              {purchaseReceipt.emailStatus ? (
+                <Text style={styles.receiptNotice}>{purchaseReceipt.emailStatus}</Text>
+              ) : null}
             </ScrollView>
 
             <View style={styles.receiptActions}>
@@ -311,64 +218,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
-  },
-  confirmOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 998,
-    padding: 20,
-  },
-  confirmBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: t.scrim,
-  },
-  confirmCard: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: t.surface,
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: t.border,
-    boxShadow: '0px 18px 40px rgba(15, 23, 42, 0.18)',
-    elevation: 12,
-  },
-  confirmEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: t.inkMuted,
-    marginBottom: 8,
-  },
-  confirmTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: t.ink,
-    marginBottom: 10,
-  },
-  confirmMessage: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: t.inkMuted,
-    marginBottom: 20,
-  },
-  confirmActions: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
-  },
-  confirmButton: {
-    minWidth: 120,
   },
   loadingCard: {
     backgroundColor: t.surface,
@@ -451,14 +300,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   receiptNotice: {
     fontSize: 13,
-    lineHeight: 20,
-    color: t.success,
-    backgroundColor: t.surface,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: t.success,
-    marginBottom: 16,
+    lineHeight: 19,
+    color: t.inkMuted,
+    textAlign: 'center',
+    marginBottom: 4,
   },
   receiptSection: {
     backgroundColor: t.bg,
@@ -468,53 +313,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: t.accent,
-    marginBottom: 12,
-  },
-  dataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
-  },
-  dataLabel: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: t.inkMuted,
-  },
-  dataValue: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: t.ink,
-    textAlign: 'right',
-  },
-  totalValue: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '800',
-    color: t.accent,
-    textAlign: 'right',
-  },
-  detailCard: {
-    backgroundColor: t.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: t.border,
-    padding: 14,
-    marginBottom: 12,
-  },
-  detailTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: t.ink,
-    marginBottom: 10,
-  },
+  lineRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
+  lineInfo: { flex: 1 },
+  lineTitle: { fontSize: 14, fontWeight: '700', color: t.ink },
+  lineMeta: { fontSize: 13, color: t.inkMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
+  lineAmount: { fontSize: 14, fontWeight: '700', color: t.ink, fontVariant: ['tabular-nums'] },
+  divider: { height: 1, backgroundColor: t.border, marginVertical: 8 },
+  sumRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  sumLabel: { fontSize: 14, color: t.inkMuted },
+  sumValue: { fontSize: 14, color: t.ink, fontVariant: ['tabular-nums'] },
+  totalLabel: { fontSize: 16, fontWeight: '800', color: t.ink },
+  totalValue: { fontSize: 16, fontWeight: '800', color: t.accent, fontVariant: ['tabular-nums'] },
   receiptActions: {
     flexDirection: 'row',
     gap: 12,

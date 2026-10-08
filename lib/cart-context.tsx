@@ -71,7 +71,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setItems((prevItems) =>
       prevItems.map((item) =>
         item.id === productId
-          ? { ...item, cantidad: Math.min(Math.max(0, quantity), item.stock) }
+          ? { ...item, cantidad: Math.min(Math.max(1, quantity), item.stock) }
           : item
       )
     );

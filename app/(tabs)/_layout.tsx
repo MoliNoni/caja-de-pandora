@@ -5,7 +5,7 @@
 
 import { Tabs } from 'expo-router';
 import { HapticTab } from '../../components/haptic-tab';
-import { Ionicons } from '@expo/vector-icons';
+import { TabIcon } from '../../components/tab-icon';
 import { useTheme } from '../../hooks/use-theme';
 import { Fonts } from '../../constants/theme';
 
@@ -19,7 +19,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: theme.inkMuted,
         headerShown: false,
         tabBarButton: HapticTab,
-        // Floating pill bar: rounded, lifted, the active tab sits in a tinted capsule.
+        // Floating pill bar: rounded and lifted; the active tab is marked by its animated icon colours.
         tabBarStyle: {
           position: 'absolute',
           left: 16,
@@ -40,7 +40,6 @@ export default function TabLayout() {
         tabBarItemStyle: { borderRadius: 24, marginHorizontal: 4 },
         // Wide screens default to beside-icon, which truncates the label.
         tabBarLabelPosition: 'below-icon',
-        tabBarActiveBackgroundColor: `${theme.accent}1F`,
         tabBarLabelStyle: {
           fontSize: 12,
           lineHeight: 16,
@@ -56,27 +55,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color }) => (
-            <Ionicons size={24} name="home" color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Libros',
-          tabBarIcon: ({ color }) => (
-            <Ionicons size={24} name="book" color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="book" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="vinyl"
         options={{
           title: 'Vinilos',
-          tabBarIcon: ({ color }) => (
-            <Ionicons size={24} name="musical-notes" color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="musical-notes" color={color} focused={focused} />,
         }}
       />
     </Tabs>
