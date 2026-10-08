@@ -47,6 +47,8 @@ type Props = {
   delay?: number;
   /** Gradient stops spread across the letters (#RRGGBB). Default: theme.gradients.pandora. */
   colors?: string[];
+  /** Colour the travelling glint brightens each letter to. Default: theme.ink. */
+  glint?: string;
   /** Letter index (spaces excluded) drawn as a spinning record, e.g. the "o" of the brand. */
   record?: number;
 };
@@ -134,7 +136,7 @@ function Letter({ char, index, color, glint, style, wave, delay, record }: {
 }
 
 /** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, record }: Props) {
+export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, glint, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -162,7 +164,7 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 delay={delay}
                 record={index === record}
                 color={gradientAt(stops, index / last)}
-                glint={theme.ink}
+                glint={glint ?? theme.ink}
               />
             );
           })}

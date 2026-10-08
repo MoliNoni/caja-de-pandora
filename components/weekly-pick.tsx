@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -12,11 +12,10 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
 import { Fonts, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
@@ -24,6 +23,7 @@ import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { productCache, type Product } from '../lib/database';
 import { showAlert } from '../lib/dialog';
 import { usePlayer } from '../lib/player-context';
+import { DancingText } from './dancing-text';
 import { getRecordPreviewUrl } from '../lib/previews';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -33,7 +33,9 @@ const BOOK_W = 112;
 const DISC_OUT = 74; // how far the record slides out of its sleeve
 const TURN_MS = 1800; // 33⅓ rpm
 const BUNDLE_OFF = 0.1; // the pair together
-const STICKER = 64;
+// Foil-stamp gold: deep, bright, deep. The glint runs to near-white across the letters.
+const GOLD = ['#B8893A', '#F3D98B', '#C99A45'];
+const GOLD_GLINT = '#FFF4D6';
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 /** Same pick for everyone during a calendar week; rotates on its own, no admin step needed. */
@@ -103,24 +105,6 @@ export function WeeklyPick({ books, vinyls }: Props) {
   }, [reducedMotion, slide]);
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
 
-  // Gold foil sticker pressed onto the shrink-wrap once the record is out: one soft settle, no wobble.
-  const stick = useSharedValue(reducedMotion ? 1 : 0);
-  // Light catching the foil: a narrow band sweeps across now and then.
-  const shine = useSharedValue(0);
-  useEffect(() => {
-    if (reducedMotion) return;
-    stick.value = withDelay(900, withSpring(1, { damping: 18, stiffness: 160 }));
-    shine.value = withDelay(1500, withRepeat(withSequence(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.cubic) }), withDelay(3200, withTiming(0, { duration: 0 }))), -1));
-    return () => cancelAnimation(shine);
-  }, [reducedMotion, stick, shine]);
-  const stickerStyle = useAnimatedStyle((): ViewStyle => ({
-    opacity: Math.min(stick.value * 2, 1),
-    transform: [{ rotate: '-14deg' }, { scale: 1.18 - 0.18 * stick.value }],
-  }));
-  const shineStyle = useAnimatedStyle((): ViewStyle => ({
-    transform: [{ translateX: -STICKER + shine.value * STICKER * 2 }, { rotate: '20deg' }],
-  }));
-
   if (!book || !record) return null;
 
   const open = (p: Product) => {
@@ -149,24 +133,6 @@ export function WeeklyPick({ books, vinyls }: Props) {
           >
             <Image source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
           </Pressable>
-          <Animated.View style={[styles.sticker, stickerStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Svg width={STICKER} height={STICKER} style={StyleSheet.absoluteFill}>
-              <Defs>
-                <LinearGradient id="foil" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#F7E7B4" />
-                  <Stop offset="0.35" stopColor="#C9A055" />
-                  <Stop offset="0.6" stopColor="#F2D98E" />
-                  <Stop offset="1" stopColor="#8C6A2E" />
-                </LinearGradient>
-              </Defs>
-              <Circle cx={STICKER / 2} cy={STICKER / 2} r={STICKER / 2} fill="url(#foil)" />
-              {/* Embossed rim, as on a die-cut foil label. */}
-              <Circle cx={STICKER / 2} cy={STICKER / 2} r={STICKER / 2 - 4} fill="none" stroke="#5E4519" strokeOpacity={0.35} strokeWidth={0.8} />
-            </Svg>
-            <Animated.View style={[styles.shine, shineStyle]} />
-            <Text style={styles.stickerBig}>10%</Text>
-            <Text style={styles.stickerSmall}>OFF</Text>
-          </Animated.View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(220).springify().damping(18)} style={styles.bookSlot}>
@@ -190,7 +156,8 @@ export function WeeklyPick({ books, vinyls }: Props) {
           <Text style={styles.em} onPress={() => open(record)}>{record.titulo}</Text>.
         </Text>
         <View style={styles.bundle} accessible accessibilityLabel={`Los dos juntos con 10% de descuento: ${money((book.precio + record.precio) * (1 - BUNDLE_OFF))}, antes ${money(book.precio + record.precio)}`}>
-          <Text style={styles.bundleLabel}>Los dos · 10% off</Text>
+          <Text style={styles.bundleLabel}>Los dos juntos</Text>
+          <DancingText text="10% OFF" style={styles.gold} colors={GOLD} glint={GOLD_GLINT} wave={false} delay={700} />
           <Text style={styles.bundleWas}>{money(book.precio + record.precio)}</Text>
           <Text style={styles.bundleNow}>{money((book.precio + record.precio) * (1 - BUNDLE_OFF))}</Text>
         </View>
@@ -244,26 +211,11 @@ const makeStyles = (t: Theme) =>
       borderColor: t.accent,
     },
     playText: { fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: t.accent },
-    // Round hype sticker in the sleeve's top corner, as on a shop's shrink-wrapped record.
-    sticker: {
-      position: 'absolute',
-      top: -14,
-      right: -14,
-      width: STICKER,
-      height: STICKER,
-      borderRadius: STICKER / 2,
-      overflow: 'hidden',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 6px 14px rgba(0,0,0,0.4)',
-    },
-    shine: { position: 'absolute', top: -STICKER / 2, width: 14, height: STICKER * 2, backgroundColor: 'rgba(255,250,230,0.55)' },
-    // Dark ink on gold reads like a foil stamp in both themes.
-    stickerBig: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 22, fontWeight: '500', color: '#3A2A0E', letterSpacing: -0.5 },
-    stickerSmall: { fontSize: 9, fontWeight: '700', letterSpacing: 2.4, color: '#3A2A0E', marginLeft: 2.4 },
     bundle: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginTop: 14 },
     bundleLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
     bundleWas: { fontSize: 14, color: t.inkMuted, textDecorationLine: 'line-through' },
+    // Soft gold bloom behind the letters, as foil catching light.
+    gold: { fontFamily: Fonts.serif, fontSize: 22, lineHeight: 26, fontWeight: '500', letterSpacing: 0.6, textShadowColor: 'rgba(243,217,139,0.55)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 } },
     bundleNow: { fontFamily: Fonts.serif, fontSize: 20, fontWeight: '500', color: t.accent },
     focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: t.accent, outlineOffset: 2 },
   });
