@@ -69,11 +69,14 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
           accessibilityLabel="Cerrar carrito"
           accessibilityState={{ disabled: loading }}
           hitSlop={10}
+          style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.ink} />
+          <Ionicons name="arrow-back" size={20} color={theme.ink} />
         </TouchableOpacity>
-        <DancingText text="Tu carrito" style={styles.title} containerStyle={styles.titleRow} colors={theme.gradients.warm} />
-        <Text style={styles.itemCount}>{itemCount} items</Text>
+      </View>
+      <View style={styles.titleBlock}>
+        <Text style={styles.kicker}>{itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}</Text>
+        <DancingText text="Tu carrito" style={styles.title} colors={theme.gradients.warm} />
       </View>
 
       {items.length > 0 ? (
@@ -161,10 +164,8 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
             scrollEnabled
           />
 
-          <View style={styles.divider} />
-
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalLabel}>Total</Text>
             <RollingNumber text={`$${total.toFixed(2)}`} style={styles.totalAmount} />
           </View>
 
@@ -215,48 +216,54 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.bg,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    paddingVertical: 10,
   },
-  titleRow: {
-    flex: 1,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: t.surface,
+    borderWidth: 1,
+    borderColor: t.border,
+  },
+  titleBlock: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  kicker: {
+    fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase',
+    color: t.accent,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: 36,
+    lineHeight: 42,
     fontWeight: '500',
     fontFamily: Fonts.serif,
-    letterSpacing: -0.8,
+    letterSpacing: -1,
   },
-  itemCount: {
-    fontSize: 14,
-    color: t.inkMuted,
-    backgroundColor: t.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
+  // Editorial list: rows divided by hairlines, no filled cards.
   listContent: {
-    padding: 8,
+    paddingHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.border,
   },
   cartItem: {
     flexDirection: 'row',
-    padding: 12,
-    marginVertical: 4,
-    backgroundColor: t.surface,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.border,
     alignItems: 'center',
   },
   itemImage: {
     width: 60,
     height: 80,
-    borderRadius: 6,
-    marginRight: 12,
+    borderRadius: 2,
+    marginRight: 14,
     backgroundColor: t.border,
   },
   placeholderImage: {
@@ -273,37 +280,36 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
     color: t.ink,
     marginBottom: 4,
   },
   itemPrice: {
     fontSize: 12,
-    color: t.accent,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    color: t.inkMuted,
+    marginBottom: 10,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: t.bg,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: t.border,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
     alignSelf: 'flex-start',
   },
   quantityButton: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
   },
   quantityButtonText: {
     fontSize: 14,
-    fontWeight: 'bold',
     color: t.accent,
   },
   quantity: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     fontSize: 12,
     fontWeight: '600',
     color: t.ink,
@@ -312,42 +318,39 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginLeft: 8,
     alignItems: 'flex-end',
   },
+  // Rolling amounts stay sans: each digit sits in its own column, which breaks serif spacing.
   itemSubtotal: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '600',
     color: t.ink,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   deleteButton: {
     paddingHorizontal: 4,
     paddingVertical: 4,
   },
   deleteButtonText: {
-    fontSize: 12,
-    color: t.accent,
+    fontSize: 10,
     fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: t.border,
-    marginHorizontal: 16,
-    marginVertical: 12,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: t.inkMuted,
   },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'baseline',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: t.border,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   totalLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: t.ink,
+    fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase',
+    color: t.inkMuted,
   },
   totalAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '600',
     color: t.accent,
   },
   buttonsContainer: {
@@ -362,16 +365,18 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingHorizontal: 16,
   },
   emptyMessage: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
     color: t.ink,
-    marginBottom: 12,
+    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     color: t.inkMuted,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
 });

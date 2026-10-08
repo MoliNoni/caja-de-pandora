@@ -189,6 +189,7 @@ export default function ProductDetailScreen() {
         </View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <Text style={styles.kicker}>{isVinyl ? 'Vinilo' : 'Libro'}</Text>
           <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
             {product.titulo}
           </Text>
@@ -200,7 +201,7 @@ export default function ProductDetailScreen() {
 
         <View style={styles.priceRow}>
           <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
-          <Text style={[styles.stockChip, inStock ? styles.stock : styles.noStock]}>
+          <Text style={[styles.stockText, inStock ? styles.stock : styles.noStock]}>
             {inStock ? `${product.stock} en stock` : 'Agotado'}
           </Text>
         </View>
@@ -264,30 +265,32 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   // minHeight keeps the media readable when a long text makes the page scroll.
   mediaBox: { flex: 1, minHeight: 260, marginBottom: 8 },
   mediaFill: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  tracks: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border },
-  tracksTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: t.inkMuted, marginBottom: 6 },
-  trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  tracks: { marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.border },
+  tracksTitle: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 10 },
+  trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.border },
   trackSkeleton: { marginVertical: 3, marginLeft: 36 },
-  trackPos: { width: 26, fontSize: 12, fontWeight: '700', color: t.inkMuted },
+  trackPos: { width: 26, fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
   trackTitle: { flex: 1, fontSize: 14, color: t.ink },
   trackTime: { fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
-  title: { fontSize: 24, lineHeight: 29, fontWeight: '500', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
-  author: { fontSize: 15, color: t.inkMuted, marginTop: 2 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-  price: { fontSize: 24, fontWeight: '800', color: t.accent },
-  stockChip: { fontSize: 12, fontWeight: '700', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
+  kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 8 },
+  title: { fontSize: 28, lineHeight: 33, fontWeight: '500', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
+  author: { fontSize: 15, color: t.inkMuted, marginTop: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 16 },
+  price: { fontSize: 26, fontWeight: '500', fontFamily: Fonts.serif, color: t.accent },
+  // Quiet stock line instead of a pill: the price is the one loud thing in the row.
+  stockText: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase' },
   stock: { color: t.success, borderColor: t.success },
   noStock: { color: t.danger, borderColor: t.danger },
-  meta: { fontSize: 13, color: t.inkMuted, marginTop: 6 },
-  description: { fontSize: 14, color: t.ink, lineHeight: 20, marginTop: 10 },
-  more: { fontSize: 13, fontWeight: '700', color: t.accent, marginTop: 4 },
+  meta: { fontSize: 13, color: t.inkMuted, marginTop: 8 },
+  description: { fontSize: 14, color: t.ink, lineHeight: 21, marginTop: 14 },
+  more: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginTop: 8 },
   errorText: { fontSize: 16, color: t.inkMuted },
   footer: {
     position: 'absolute',
     left: 20,
     right: 20,
     bottom: 16,
-    borderRadius: 999,
+    borderRadius: 2,
     boxShadow: '0 12px 32px rgba(0,0,0,0.28)',
   },
 });
