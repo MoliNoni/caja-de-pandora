@@ -11,7 +11,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   Pressable,
   Platform,
   type GestureResponderEvent,
@@ -30,7 +29,6 @@ import { getDiscogsTracklist } from '../lib/discogs';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
-const { width } = Dimensions.get('window');
 
 interface ProductCardProps {
   product: Product;
@@ -40,6 +38,8 @@ interface ProductCardProps {
   featured?: boolean;
   /** Position in its list: staggers the entrance. */
   index?: number;
+  /** Grid cell width; the grid owner knows how many columns fit. */
+  width?: number;
 }
 
 // Product card component
@@ -50,6 +50,7 @@ export const ProductCard = ({
   compact = false,
   featured = false,
   index = 0,
+  width,
 }: ProductCardProps) => {
   const styles = useThemedStyles(makeStyles);
   const reducedMotion = useReducedMotion();
@@ -130,6 +131,7 @@ export const ProductCard = ({
       style={[
         styles.container,
         compact && styles.compactContainer,
+        width !== undefined && { width },
         featured && styles.featuredContainer,
         liftStyle,
       ]}
@@ -215,7 +217,6 @@ export const ProductCard = ({
 
 const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
-    width: (width - 40) / 2,
     marginBottom: 16,
     backgroundColor: t.surface,
     borderRadius: 20,

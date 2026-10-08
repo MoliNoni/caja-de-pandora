@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   RefreshControl,
   TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +36,8 @@ type CatalogScreenProps = {
   emptySubtitle: string;
 };
 
+const GAP = 12;
+
 // Main catalog component that displays products in a grid
 export const CatalogScreen = ({
   category,
@@ -45,6 +48,13 @@ export const CatalogScreen = ({
 }: CatalogScreenProps) => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
+  // As many ~220px columns as fit (2 on a phone): a fixed 2 made desktop cards 660px wide.
+  // Measured content width: on desktop the scrollbar eats ~15px of the window.
+  const windowWidth = useWindowDimensions().width;
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  const width = listWidth ?? windowWidth;
+  const columns = Math.max(2, Math.floor((width - 32) / 220));
+  const cardWidth = (width - 32 - (columns - 1) * GAP) / columns;
   const router = useRouter();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const searchRef = useRef<TextInput>(null);
@@ -158,13 +168,14 @@ export const CatalogScreen = ({
         <View style={styles.listArea}>
         <RefreshRecord scrollY={scrollY} refreshing={refreshing} color={theme.accent} />
         <Animated.FlatList
-          key={visit}
+          key={`${visit}-${columns}`}
           onScroll={onScroll}
           scrollEventThrottle={16}
           data={filteredProductos}
-          numColumns={2}
+          numColumns={columns}
+          onContentSizeChange={(w) => w !== listWidth && setListWidth(w)}
           columnWrapperStyle={styles.columnWrapper}
-          renderItem={({ item, index }) => <ProductCard product={item} index={index} />}
+          renderItem={({ item, index }) => <ProductCard product={item} index={index} width={cardWidth} />}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <Text style={styles.resultCount}>
@@ -290,7 +301,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingBottom: 92,
   },
   columnWrapper: {
-    justifyContent: 'space-between',
+    gap: GAP,
     paddingHorizontal: 8,
   },
   resultCount: {
