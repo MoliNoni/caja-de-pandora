@@ -15,6 +15,7 @@ import { Fonts } from '../constants/theme';
 import { MiniPlayer } from '../components/mini-player';
 import { PixelBurstProvider } from '../components/pixel-burst';
 import { FlyToCartProvider } from '../components/fly-to-cart';
+import { DialogHost } from '../components/dialog-host';
 
 // Main app layout with providers
 export default function RootLayout() {
@@ -48,6 +49,7 @@ export default function RootLayout() {
             <Stack.Screen name="orders" options={{ title: 'Mis pedidos' }} />
           </Stack>
           <MiniPlayer />
+          <DialogHost />
           </FlyToCartProvider>
           </PixelBurstProvider>
         </PlayerProvider>

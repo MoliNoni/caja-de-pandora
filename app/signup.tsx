@@ -90,6 +90,9 @@ export default function SignUpScreen() {
 
       if (message.includes('429') || message.includes('Too Many Requests')) {
         showAlert('Demasiadas peticiones', 'Espera un momento antes de intentar de nuevo.');
+      } else if (error?.code === 'user_already_exists' || /already registered/i.test(message)) {
+        setErrors((prev) => ({ ...prev, email: 'Este correo ya tiene una cuenta. Inicia sesión.' }));
+        showAlert('Correo ya registrado', 'Ya existe una cuenta con este correo. Inicia sesión o usa otro correo.');
       } else if (error?.code === 'weak_password') {
         showAlert('Contraseña insegura', 'Esa contraseña apareció en filtraciones o es muy débil. Elige otra.');
       } else {

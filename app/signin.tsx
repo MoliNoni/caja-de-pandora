@@ -70,6 +70,10 @@ export default function SignInScreen() {
       
       if (message.includes('429') || message.includes('Too Many Requests')) {
         showAlert('Demasiadas peticiones', 'Espera un momento antes de intentar de nuevo.');
+      } else if (error?.code === 'invalid_credentials' || /invalid login credentials/i.test(message)) {
+        showAlert('No pudimos iniciar sesión', 'El correo o la contraseña no son correctos.');
+      } else if (error?.code === 'email_not_confirmed') {
+        showAlert('Confirma tu correo', 'Revisa tu bandeja de entrada y abre el enlace de confirmación.');
       } else {
         showAlert('Error de autenticacion', message);
       }
