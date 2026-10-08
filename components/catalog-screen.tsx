@@ -13,8 +13,16 @@ import {
   RefreshControl,
   TextInput,
   useWindowDimensions,
+  type ViewStyle,
 } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { getProductos, Product } from '../lib/database';
@@ -37,6 +45,11 @@ type CatalogScreenProps = {
 };
 
 const GAP = 12;
+// Large title docks into the header row over the first DOCK px of scroll.
+const DOCK = 60;
+const TITLE_ROW = 54; // title lineHeight 42 + padding 8/4
+const DOCK_LIFT = 59; // from the title row's centre up to the header row's centre
+const DOCK_SCALE = 0.55;
 
 // Main catalog component that displays products in a grid
 export const CatalogScreen = ({
@@ -79,6 +92,18 @@ export const CatalogScreen = ({
     scrollY.value = e.contentOffset.y;
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const reducedMotion = useReducedMotion();
+  const titleRowStyle = useAnimatedStyle(() => ({
+    height: interpolate(scrollY.value, [0, DOCK], [TITLE_ROW, 0], Extrapolation.CLAMP),
+  }));
+  const titleDockStyle = useAnimatedStyle((): ViewStyle => {
+    const p = interpolate(scrollY.value, [0, DOCK], [0, 1], Extrapolation.CLAMP);
+    const motion = reducedMotion ? 0 : p;
+    return {
+      opacity: reducedMotion ? 1 - p : 1,
+      transform: [{ translateY: -DOCK_LIFT * motion }, { scale: 1 - (1 - DOCK_SCALE) * motion }],
+    };
+  });
 
   // Filter products based on search query
   const filterProducts = useCallback((items: Product[], query: string) => {
@@ -113,9 +138,10 @@ export const CatalogScreen = ({
 
   useFocusEffect(
     useCallback(() => {
+      scrollY.value = 0; // the list remounts at the top, so the title starts undocked
       setVisit((v) => v + 1);
       loadProductos();
-    }, [loadProductos])
+    }, [loadProductos, scrollY])
   );
 
   // Handle pull-to-refresh
@@ -132,15 +158,17 @@ export const CatalogScreen = ({
   return (
     <SafeAreaView style={styles.container}>
       <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
-      <AppHeader
-        title={
+      <AppHeader />
+      {/* Scrolling lifts the title into the header row and shrinks it there (fades instead under reduced motion). */}
+      <Animated.View style={[styles.titleRow, titleRowStyle]}>
+        <Animated.View style={[styles.titleDock, titleDockStyle]}>
           <DancingText
             text={title}
             style={styles.title}
             colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
           />
-        }
-      />
+        </Animated.View>
+      </Animated.View>
 
       <View style={styles.searchContainer}>
         <Text style={styles.searchLabel}>Buscar</Text>
@@ -209,6 +237,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.bg,
   },
   listArea: { flex: 1 },
+  titleRow: { paddingHorizontal: 16, paddingTop: 8, zIndex: 2, overflow: 'visible' },
+  titleDock: { alignSelf: 'flex-start', transformOrigin: 'left center' },
   title: {
     fontSize: 36,
     lineHeight: 42,
