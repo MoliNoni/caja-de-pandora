@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../hooks/use-theme';
+import { SpinningRecord } from './app-header';
 
 const STAGGER_MS = 32;
 const WAVE_UP_MS = 420;
@@ -43,9 +44,11 @@ type Props = {
   colors?: string[];
   /** 0..1, driven by the caller (e.g. scroll): letters drift apart from the centre. */
   spread?: SharedValue<number>;
+  /** Letter index (spaces excluded) drawn as a spinning record, e.g. the "o" of the brand. */
+  record?: number;
 };
 
-function Letter({ char, index, side, color, style, wave, delay, spread }: {
+function Letter({ char, index, side, color, style, wave, delay, spread, record }: {
   char: string;
   index: number;
   /** -1 (first letter) .. 1 (last letter). */
@@ -55,6 +58,7 @@ function Letter({ char, index, side, color, style, wave, delay, spread }: {
   style?: StyleProp<TextStyle>;
   wave: boolean;
   delay: number;
+  record?: boolean;
 }) {
   const reducedMotion = useReducedMotion();
   const enter = useSharedValue(reducedMotion ? 1 : 0);
@@ -101,11 +105,22 @@ function Letter({ char, index, side, color, style, wave, delay, spread }: {
     };
   });
 
+  if (record) {
+    // Same animated style as the letters (the cast only bridges Text/View style typings).
+    // A lowercase-sized disc resting on the baseline, inside a box as tall as the line.
+    const { fontSize = 32, lineHeight = fontSize * 1.1 } = StyleSheet.flatten(style) ?? {};
+    const size = Math.round(fontSize * 0.56);
+    return (
+      <Animated.View style={[{ height: lineHeight, justifyContent: 'flex-end', paddingBottom: (lineHeight - fontSize) / 2 + fontSize * 0.2, marginHorizontal: fontSize * 0.03 }, animated as unknown as ViewStyle]}>
+        <SpinningRecord size={size} />
+      </Animated.View>
+    );
+  }
   return <Animated.Text style={[style, color ? { color } : null, animated]}>{char}</Animated.Text>;
 }
 
 /** Display title whose letters spring in one by one, then dance in a slow wave. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, spread }: Props) {
+export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, spread, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -133,6 +148,7 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 style={style}
                 wave={wave}
                 delay={delay}
+                record={index === record}
                 color={gradientAt(stops, index / last)}
               />
             );

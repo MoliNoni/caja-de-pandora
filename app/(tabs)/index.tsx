@@ -99,7 +99,7 @@ export default function HomeScreen() {
       ) : (
         <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
-            <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} />
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} record={10} />
             <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
               Ábrela: historias que se leen y discos que giran.
             </Animated.Text>

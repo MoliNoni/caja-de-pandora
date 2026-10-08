@@ -24,8 +24,8 @@ import { useCart } from '../lib/cart-context';
 import { FLY_MS, registerCartTarget } from './fly-to-cart';
 import { ProfileMenu } from './profile-menu';
 
-/** Brand mark: a small record that keeps turning. */
-function SpinningRecord({ size }: { size: number }) {
+/** Brand mark: a small record that keeps turning. It is the "o" of the wordmark. */
+export function SpinningRecord({ size }: { size: number }) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const turn = useSharedValue(0);
@@ -126,8 +126,12 @@ export function AppHeader({ back = false, actions = true, fallback = '/' }: Prop
           accessibilityLabel="Caja de Pandora, inicio"
           style={(state) => [styles.brand, isFocused(state) && styles.focusRing]}
         >
-          <SpinningRecord size={30} />
-          <Text style={styles.brandText}>Caja de Pandora</Text>
+          {/* Wordmark: the record is the "o" of Pandora. */}
+          <Text style={styles.brandText}>Caja de Pand</Text>
+          <View style={styles.brandO}>
+            <SpinningRecord size={16} />
+          </View>
+          <Text style={styles.brandText}>ra</Text>
         </Pressable>
       </View>
       {actions ? (
@@ -150,7 +154,9 @@ const makeStyles = (t: Theme) =>
       paddingVertical: 10,
     },
     left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-    brand: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 999, paddingRight: 6 },
+    brand: { flexDirection: 'row', alignItems: 'baseline', borderRadius: 999, paddingHorizontal: 4 },
+    // Sits on the baseline like a lowercase letter.
+    brandO: { marginHorizontal: 1, transform: [{ translateY: 3 }] },
     brandText: { fontSize: 18, fontWeight: '800', fontFamily: Fonts.serif, letterSpacing: -0.4, color: t.ink },
     actions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
