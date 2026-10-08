@@ -3,11 +3,11 @@
 // Three tabs: Home, Books, Vinyl
 // Custom styling with haptic feedback
 
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { HapticTab } from '../../components/haptic-tab';
 import { TabIcon } from '../../components/tab-icon';
 import { useTheme } from '../../hooks/use-theme';
-import { Fonts } from '../../constants/theme';
 
 // Tab navigation layout
 export default function TabLayout() {
@@ -32,10 +32,12 @@ export default function TabLayout() {
           borderRadius: 32,
           borderTopWidth: 0,
           borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.surface,
+          borderColor: theme.glassBorder,
+          backgroundColor: theme.glass,
           elevation: 12,
-          boxShadow: '0 14px 40px rgba(26,16,51,0.22), 0 2px 8px rgba(26,16,51,0.10)',
+          boxShadow: theme.glassShadow,
+          // Frosted bar (web): content blurs as it scrolls underneath.
+          ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(20px) saturate(140%)' } as object) : null),
         },
         tabBarItemStyle: { borderRadius: 24, marginHorizontal: 4 },
         // Wide screens default to beside-icon, which truncates the label.
@@ -43,9 +45,8 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           lineHeight: 16,
-          fontWeight: '700',
-          fontFamily: Fonts.serif,
-          letterSpacing: 0.2,
+          fontWeight: '600',
+          letterSpacing: 0.4,
         },
         // Lists pad their own bottom (paddingBottom: 92) so content scrolls behind the bar.
         sceneStyle: { backgroundColor: theme.bg },

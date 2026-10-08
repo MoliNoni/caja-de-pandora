@@ -2,8 +2,8 @@ import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 // Web-only document shell (static export). Loads the display face used by Fonts.serif.
-const PAGE_BG = `html, body { background-color: #FFF7EE; }
-@media (prefers-color-scheme: dark) { html, body { background-color: #0E0A1F; } }`;
+const PAGE_BG = `html, body { background-color: #F7F2EA; }
+@media (prefers-color-scheme: dark) { html, body { background-color: #0C0913; } }`;
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -16,7 +16,7 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..800;1,400..600&display=swap"
         />
         <ScrollViewStyleReset />
         {/* Paint the app background before the JS bundle loads: no white flash on reload. */}

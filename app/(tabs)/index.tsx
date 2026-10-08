@@ -101,10 +101,7 @@ export default function HomeScreen() {
         <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
             <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} record={10} />
-            <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
-              Historias que se leen y escuchan
-            </Animated.Text>
-            <Animated.View entering={FadeInDown.delay(380).springify()}>
+            <Animated.View entering={FadeInDown.delay(380).duration(700)}>
               <HeroButton
                 label="Buscar en el catálogo"
                 onPress={() =>
@@ -174,23 +171,17 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   hero: {
     marginHorizontal: 8,
-    marginTop: 24,
-    marginBottom: 32,
-    gap: 16,
+    marginTop: 32,
+    marginBottom: 40,
+    gap: 28,
     alignItems: 'flex-start',
   },
   heroTitle: {
-    fontSize: 64,
-    lineHeight: 68,
-    letterSpacing: -2,
-    fontWeight: '800',
+    fontSize: 68,
+    lineHeight: 72,
+    letterSpacing: -1.5,
+    fontWeight: '500',
     fontFamily: Fonts.serif,
     color: t.ink,
-  },
-  heroText: {
-    fontSize: 18,
-    lineHeight: 26,
-    color: t.inkMuted,
-    maxWidth: 420,
   },
 });

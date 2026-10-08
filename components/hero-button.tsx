@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Radius, type Theme } from '../constants/theme';
@@ -8,9 +8,9 @@ import { useTheme, useThemedStyles } from '../hooks/use-theme';
 
 type HeroButtonProps = { label: string; onPress: () => void };
 
-const PRESS = { duration: 160, easing: Easing.out(Easing.ease) };
+const PRESS = { duration: 220, easing: Easing.bezier(0.32, 0.72, 0, 1) };
 
-/** 000h Hero button (capsule): accent pill, trailing arrow nudges right on press. No idle motion. */
+/** Hero button: frosted capsule with the arrow in its own accent disc, which nudges right on press. No idle motion. */
 export function HeroButton({ label, onPress }: HeroButtonProps) {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -22,7 +22,7 @@ export function HeroButton({ label, onPress }: HeroButtonProps) {
 
   const press = (down: boolean) => {
     if (reducedMotion) return;
-    scale.value = withTiming(down ? 0.97 : 1, PRESS);
+    scale.value = withTiming(down ? 0.98 : 1, PRESS);
     arrowX.value = withTiming(down ? 4 : 0, PRESS);
   };
 
@@ -37,8 +37,8 @@ export function HeroButton({ label, onPress }: HeroButtonProps) {
     >
       <Animated.View style={[styles.pill, pill]}>
         <Text style={styles.label}>{label}</Text>
-        <Animated.View style={arrow} importantForAccessibility="no" accessibilityElementsHidden>
-          <Ionicons name="arrow-forward" size={20} color={theme.onAccent} />
+        <Animated.View style={[styles.disc, arrow]} importantForAccessibility="no" accessibilityElementsHidden>
+          <Ionicons name="arrow-forward" size={18} color={theme.onAccent} />
         </Animated.View>
       </Animated.View>
     </Pressable>
@@ -52,11 +52,24 @@ const makeStyles = (theme: Theme) =>
     pill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      minHeight: 52,
-      paddingHorizontal: 24,
+      gap: 16,
+      minHeight: 56,
+      paddingLeft: 26,
+      paddingRight: 6,
       borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: theme.glassBorder,
+      backgroundColor: theme.glass,
+      boxShadow: theme.glassShadow,
+      ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(16px)' } as object) : null),
+    },
+    label: { fontSize: 15, fontWeight: '500', letterSpacing: 0.6, color: theme.ink },
+    disc: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: theme.accent,
     },
-    label: { fontSize: 17, fontWeight: '600', color: theme.onAccent },
   });

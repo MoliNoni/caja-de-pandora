@@ -24,9 +24,9 @@ const FONT_FAMILY = Ionicons.getFontFamily();
 
 type Props = { name: ComponentProps<typeof Ionicons>['name']; focused: boolean; color: string };
 
-/** Tab icon: the current tab cycles through the vivid palette and pops once when selected. */
+/** Tab icon: the current tab glows through the brand's metallic ramp and pops once when selected. */
 export function TabIcon({ name, focused, color }: Props) {
-  const { vivid } = useTheme();
+  const vivid = useTheme().gradients.pandora;
   const [fontLoaded] = useFonts(Ionicons.font);
   const reducedMotion = useReducedMotion();
   const hue = useSharedValue(0);
@@ -40,7 +40,7 @@ export function TabIcon({ name, focused, color }: Props) {
       return;
     }
     hue.value = 0;
-    hue.value = withRepeat(withTiming(vivid.length, { duration: vivid.length * 900, easing: Easing.linear }), -1);
+    hue.value = withRepeat(withTiming(vivid.length, { duration: vivid.length * 1800, easing: Easing.linear }), -1);
     scale.value = withSequence(withTiming(1.2, { duration: 120 }), withSpring(1, { damping: 8, stiffness: 260 }));
     return () => cancelAnimation(hue);
   }, [focused, reducedMotion, vivid.length, hue, scale]);

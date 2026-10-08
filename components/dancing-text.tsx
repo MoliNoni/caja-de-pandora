@@ -17,9 +17,9 @@ import Animated, {
 import { useTheme } from '../hooks/use-theme';
 import { SpinningRecord } from './app-header';
 
-const STAGGER_MS = 32;
-const WAVE_UP_MS = 420;
-const WAVE_REST_MS = 2200; // pause between waves so the title settles and stays readable
+const STAGGER_MS = 45;
+const WAVE_UP_MS = 900;
+const WAVE_REST_MS = 3200; // pause between waves so the title settles and stays readable
 const sine = Easing.inOut(Easing.sin);
 
 /** Colour at t (0..1) along a list of #RRGGBB stops. */
@@ -70,14 +70,14 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
       return;
     }
     const start = delay + index * STAGGER_MS;
-    enter.value = withDelay(start, withSpring(1, { damping: 9, stiffness: 150 }));
+    enter.value = withDelay(start, withSpring(1, { damping: 18, stiffness: 120 }));
     if (wave) {
       // Same period for every letter, offset start: the bump travels across the word.
       bob.value = withDelay(
         start + 900 + index * 70,
         withRepeat(
           withSequence(
-            withTiming(-7, { duration: WAVE_UP_MS, easing: sine }),
+            withTiming(-3, { duration: WAVE_UP_MS, easing: sine }),
             withTiming(0, { duration: WAVE_UP_MS, easing: sine }),
             withTiming(0, { duration: WAVE_REST_MS })
           ),
@@ -91,16 +91,16 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
     };
   }, [reducedMotion, wave, delay, index, enter, bob]);
 
-  const tilt = index % 2 ? 28 : -28;
+  const tilt = index % 2 ? 8 : -8;
   const animated = useAnimatedStyle((): TextStyle => {
     const s = spread?.value ?? 0;
     return {
       opacity: Math.min(enter.value, 1),
       transform: [
         { translateX: side * 60 * s },
-        { translateY: (1 - enter.value) * 44 + bob.value - 18 * s * (1 - Math.abs(side)) },
+        { translateY: (1 - enter.value) * 24 + bob.value - 18 * s * (1 - Math.abs(side)) },
         { rotate: `${(1 - enter.value) * tilt + side * 14 * s}deg` },
-        { scale: 0.3 + 0.7 * enter.value },
+        { scale: 0.85 + 0.15 * enter.value },
       ],
     };
   });
