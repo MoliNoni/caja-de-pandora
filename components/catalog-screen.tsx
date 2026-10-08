@@ -24,7 +24,6 @@ import { ProductCard } from './product-card';
 import { AppHeader } from './app-header';
 import { SkeletonCard, SkeletonRegion } from './skeleton';
 import { RefreshRecord } from './refresh-record';
-import { useMiniPlayerInset } from '../lib/player-context';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -45,8 +44,6 @@ export const CatalogScreen = ({
   emptySubtitle,
 }: CatalogScreenProps) => {
   const theme = useTheme();
-  // Keeps the last row's "Agregar al carrito" clear of the mini-player bubble.
-  const miniPlayerInset = useMiniPlayerInset();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
@@ -175,7 +172,7 @@ export const CatalogScreen = ({
               {filteredProductos.length !== 1 ? 's' : ''}
             </Text>
           }
-          contentContainerStyle={[styles.listContent, { paddingBottom: 92 + miniPlayerInset }]}
+          contentContainerStyle={styles.listContent}
           refreshControl={
             // Stock spinner hidden: RefreshRecord is the indicator.
             <RefreshControl

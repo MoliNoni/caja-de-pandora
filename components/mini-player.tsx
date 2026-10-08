@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -21,6 +21,9 @@ import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { usePlayer, usePlayerProgress } from '../lib/player-context';
 
 // Peak height (px) and half-period (ms) per equalizer bar: unequal periods so bars never sync up.
+// Width left on screen when tucked away: padding + chevron + gap + cover + a little pill.
+const PEEK = 96;
+
 const BARS = [
   [14, 260],
   [18, 340],
@@ -110,18 +113,41 @@ export function MiniPlayer() {
   const pathname = usePathname();
   const { nowPlaying, isPlaying, loading, trackId, toggle, volume, setVolume } = usePlayer();
   const [showVolume, setShowVolume] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const { width } = useWindowDimensions();
+  const pillLeft = useRef(12); // pill's left edge on screen (dock inset + centering offset)
+  const reducedMotion = useReducedMotion();
+  const slide = useSharedValue(0);
+  useEffect(() => {
+    slide.value = withTiming(collapsed ? Math.max(0, width - pillLeft.current - PEEK) : 0, {
+      duration: reducedMotion ? 0 : 320,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [collapsed, width, reducedMotion, slide]);
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
 
   if (!nowPlaying || !trackId || pathname === nowPlaying.href) return null;
   const playing = isPlaying || loading;
 
   return (
-    <Animated.View entering={SlideInDown.springify().damping(16)} exiting={SlideOutRight.duration(450)} style={styles.dock}>
+    <Animated.View entering={SlideInDown.springify().damping(16)} exiting={SlideOutRight.duration(450)} style={styles.dock} pointerEvents="box-none">
+      <Animated.View style={[styles.slider, slideStyle]} onLayout={(e) => (pillLeft.current = 12 + e.nativeEvent.layout.x)}>
       <Pressable
-        onPress={() => router.push(nowPlaying.href as any)}
-        accessibilityRole="link"
-        accessibilityLabel={`Reproduciendo ${nowPlaying.title}. Abrir`}
+        onPress={() => (collapsed ? setCollapsed(false) : router.push(nowPlaying.href as any))}
+        accessibilityRole={collapsed ? 'button' : 'link'}
+        accessibilityLabel={collapsed ? `Mostrar reproductor: ${nowPlaying.title}` : `Reproduciendo ${nowPlaying.title}. Abrir`}
         style={(state) => [styles.pill, isFocused(state) && styles.focusRing]}
       >
+        <Pressable
+          onPress={() => setCollapsed((c) => !c)}
+          accessibilityRole="button"
+          accessibilityLabel={collapsed ? 'Mostrar reproductor' : 'Ocultar reproductor'}
+          accessibilityState={{ expanded: !collapsed }}
+          hitSlop={8}
+          style={(state) => [styles.chevron, isFocused(state) && styles.focusRing]}
+        >
+          <Ionicons name={collapsed ? 'chevron-back' : 'chevron-forward'} size={18} color={theme.inkMuted} />
+        </Pressable>
         {nowPlaying.cover ? (
           <Image source={{ uri: nowPlaying.cover }} style={styles.cover} />
         ) : (
@@ -164,6 +190,7 @@ export function MiniPlayer() {
         </Pressable>
         <Progress color={theme.vivid[0]} />
       </Pressable>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -171,6 +198,7 @@ export function MiniPlayer() {
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     dock: { position: 'absolute', left: 12, right: 12, bottom: 86, alignItems: 'center' },
+    slider: { width: '100%', maxWidth: 520 },
     pill: {
       width: '100%',
       maxWidth: 520,
@@ -178,6 +206,7 @@ const makeStyles = (t: Theme) =>
       alignItems: 'center',
       gap: 12,
       padding: 8,
+      paddingLeft: 4,
       paddingRight: 10,
       borderRadius: 999,
       backgroundColor: t.surface,
@@ -190,6 +219,7 @@ const makeStyles = (t: Theme) =>
     title: { fontSize: 14, fontWeight: '700', color: t.ink },
     subtitle: { fontSize: 12, color: t.inkMuted },
     eq: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 18 },
+    chevron: { width: 24, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     iconButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     button: {
       width: 40,
