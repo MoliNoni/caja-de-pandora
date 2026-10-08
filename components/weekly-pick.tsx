@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -31,6 +31,9 @@ const DISC = 156;
 const BOOK_W = 112;
 const DISC_OUT = 74; // how far the record slides out of its sleeve
 const TURN_MS = 1800; // 33⅓ rpm
+const BUNDLE_OFF = 0.1; // the pair together
+const STICKER = 64;
+const money = (n: number) => `$${n.toFixed(2)}`;
 
 /** Same pick for everyone during a calendar week; rotates on its own, no admin step needed. */
 const pickOfTheWeek = (products: Product[]) => {
@@ -99,6 +102,16 @@ export function WeeklyPick({ books, vinyls }: Props) {
   }, [reducedMotion, slide]);
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
 
+  // Promo sticker slapped on the shrink-wrap once the record is out: drops in oversized, settles.
+  const stick = useSharedValue(reducedMotion ? 1 : 0);
+  useEffect(() => {
+    if (!reducedMotion) stick.value = withDelay(900, withSpring(1, { damping: 9, stiffness: 180 }));
+  }, [reducedMotion, stick]);
+  const stickerStyle = useAnimatedStyle((): ViewStyle => ({
+    opacity: Math.min(stick.value * 2, 1),
+    transform: [{ rotate: '-14deg' }, { scale: 1.6 - 0.6 * stick.value }],
+  }));
+
   if (!book || !record) return null;
 
   const open = (p: Product) => {
@@ -127,6 +140,10 @@ export function WeeklyPick({ books, vinyls }: Props) {
           >
             <Image source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
           </Pressable>
+          <Animated.View style={[styles.sticker, stickerStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={styles.stickerBig}>10%</Text>
+            <Text style={styles.stickerSmall}>OFF</Text>
+          </Animated.View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(220).springify().damping(18)} style={styles.bookSlot}>
@@ -149,6 +166,11 @@ export function WeeklyPick({ books, vinyls }: Props) {
           Lee <Text style={styles.em} onPress={() => open(book)}>{book.titulo}</Text> mientras suena{' '}
           <Text style={styles.em} onPress={() => open(record)}>{record.titulo}</Text>.
         </Text>
+        <View style={styles.bundle} accessible accessibilityLabel={`Los dos juntos con 10% de descuento: ${money((book.precio + record.precio) * (1 - BUNDLE_OFF))}, antes ${money(book.precio + record.precio)}`}>
+          <Text style={styles.bundleLabel}>Los dos · 10% off</Text>
+          <Text style={styles.bundleWas}>{money(book.precio + record.precio)}</Text>
+          <Text style={styles.bundleNow}>{money((book.precio + record.precio) * (1 - BUNDLE_OFF))}</Text>
+        </View>
         <Pressable
           onPress={listen}
           accessibilityRole="button"
@@ -199,5 +221,26 @@ const makeStyles = (t: Theme) =>
       borderColor: t.accent,
     },
     playText: { fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: t.accent },
+    // Round hype sticker in the sleeve's top corner, as on a shop's shrink-wrapped record.
+    sticker: {
+      position: 'absolute',
+      top: -14,
+      right: -14,
+      width: STICKER,
+      height: STICKER,
+      borderRadius: STICKER / 2,
+      backgroundColor: t.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: `${t.onAccent}33`,
+      boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
+    },
+    stickerBig: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 22, fontWeight: '500', color: t.onAccent, letterSpacing: -0.5 },
+    stickerSmall: { fontSize: 9, fontWeight: '700', letterSpacing: 2.4, color: t.onAccent, marginLeft: 2.4 },
+    bundle: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginTop: 14 },
+    bundleLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
+    bundleWas: { fontSize: 14, color: t.inkMuted, textDecorationLine: 'line-through' },
+    bundleNow: { fontFamily: Fonts.serif, fontSize: 20, fontWeight: '500', color: t.accent },
     focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: t.accent, outlineOffset: 2 },
   });
