@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { RollingNumber } from './rolling-number';
 import { useIsFocused } from '@react-navigation/native';
 import { router, type Href } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -15,18 +15,27 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 
-import { Fonts, type Theme } from '../constants/theme';
+import { type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { useCart } from '../lib/cart-context';
 import { FLY_MS, registerCartTarget } from './fly-to-cart';
 import { ProfileMenu } from './profile-menu';
 
-/** Brand mark: a small record that keeps turning. It is the "o" of the wordmark. */
+const GROOVES = Array.from({ length: 14 }, (_, i) => 0.46 + i * 0.035);
+
+/** Light wedge from the centre between two angles (degrees, 0 = right, clockwise). */
+const wedge = (r: number, from: number, to: number) => {
+  const pt = (deg: number) => `${r + r * Math.cos((deg * Math.PI) / 180)} ${r + r * Math.sin((deg * Math.PI) / 180)}`;
+  return `M ${r} ${r} L ${pt(from)} A ${r} ${r} 0 0 1 ${pt(to)} Z`;
+};
+
+/** Brand mark: a glossy record that keeps turning under a fixed studio light. */
 export function SpinningRecord({ size }: { size: number }) {
   const theme = useTheme();
+  const id = useId().replace(/:/g, '');
   const reducedMotion = useReducedMotion();
   const turn = useSharedValue(0);
   useEffect(() => {
@@ -36,18 +45,41 @@ export function SpinningRecord({ size }: { size: number }) {
   }, [reducedMotion, turn]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
   const r = size / 2;
+  const hairline = Math.max(size / 160, 0.4);
   return (
-    <Animated.View style={spin}>
-      <Svg width={size} height={size}>
-        <Circle cx={r} cy={r} r={r} fill="#111" />
-        {[0.55, 0.7, 0.85].map((k) => (
-          <Circle key={k} cx={r} cy={r} r={r * k} fill="none" stroke="#2C2C2C" strokeWidth={1} />
-        ))}
-        <Circle cx={r} cy={r} r={r * 0.38} fill={theme.vivid[0]} />
-        <Circle cx={r * 1.14} cy={r * 0.86} r={r * 0.1} fill={theme.vivid[2]} />
-        <Circle cx={r} cy={r} r={r * 0.08} fill={theme.bg} />
+    <View style={{ width: size, height: size }}>
+      <Animated.View style={[StyleSheet.absoluteFill, spin]}>
+        <Svg width={size} height={size}>
+          <Defs>
+            <RadialGradient id={`vinyl${id}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0.4" stopColor="#262626" />
+              <Stop offset="1" stopColor="#050505" />
+            </RadialGradient>
+            <LinearGradient id={`label${id}`} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={theme.vivid[0]} />
+              <Stop offset="1" stopColor={theme.vivid[1]} />
+            </LinearGradient>
+          </Defs>
+          <Circle cx={r} cy={r} r={r} fill={`url(#vinyl${id})`} />
+          {GROOVES.map((k, i) => (
+            <Circle key={k} cx={r} cy={r} r={r * k} fill="none" stroke="#fff" strokeOpacity={i % 3 ? 0.05 : 0.11} strokeWidth={hairline} />
+          ))}
+          {/* Lead-out gap between tracks. */}
+          <Circle cx={r} cy={r} r={r * 0.72} fill="none" stroke="#000" strokeOpacity={0.6} strokeWidth={hairline * 3} />
+          <Circle cx={r} cy={r} r={r * 0.4} fill={`url(#label${id})`} />
+          <Circle cx={r} cy={r} r={r * 0.33} fill="none" stroke="#fff" strokeOpacity={0.35} strokeWidth={hairline} />
+          {/* Off-centre print on the label so the turn reads even at icon size. */}
+          <Path d={`M ${r * 0.72} ${r * 0.86} A ${r * 0.3} ${r * 0.3} 0 0 1 ${r * 1.14} ${r * 0.7}`} stroke={theme.vivid[2]} strokeWidth={r * 0.07} strokeLinecap="round" fill="none" />
+          <Circle cx={r} cy={r} r={r * 0.06} fill={theme.bg} />
+        </Svg>
+      </Animated.View>
+      {/* Static sheen: the light stays put while the disc turns underneath it. */}
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Path d={wedge(r, 200, 245)} fill="#fff" fillOpacity={0.13} />
+        <Path d={wedge(r, 20, 65)} fill="#fff" fillOpacity={0.07} />
+        <Circle cx={r} cy={r} r={r - hairline} fill="none" stroke="#fff" strokeOpacity={0.18} strokeWidth={hairline * 2} />
       </Svg>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -126,12 +158,7 @@ export function AppHeader({ back = false, actions = true, fallback = '/' }: Prop
           accessibilityLabel="Caja de Pandora, inicio"
           style={(state) => [styles.brand, isFocused(state) && styles.focusRing]}
         >
-          {/* Wordmark: the record is the "o" of Pandora. */}
-          <Text style={styles.brandText}>Caja de Pand</Text>
-          <View style={styles.brandO}>
-            <SpinningRecord size={16} />
-          </View>
-          <Text style={styles.brandText}>ra</Text>
+          <SpinningRecord size={32} />
         </Pressable>
       </View>
       {actions ? (
@@ -154,10 +181,7 @@ const makeStyles = (t: Theme) =>
       paddingVertical: 10,
     },
     left: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-    brand: { flexDirection: 'row', alignItems: 'baseline', borderRadius: 999, paddingHorizontal: 4 },
-    // Sits on the baseline like a lowercase letter.
-    brandO: { marginHorizontal: 1, transform: [{ translateY: 3 }] },
-    brandText: { fontSize: 18, fontWeight: '800', fontFamily: Fonts.serif, letterSpacing: -0.4, color: t.ink },
+    brand: { borderRadius: 999, padding: 4 },
     actions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     backButton: { backgroundColor: t.surface, borderWidth: 1, borderColor: t.border },

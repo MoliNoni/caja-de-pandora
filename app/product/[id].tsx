@@ -15,7 +15,6 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getRecordPreviewUrl } from '../../lib/previews';
-import { usePlayer } from '../../lib/player-context';
 import { getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { getBookSynopsis } from '../../lib/book-info';
@@ -37,7 +36,6 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useThemedStyles(makeStyles);
   const { addItem } = useCart();
-  const player = usePlayer();
   const theme = useTheme();
   const burst = useBurst();
   const fly = useFlyToCart();
@@ -118,13 +116,11 @@ export default function ProductDetailScreen() {
     if (isVinyl) void resolveRecord();
   }, [isVinyl, resolveRecord]);
 
-  // A record starts spinning (and playing) the moment it goes into the cart.
   const add = (e: GestureResponderEvent) => {
     if (!product) return;
     burst(e, isVinyl ? theme.gradients.vinyl : theme.gradients.books, 'lg');
     fly(e, imageUri);
     void addItem(product, 1);
-    if (isVinyl && !(player.trackId === recordKey && player.isPlaying)) void player.play(recordKey, resolveRecord, recordMeta);
   };
 
   const back = <AppHeader back fallback={isVinyl ? '/(tabs)/vinyl' : '/(tabs)/explore'} />;

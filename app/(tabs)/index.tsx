@@ -101,7 +101,7 @@ export default function HomeScreen() {
           <Animated.View style={[styles.hero, heroStyle]}>
             <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} record={10} />
             <Animated.Text entering={FadeInDown.delay(250).springify()} style={styles.heroText}>
-              Ábrela: historias que se leen y discos que giran.
+              Historias que se leen y escuchan
             </Animated.Text>
             <Animated.View entering={FadeInDown.delay(380).springify()}>
               <HeroButton
