@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { useEffect } from 'react';
+import { useFonts } from 'expo-font';
+import { StyleSheet } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -16,13 +18,16 @@ import Animated, {
 
 import { useTheme } from '../hooks/use-theme';
 
-const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
+// Wrapping Ionicons in createAnimatedComponent breaks on web (its setNativeProps forwards to a DOM node),
+// so the glyph is drawn by an Animated.Text in the Ionicons font instead.
+const FONT_FAMILY = Ionicons.getFontFamily();
 
 type Props = { name: ComponentProps<typeof Ionicons>['name']; focused: boolean; color: string };
 
 /** Tab icon: the current tab cycles through the vivid palette and pops once when selected. */
 export function TabIcon({ name, focused, color }: Props) {
   const { vivid } = useTheme();
+  const [fontLoaded] = useFonts(Ionicons.font);
   const reducedMotion = useReducedMotion();
   const hue = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -47,5 +52,14 @@ export function TabIcon({ name, focused, color }: Props) {
     transform: [{ scale: scale.value }],
   }));
 
-  return <AnimatedIcon name={name} size={24} style={animated} />;
+  if (!fontLoaded) return <Ionicons name={name} size={24} color={color} />;
+  return (
+    <Animated.Text style={[styles.glyph, animated]} accessible={false} selectable={false}>
+      {String.fromCodePoint(Ionicons.glyphMap[name] as number)}
+    </Animated.Text>
+  );
 }
+
+const styles = StyleSheet.create({
+  glyph: { fontFamily: FONT_FAMILY, fontSize: 24, lineHeight: 24, fontWeight: 'normal', fontStyle: 'normal' },
+});
