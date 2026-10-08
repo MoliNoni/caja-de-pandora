@@ -15,7 +15,6 @@ import Animated, {
   interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withRepeat,
@@ -89,13 +88,17 @@ export default function HomeScreen() {
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
-  const spread = useDerivedValue(() =>
-    reducedMotion ? 0 : interpolate(scrollY.value, [0, HERO_FADE], [0, 1], Extrapolation.CLAMP)
-  );
-  const heroStyle = useAnimatedStyle((): ViewStyle => ({
-    opacity: 1 - 0.85 * spread.value,
-    transform: [{ translateY: scrollY.value * 0.35 * (reducedMotion ? 0 : 1) }],
-  }));
+  // The title leaves as one composed block, like the catalog titles: it sinks a little slower
+  // than the page, dims, softens and shrinks a touch, then the compact one docks in the bar.
+  const heroStyle = useAnimatedStyle((): ViewStyle => {
+    const y = Math.max(scrollY.value, 0);
+    const p = interpolate(y, [0, HERO_FADE], [0, 1], Extrapolation.CLAMP);
+    return {
+      opacity: 1 - p,
+      filter: reducedMotion ? undefined : `blur(${p * 6}px)`,
+      transform: reducedMotion ? [] : [{ translateY: y * 0.3 }, { scale: 1 - 0.08 * p }],
+    };
+  });
   const compactTitleStyle = useAnimatedStyle((): ViewStyle => ({
     opacity: interpolate(scrollY.value, DOCK, [0, 1], Extrapolation.CLAMP),
     transform: reducedMotion
@@ -147,7 +150,7 @@ export default function HomeScreen() {
       ) : (
         <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
-            <DancingText text="Caja de Pandora" style={styles.heroTitle} spread={spread} record={10} />
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} record={10} />
             <Animated.View entering={FadeInDown.delay(380).duration(700)}>
               <HeroButton
                 label="Buscar en el catálogo"
@@ -163,7 +166,7 @@ export default function HomeScreen() {
           <WeeklyPick books={[...home.books, ...home.newBooks]} vinyls={[...home.vinyls, ...home.newVinyls]} />
 
           <SectionCarousel
-            kicker="01 — Libros"
+            kicker="Libros"
             title="Los más vendidos"
             products={home.books}
             isBestSeller
@@ -172,14 +175,14 @@ export default function HomeScreen() {
           />
 
           <SectionCarousel
-            kicker="02 — Libros"
+            kicker="Libros"
             title="Recién llegados"
             products={home.newBooks}
             onSeeAll={() => router.push('/(tabs)/explore')}
           />
 
           <SectionCarousel
-            kicker="03 — Vinilos"
+            kicker="Vinilos"
             title="Los más vendidos"
             products={home.vinyls}
             isBestSeller
@@ -187,7 +190,7 @@ export default function HomeScreen() {
           />
 
           <SectionCarousel
-            kicker="04 — Vinilos"
+            kicker="Vinilos"
             title="Recién llegados"
             products={home.newVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
@@ -260,6 +263,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 40,
     gap: 28,
     alignItems: 'flex-start',
+    transformOrigin: 'left top',
   },
   heroTitle: {
     fontSize: 68,

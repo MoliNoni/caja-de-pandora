@@ -77,7 +77,7 @@ function useDrift(list: React.RefObject<FlatList<Product> | null>) {
 
 interface SectionCarouselProps {
   title: string;
-  /** Tracked-caps line above the title, e.g. "01 — Libros". */
+  /** Tracked-caps line above the title, e.g. "Libros". */
   kicker?: string;
   subtitle?: string;
   products: Product[];

@@ -12,10 +12,11 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 import { Fonts, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
@@ -102,14 +103,22 @@ export function WeeklyPick({ books, vinyls }: Props) {
   }, [reducedMotion, slide]);
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
 
-  // Promo sticker slapped on the shrink-wrap once the record is out: drops in oversized, settles.
+  // Gold foil sticker pressed onto the shrink-wrap once the record is out: one soft settle, no wobble.
   const stick = useSharedValue(reducedMotion ? 1 : 0);
+  // Light catching the foil: a narrow band sweeps across now and then.
+  const shine = useSharedValue(0);
   useEffect(() => {
-    if (!reducedMotion) stick.value = withDelay(900, withSpring(1, { damping: 9, stiffness: 180 }));
-  }, [reducedMotion, stick]);
+    if (reducedMotion) return;
+    stick.value = withDelay(900, withSpring(1, { damping: 18, stiffness: 160 }));
+    shine.value = withDelay(1500, withRepeat(withSequence(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.cubic) }), withDelay(3200, withTiming(0, { duration: 0 }))), -1));
+    return () => cancelAnimation(shine);
+  }, [reducedMotion, stick, shine]);
   const stickerStyle = useAnimatedStyle((): ViewStyle => ({
     opacity: Math.min(stick.value * 2, 1),
-    transform: [{ rotate: '-14deg' }, { scale: 1.6 - 0.6 * stick.value }],
+    transform: [{ rotate: '-14deg' }, { scale: 1.18 - 0.18 * stick.value }],
+  }));
+  const shineStyle = useAnimatedStyle((): ViewStyle => ({
+    transform: [{ translateX: -STICKER + shine.value * STICKER * 2 }, { rotate: '20deg' }],
   }));
 
   if (!book || !record) return null;
@@ -141,6 +150,20 @@ export function WeeklyPick({ books, vinyls }: Props) {
             <Image source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
           </Pressable>
           <Animated.View style={[styles.sticker, stickerStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Svg width={STICKER} height={STICKER} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <LinearGradient id="foil" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor="#F7E7B4" />
+                  <Stop offset="0.35" stopColor="#C9A055" />
+                  <Stop offset="0.6" stopColor="#F2D98E" />
+                  <Stop offset="1" stopColor="#8C6A2E" />
+                </LinearGradient>
+              </Defs>
+              <Circle cx={STICKER / 2} cy={STICKER / 2} r={STICKER / 2} fill="url(#foil)" />
+              {/* Embossed rim, as on a die-cut foil label. */}
+              <Circle cx={STICKER / 2} cy={STICKER / 2} r={STICKER / 2 - 4} fill="none" stroke="#5E4519" strokeOpacity={0.35} strokeWidth={0.8} />
+            </Svg>
+            <Animated.View style={[styles.shine, shineStyle]} />
             <Text style={styles.stickerBig}>10%</Text>
             <Text style={styles.stickerSmall}>OFF</Text>
           </Animated.View>
@@ -229,15 +252,15 @@ const makeStyles = (t: Theme) =>
       width: STICKER,
       height: STICKER,
       borderRadius: STICKER / 2,
-      backgroundColor: t.accent,
+      overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: `${t.onAccent}33`,
-      boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
+      boxShadow: '0 6px 14px rgba(0,0,0,0.4)',
     },
-    stickerBig: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 22, fontWeight: '500', color: t.onAccent, letterSpacing: -0.5 },
-    stickerSmall: { fontSize: 9, fontWeight: '700', letterSpacing: 2.4, color: t.onAccent, marginLeft: 2.4 },
+    shine: { position: 'absolute', top: -STICKER / 2, width: 14, height: STICKER * 2, backgroundColor: 'rgba(255,250,230,0.55)' },
+    // Dark ink on gold reads like a foil stamp in both themes.
+    stickerBig: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 22, fontWeight: '500', color: '#3A2A0E', letterSpacing: -0.5 },
+    stickerSmall: { fontSize: 9, fontWeight: '700', letterSpacing: 2.4, color: '#3A2A0E', marginLeft: 2.4 },
     bundle: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginTop: 14 },
     bundleLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
     bundleWas: { fontSize: 14, color: t.inkMuted, textDecorationLine: 'line-through' },

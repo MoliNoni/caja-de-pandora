@@ -12,7 +12,6 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../hooks/use-theme';
@@ -48,18 +47,13 @@ type Props = {
   delay?: number;
   /** Gradient stops spread across the letters (#RRGGBB). Default: theme.gradients.pandora. */
   colors?: string[];
-  /** 0..1, driven by the caller (e.g. scroll): letters drift apart from the centre. */
-  spread?: SharedValue<number>;
   /** Letter index (spaces excluded) drawn as a spinning record, e.g. the "o" of the brand. */
   record?: number;
 };
 
-function Letter({ char, index, side, color, glint, style, wave, delay, spread, record }: {
+function Letter({ char, index, color, glint, style, wave, delay, record }: {
   char: string;
   index: number;
-  /** -1 (first letter) .. 1 (last letter). */
-  side: number;
-  spread?: SharedValue<number>;
   color?: string;
   /** Highlight colour the letter brightens to while the sheen passes. */
   glint?: string;
@@ -114,14 +108,12 @@ function Letter({ char, index, side, color, glint, style, wave, delay, spread, r
 
   const tilt = index % 2 ? 8 : -8;
   const animated = useAnimatedStyle((): TextStyle => {
-    const s = spread?.value ?? 0;
     return {
       ...(color && glint && !reducedMotion ? { color: interpolateColor(sheen.value, [0, 1], [color, glint]) } : null),
       opacity: Math.min(enter.value, 1),
       transform: [
-        { translateX: side * 60 * s },
-        { translateY: (1 - enter.value) * 24 + bob.value - 18 * s * (1 - Math.abs(side)) },
-        { rotate: `${(1 - enter.value) * tilt + side * 14 * s}deg` },
+        { translateY: (1 - enter.value) * 24 + bob.value },
+        { rotate: `${(1 - enter.value) * tilt}deg` },
         { scale: 0.85 + 0.15 * enter.value },
       ],
     };
@@ -142,7 +134,7 @@ function Letter({ char, index, side, color, glint, style, wave, delay, spread, r
 }
 
 /** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, spread, record }: Props) {
+export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -165,8 +157,6 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 key={index}
                 char={char}
                 index={index}
-                side={(index / last) * 2 - 1}
-                spread={spread}
                 style={style}
                 wave={wave}
                 delay={delay}
