@@ -163,7 +163,7 @@ const normalizeProductPayload = (
       : null;
   }
   if (productoData.editorial !== undefined) payload.editorial = productoData.editorial.trim();
-  if (productoData.imageUrl !== undefined) payload.imageUrl = cleanOptionalString(productoData.imageUrl);
+  if (productoData.imageUrl !== undefined) payload.image_url = cleanOptionalString(productoData.imageUrl);
   if (productoData.category !== undefined) payload.category = productoData.category;
   if ('vendidos' in productoData && productoData.vendidos !== undefined) {
     payload.vendidos = Number(productoData.vendidos);
@@ -364,16 +364,16 @@ export const createProducto = async (productoData: ProductCreateInput): Promise<
     const payload = normalizeProductPayload(productoData);
 
     // Si no hay imagen, obtener de la API correspondiente
-    if (!payload.imageUrl) {
+    if (!payload.image_url) {
       if (productoData.category === 'book' && productoData.isbn) {
         const coverUrl = await getOpenLibraryCoverUrl(productoData.isbn);
         if (coverUrl) {
-          payload.imageUrl = coverUrl;
+          payload.image_url = coverUrl;
         }
       } else if (productoData.category === 'vinyl' && productoData.discogs_id) {
         const coverUrl = await getDiscogsCoverUrl(productoData.discogs_id);
         if (coverUrl) {
-          payload.imageUrl = coverUrl;
+          payload.image_url = coverUrl;
         }
       }
     }
