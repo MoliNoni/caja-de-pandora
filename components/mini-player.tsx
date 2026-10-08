@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -21,8 +22,12 @@ import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { usePlayer, usePlayerProgress } from '../lib/player-context';
 
 // Peak height (px) and half-period (ms) per equalizer bar: unequal periods so bars never sync up.
-// Width left on screen when tucked away: padding + chevron + gap + cover + a little pill.
-const PEEK = 96;
+// Width left on screen when tucked away: padding + chevron + gap + disc + a little pill.
+const PEEK = 100;
+// Cover disc and the progress ring around it.
+const DISC = 44;
+const RING_R = DISC / 2 - 1.5;
+const RING_C = 2 * Math.PI * RING_R;
 
 const BARS = [
   [14, 260],
@@ -51,20 +56,57 @@ function Bar({ peak, ms, playing, color }: { peak: number; ms: number; playing: 
   return <Animated.View style={[{ width: 3, borderRadius: 2, backgroundColor: color }, style]} />;
 }
 
-/** Thin bar showing how much of the 30 s clip is left. */
-function Progress({ color }: { color: string }) {
+/** Cover turning like a record while it plays, ringed by how much of the 30 s clip has played. */
+function CoverDisc({ uri, playing, theme }: { uri?: string | null; playing: boolean; theme: Theme }) {
   const { position, duration } = usePlayerProgress();
-  const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
+  const pct = duration > 0 ? Math.min(1, position / duration) : 0;
+  const reducedMotion = useReducedMotion();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    if (playing && !reducedMotion) {
+      // Continue from the current angle so a pause/resume doesn't jump.
+      turn.value = withRepeat(withTiming(turn.value + 360, { duration: 6000, easing: Easing.linear }), -1);
+    } else {
+      cancelAnimation(turn);
+    }
+    return () => cancelAnimation(turn);
+  }, [playing, reducedMotion, turn]);
+  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
   return (
-    <View style={progressStyles.track} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[progressStyles.fill, { width: `${pct}%`, backgroundColor: color }]} />
+    <View style={discStyles.disc}>
+      <Animated.View style={[discStyles.cover, spin]}>
+        {uri ? (
+          <Image source={{ uri }} style={discStyles.fill} />
+        ) : (
+          <View style={[discStyles.fill, { backgroundColor: theme.vivid[0] }]} />
+        )}
+        <View style={[discStyles.hole, { backgroundColor: theme.surface }]} />
+      </Animated.View>
+      <Svg width={DISC} height={DISC} style={discStyles.ring} aria-hidden>
+        <Circle cx={DISC / 2} cy={DISC / 2} r={RING_R} stroke={theme.border} strokeWidth={3} fill="none" />
+        <Circle
+          cx={DISC / 2}
+          cy={DISC / 2}
+          r={RING_R}
+          stroke={theme.vivid[0]}
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${RING_C} ${RING_C}`}
+          strokeDashoffset={RING_C * (1 - pct)}
+        />
+      </Svg>
     </View>
   );
 }
 
-const progressStyles = StyleSheet.create({
-  track: { position: 'absolute', left: 24, right: 24, bottom: 0, height: 2, borderRadius: 1, overflow: 'hidden' },
-  fill: { height: 2, borderRadius: 1 },
+const discStyles = StyleSheet.create({
+  disc: { width: DISC, height: DISC, alignItems: 'center', justifyContent: 'center' },
+  cover: { width: DISC - 10, height: DISC - 10, borderRadius: DISC, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  fill: { ...StyleSheet.absoluteFillObject },
+  hole: { width: 6, height: 6, borderRadius: 3 },
+  // Starts at 12 o'clock.
+  ring: { position: 'absolute', transform: [{ rotate: '-90deg' }] },
 });
 
 /** Drag or tap along the track to set the volume; arrow keys via the adjustable role on native. */
@@ -148,11 +190,7 @@ export function MiniPlayer() {
         >
           <Ionicons name={collapsed ? 'chevron-back' : 'chevron-forward'} size={18} color={theme.inkMuted} />
         </Pressable>
-        {nowPlaying.cover ? (
-          <Image source={{ uri: nowPlaying.cover }} style={styles.cover} />
-        ) : (
-          <View style={[styles.cover, { backgroundColor: theme.vivid[0] }]} />
-        )}
+        <CoverDisc uri={nowPlaying.cover} playing={playing} theme={theme} />
         <View style={styles.text}>
           <Text style={styles.title} numberOfLines={1}>{nowPlaying.title}</Text>
           {!!nowPlaying.subtitle && <Text style={styles.subtitle} numberOfLines={1}>{nowPlaying.subtitle}</Text>}
@@ -188,7 +226,6 @@ export function MiniPlayer() {
         >
           <Ionicons name={playing ? 'pause' : 'play'} size={20} color={theme.onAccent} />
         </Pressable>
-        <Progress color={theme.vivid[0]} />
       </Pressable>
       </Animated.View>
     </Animated.View>
@@ -214,7 +251,6 @@ const makeStyles = (t: Theme) =>
       borderColor: t.border,
       boxShadow: '0px 16px 40px rgba(14,10,31,0.35)',
     },
-    cover: { width: 40, height: 40, borderRadius: 20 },
     text: { flex: 1, minWidth: 0 },
     title: { fontSize: 14, fontWeight: '700', color: t.ink },
     subtitle: { fontSize: 12, color: t.inkMuted },

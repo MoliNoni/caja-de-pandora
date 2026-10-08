@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Pressable,
@@ -18,6 +17,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { useBurst } from './pixel-burst';
@@ -158,10 +158,13 @@ export const ProductCard = ({
         accessibilityLabel={`Ver detalle de ${product.titulo}`}
       >
         {imageUri ? (
+          // Fades over the neutral block instead of popping in; kept on disk across reloads.
           <Image
             source={{ uri: imageUri }}
             style={styles.image}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={reducedMotion ? 0 : 250}
+            cachePolicy="memory-disk"
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
