@@ -332,7 +332,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontSize: 48,
     lineHeight: 54,
     letterSpacing: -1.5,
-    fontWeight: '800',
+    fontWeight: '500',
     fontFamily: Fonts.serif,
   },
   form: {

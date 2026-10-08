@@ -149,9 +149,6 @@ export function WeeklyPick({ books, vinyls }: Props) {
           Lee <Text style={styles.em} onPress={() => open(book)}>{book.titulo}</Text> mientras suena{' '}
           <Text style={styles.em} onPress={() => open(record)}>{record.titulo}</Text>.
         </Text>
-        <Text style={styles.byline}>
-          {book.autor} · {record.autor}
-        </Text>
         <Pressable
           onPress={listen}
           accessibilityRole="button"
@@ -159,7 +156,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
           accessibilityState={{ busy: active && player.loading }}
           style={(state) => [styles.play, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
         >
-          <Ionicons name={playing ? 'pause' : 'play'} size={16} color={theme.onAccent} />
+          <Ionicons name={playing ? 'pause' : 'play'} size={16} color={theme.accent} />
           <Text style={styles.playText}>{playing ? 'Pausar' : 'Escuchar el disco'}</Text>
         </Pressable>
       </Animated.View>
@@ -186,21 +183,21 @@ const makeStyles = (t: Theme) =>
     fill: { width: '100%', height: '100%' },
     pressed: { transform: [{ scale: 0.97 }] },
     copy: { flex: 1, maxWidth: 440 },
-    kicker: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, fontFamily: Fonts.serif, color: t.ink, marginBottom: 6 },
-    sentence: { fontSize: 20, lineHeight: 28, fontFamily: Fonts.serif, color: t.inkMuted },
-    em: { color: t.ink, fontWeight: '800' },
-    byline: { marginTop: 6, fontSize: 13, color: t.inkMuted },
+    kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 12 },
+    sentence: { fontSize: 24, lineHeight: 32, fontFamily: Fonts.serif, color: t.inkMuted },
+    em: { color: t.ink, fontStyle: 'italic' },
     play: {
       marginTop: 16,
       alignSelf: 'flex-start',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 18,
-      borderRadius: 999,
-      backgroundColor: t.accent,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 2,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.accent,
     },
-    playText: { fontSize: 15, fontWeight: '800', color: t.onAccent },
+    playText: { fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: t.accent },
     focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: t.accent, outlineOffset: 2 },
   });

@@ -229,7 +229,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '500',
     fontFamily: Fonts.serif,
     letterSpacing: -0.8,
   },

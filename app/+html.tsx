@@ -3,7 +3,7 @@ import type { PropsWithChildren } from 'react';
 
 // Web-only document shell (static export). Loads the display face used by Fonts.serif.
 const PAGE_BG = `html, body { background-color: #F7F2EA; }
-@media (prefers-color-scheme: dark) { html, body { background-color: #0C0913; } }`;
+@media (prefers-color-scheme: dark) { html, body { background-color: #0B0A0C; } }`;
 
 export default function Root({ children }: PropsWithChildren) {
   return (

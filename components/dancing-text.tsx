@@ -3,6 +3,7 @@ import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from
 import Animated, {
   cancelAnimation,
   Easing,
+  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -18,9 +19,14 @@ import { useTheme } from '../hooks/use-theme';
 import { SpinningRecord } from './app-header';
 
 const STAGGER_MS = 45;
-const WAVE_UP_MS = 900;
-const WAVE_REST_MS = 3200; // pause between waves so the title settles and stays readable
+const WAVE_UP_MS = 700;
+const WAVE_REST_MS = 2600; // pause between waves so the title settles and stays readable
 const sine = Easing.inOut(Easing.sin);
+// A glint of light sweeps the coloured letters, like light crossing a record.
+const SHEEN_IN_MS = 700;
+const SHEEN_OUT_MS = 1100;
+const SHEEN_REST_MS = 3600;
+const SHEEN_STEP_MS = 70;
 
 /** Colour at t (0..1) along a list of #RRGGBB stops. */
 function gradientAt(stops: string[], t: number) {
@@ -48,13 +54,15 @@ type Props = {
   record?: number;
 };
 
-function Letter({ char, index, side, color, style, wave, delay, spread, record }: {
+function Letter({ char, index, side, color, glint, style, wave, delay, spread, record }: {
   char: string;
   index: number;
   /** -1 (first letter) .. 1 (last letter). */
   side: number;
   spread?: SharedValue<number>;
   color?: string;
+  /** Highlight colour the letter brightens to while the sheen passes. */
+  glint?: string;
   style?: StyleProp<TextStyle>;
   wave: boolean;
   delay: number;
@@ -63,6 +71,7 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
   const reducedMotion = useReducedMotion();
   const enter = useSharedValue(reducedMotion ? 1 : 0);
   const bob = useSharedValue(0);
+  const sheen = useSharedValue(0);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -77,7 +86,7 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
         start + 900 + index * 70,
         withRepeat(
           withSequence(
-            withTiming(-3, { duration: WAVE_UP_MS, easing: sine }),
+            withTiming(-5, { duration: WAVE_UP_MS, easing: sine }),
             withTiming(0, { duration: WAVE_UP_MS, easing: sine }),
             withTiming(0, { duration: WAVE_REST_MS })
           ),
@@ -85,16 +94,29 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
         )
       );
     }
+    sheen.value = withDelay(
+      start + 600 + index * SHEEN_STEP_MS,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: SHEEN_IN_MS, easing: sine }),
+          withTiming(0, { duration: SHEEN_OUT_MS, easing: sine }),
+          withTiming(0, { duration: SHEEN_REST_MS })
+        ),
+        -1
+      )
+    );
     return () => {
       cancelAnimation(enter);
       cancelAnimation(bob);
+      cancelAnimation(sheen);
     };
-  }, [reducedMotion, wave, delay, index, enter, bob]);
+  }, [reducedMotion, wave, delay, index, enter, bob, sheen]);
 
   const tilt = index % 2 ? 8 : -8;
   const animated = useAnimatedStyle((): TextStyle => {
     const s = spread?.value ?? 0;
     return {
+      ...(color && glint && !reducedMotion ? { color: interpolateColor(sheen.value, [0, 1], [color, glint]) } : null),
       opacity: Math.min(enter.value, 1),
       transform: [
         { translateX: side * 60 * s },
@@ -119,7 +141,7 @@ function Letter({ char, index, side, color, style, wave, delay, spread, record }
   return <Animated.Text style={[style, color ? { color } : null, animated]}>{char}</Animated.Text>;
 }
 
-/** Display title whose letters spring in one by one, then dance in a slow wave. Reads as one label to AT. */
+/** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
 export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, spread, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
@@ -150,6 +172,7 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
                 delay={delay}
                 record={index === record}
                 color={gradientAt(stops, index / last)}
+                glint={theme.ink}
               />
             );
           })}

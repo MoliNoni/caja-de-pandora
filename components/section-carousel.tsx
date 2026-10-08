@@ -154,7 +154,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '500',
     letterSpacing: -0.5,
     fontFamily: Fonts.serif,
     color: t.ink,

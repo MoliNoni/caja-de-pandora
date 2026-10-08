@@ -94,7 +94,7 @@ export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'co
       style={[StyleSheet.absoluteFill, styles.clip]}
     >
       {BLOBS.map((b) => (
-        <Blob key={b.color} {...b} opacity={dark ? 0.2 : 0.12} />
+        <Blob key={b.color} {...b} opacity={dark ? 0.16 : 0.1} />
       ))}
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
@@ -110,7 +110,7 @@ export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'co
             </Pattern>
           )}
         </Defs>
-        <Rect width="100%" height="100%" fill={`url(#${id})`} opacity={variant === 'dots' ? 0.035 : 0.04} />
+        <Rect width="100%" height="100%" fill={`url(#${id})`} opacity={variant === 'dots' ? 0 : 0.04} />
       </Svg>
     </View>
   );

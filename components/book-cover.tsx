@@ -176,7 +176,7 @@ const makeStyles = (t: Theme) =>
       paddingVertical: 16,
       gap: 4,
     },
-    pageTitle: { fontFamily: Fonts.serif, fontSize: 18, fontWeight: '800', color: '#1A1033', textAlign: 'center' },
+    pageTitle: { fontFamily: Fonts.serif, fontSize: 18, fontWeight: '500', color: '#1A1033', textAlign: 'center' },
     pageAuthor: { fontFamily: Fonts.serif, fontSize: 13, fontStyle: 'italic', color: '#5B5470', textAlign: 'center' },
     rule: { height: 1, backgroundColor: 'rgba(26,16,51,0.15)', marginVertical: 8, marginHorizontal: 24 },
     synopsisScroll: { flex: 1 },

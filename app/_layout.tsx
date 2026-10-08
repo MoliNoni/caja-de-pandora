@@ -36,7 +36,7 @@ export default function RootLayout() {
               headerStyle: { backgroundColor: theme.bg },
               headerShadowVisible: false,
               headerTintColor: theme.ink,
-              headerTitleStyle: { fontFamily: Fonts.serif, fontWeight: '800' },
+              headerTitleStyle: { fontFamily: Fonts.serif, fontWeight: '500' },
               animation: 'fade_from_bottom',
             }}
           >

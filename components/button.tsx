@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
-import { Radius, Spacing, type Theme } from '../constants/theme';
+import { Spacing, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
 import { tapHaptic } from '../lib/haptics';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
@@ -88,13 +88,13 @@ export function Button({
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     fullWidth: { alignSelf: 'stretch' },
-    focusRing: { borderRadius: Radius.pill, outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
+    focusRing: { borderRadius: 4, outlineWidth: 2, outlineStyle: 'solid', outlineColor: theme.accent, outlineOffset: 2 },
     base: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.sm,
-      borderRadius: Radius.pill,
+      borderRadius: 4,
       borderWidth: 1,
       borderColor: 'transparent',
     },
@@ -106,7 +106,8 @@ const makeStyles = (theme: Theme) =>
     ghost: {},
     default: { backgroundColor: theme.surface, borderColor: theme.border },
     inactive: { opacity: 0.5 },
-    label: { fontSize: 15, fontWeight: '600' },
-    label_sm: { fontSize: 13.5 },
-    label_lg: { fontSize: 17 },
+    // Tracked caps: the maison voice, shared by every button.
+    label: { fontSize: 13, fontWeight: '600', letterSpacing: 1.6, textTransform: 'uppercase' },
+    label_sm: { fontSize: 11, letterSpacing: 1.2 },
+    label_lg: { fontSize: 14, letterSpacing: 2 },
   });

@@ -271,7 +271,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   trackPos: { width: 26, fontSize: 12, fontWeight: '700', color: t.inkMuted },
   trackTitle: { flex: 1, fontSize: 14, color: t.ink },
   trackTime: { fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
-  title: { fontSize: 24, lineHeight: 29, fontWeight: '800', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
+  title: { fontSize: 24, lineHeight: 29, fontWeight: '500', letterSpacing: -0.4, fontFamily: Fonts.serif, color: t.ink },
   author: { fontSize: 15, color: t.inkMuted, marginTop: 2 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   price: { fontSize: 24, fontWeight: '800', color: t.accent },
