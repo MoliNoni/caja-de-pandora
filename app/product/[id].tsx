@@ -236,7 +236,7 @@ export default function ProductDetailScreen() {
         ) : null}
       </Animated.ScrollView>
 
-      {/* Always in reach: the main action never scrolls away. */}
+      {/* Always in reach: a floating pill over the content, no bar behind it. */}
       <View style={styles.footer}>
         <Button label={inStock ? 'Agregar al carrito' : 'Agotado'} fullWidth disabled={!inStock} onPress={add} />
       </View>
@@ -246,7 +246,8 @@ export default function ProductDetailScreen() {
 
 const makeStyles = (t: Theme) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: t.bg },
-  content: { paddingHorizontal: 20, paddingBottom: 16, flexGrow: 1 },
+  // Bottom padding clears the floating add-to-cart pill.
+  content: { paddingHorizontal: 20, paddingBottom: 88, flexGrow: 1 },
   skeletonCover: { marginBottom: 16 },
   skeletonGap: { marginTop: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
@@ -272,11 +273,11 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   more: { fontSize: 13, fontWeight: '700', color: t.accent, marginTop: 4 },
   errorText: { fontSize: 16, color: t.inkMuted },
   footer: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: t.border,
-    backgroundColor: t.bg,
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 16,
+    borderRadius: 999,
+    boxShadow: '0 12px 32px rgba(0,0,0,0.28)',
   },
 });

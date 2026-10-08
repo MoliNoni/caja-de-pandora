@@ -13,6 +13,7 @@ import {
   RefreshControl,
   TextInput,
   useWindowDimensions,
+  Platform,
   type ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -45,11 +46,11 @@ type CatalogScreenProps = {
 };
 
 const GAP = 12;
-// Large title docks into the header row over the first DOCK px of scroll.
-const DOCK = 60;
-const TITLE_ROW = 54; // title lineHeight 42 + padding 8/4
-const DOCK_LIFT = 59; // from the title row's centre up to the header row's centre
-const DOCK_SCALE = 0.55;
+// Header bar height (AppHeader: 40px buttons + 10px padding). The list scrolls under it.
+const HEADER = 60;
+// Relay, never both at once: the large title leaves over OUT px of scroll, then the compact one enters over IN.
+const OUT: [number, number] = [0, 30];
+const IN: [number, number] = [26, 56];
 
 // Main catalog component that displays products in a grid
 export const CatalogScreen = ({
@@ -93,17 +94,29 @@ export const CatalogScreen = ({
   });
   const [searchQuery, setSearchQuery] = useState('');
   const reducedMotion = useReducedMotion();
-  const titleRowStyle = useAnimatedStyle(() => ({
-    height: interpolate(scrollY.value, [0, DOCK], [TITLE_ROW, 0], Extrapolation.CLAMP),
-  }));
-  const titleDockStyle = useAnimatedStyle((): ViewStyle => {
-    const p = interpolate(scrollY.value, [0, DOCK], [0, 1], Extrapolation.CLAMP);
-    const motion = reducedMotion ? 0 : p;
+  // Everything is tied to the scroll offset, so it moves exactly with the finger (no timed animation).
+  const largeTitleStyle = useAnimatedStyle((): ViewStyle => {
+    const y = Math.max(scrollY.value, 0);
+    const p = interpolate(y, OUT, [0, 1], Extrapolation.CLAMP);
     return {
-      opacity: reducedMotion ? 1 - p : 1,
-      transform: [{ translateY: -DOCK_LIFT * motion }, { scale: 1 - (1 - DOCK_SCALE) * motion }],
+      opacity: 1 - p,
+      // A little blur melts it into the frosted bar instead of a hard fade.
+      filter: reducedMotion ? undefined : `blur(${p * 4}px)`,
+      // Sinks a little slower than the content: it reads as sliding under the bar, not being cut by it.
+      transform: reducedMotion
+        ? []
+        : [{ translateY: y * 0.35 }, { scale: 1 - 0.06 * p }],
     };
   });
+  const compactTitleStyle = useAnimatedStyle((): ViewStyle => ({
+    opacity: interpolate(scrollY.value, IN, [0, 1], Extrapolation.CLAMP),
+    transform: reducedMotion
+      ? []
+      : [{ translateY: interpolate(scrollY.value, IN, [10, 0], Extrapolation.CLAMP) }],
+  }));
+  const barStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, IN[1]], [0, 1], Extrapolation.CLAMP),
+  }));
 
   // Filter products based on search query
   const filterProducts = useCallback((items: Product[], query: string) => {
@@ -155,21 +168,11 @@ export const CatalogScreen = ({
     setSearchQuery(text);
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
-      <AppHeader />
-      {/* Scrolling lifts the title into the header row and shrinks it there (fades instead under reduced motion). */}
-      <Animated.View style={[styles.titleRow, titleRowStyle]}>
-        <Animated.View style={[styles.titleDock, titleDockStyle]}>
-          <DancingText
-            text={title}
-            style={styles.title}
-            colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books}
-          />
-        </Animated.View>
+  const top = (
+    <View>
+      <Animated.View style={[styles.titleRow, largeTitleStyle]}>
+        <DancingText text={title} style={styles.title} colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books} />
       </Animated.View>
-
       <View style={styles.searchContainer}>
         <Text style={styles.searchLabel}>Buscar</Text>
         <TextInput
@@ -182,51 +185,78 @@ export const CatalogScreen = ({
           ref={searchRef}
         />
       </View>
+    </View>
+  );
 
-      {loading ? (
-        <SkeletonRegion style={styles.skeletonGrid}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <SkeletonCard key={i} width="48%" />
-          ))}
-        </SkeletonRegion>
-      ) : filteredProductos.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle} accessibilityRole="header">{emptyTitle}</Text>
-          <Text style={styles.emptySubtitle}>{emptySubtitle}</Text>
-        </View>
-      ) : (
-        <View style={styles.listArea}>
-        <RefreshRecord scrollY={scrollY} refreshing={refreshing} color={theme.accent} />
-        <Animated.FlatList
-          key={`${visit}-${columns}`}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          data={filteredProductos}
-          numColumns={columns}
-          onContentSizeChange={(w) => w !== listWidth && setListWidth(w)}
-          columnWrapperStyle={styles.columnWrapper}
-          renderItem={({ item, index }) => <ProductCard product={item} index={index} width={cardWidth} />}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            <Text style={styles.resultCount}>
-              {filteredProductos.length} producto
-              {filteredProductos.length !== 1 ? 's' : ''}
-            </Text>
-          }
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            // Stock spinner hidden: RefreshRecord is the indicator.
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['transparent']}
-              tintColor="transparent"
-              progressBackgroundColor="transparent"
+  return (
+    <SafeAreaView style={styles.container}>
+      <PatternBackground variant={category === 'vinyl' ? 'contours' : 'dots'} />
+      <View style={styles.body}>
+        {loading ? (
+          <View style={styles.offset}>
+            {top}
+            <SkeletonRegion style={styles.skeletonGrid}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <SkeletonCard key={i} width="48%" />
+              ))}
+            </SkeletonRegion>
+          </View>
+        ) : (
+          <>
+            <View style={styles.refreshAnchor}>
+              <RefreshRecord scrollY={scrollY} refreshing={refreshing} color={theme.accent} />
+            </View>
+            <Animated.FlatList
+              key={`${visit}-${columns}`}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              data={filteredProductos}
+              numColumns={columns}
+              onContentSizeChange={(w) => w !== listWidth && setListWidth(w)}
+              columnWrapperStyle={styles.columnWrapper}
+              renderItem={({ item, index }) => <ProductCard product={item} index={index} width={cardWidth} />}
+              keyExtractor={(item) => item.id}
+              ListHeaderComponent={
+                <>
+                  {top}
+                  {filteredProductos.length > 0 ? (
+                    <Text style={styles.resultCount}>
+                      {filteredProductos.length} producto{filteredProductos.length !== 1 ? 's' : ''}
+                    </Text>
+                  ) : null}
+                </>
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyTitle} accessibilityRole="header">{emptyTitle}</Text>
+                  <Text style={styles.emptySubtitle}>{emptySubtitle}</Text>
+                </View>
+              }
+              contentContainerStyle={[styles.listContent, styles.offset]}
+              refreshControl={
+                // Stock spinner hidden: RefreshRecord is the indicator.
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['transparent']}
+                  tintColor="transparent"
+                  progressBackgroundColor="transparent"
+                  progressViewOffset={HEADER}
+                />
+              }
             />
-          }
-        />
+          </>
+        )}
+
+        {/* Bar over the list: turns into frosted glass as content slides under it, and receives the title. */}
+        <View style={styles.headerLayer} pointerEvents="box-none">
+          <Animated.View style={[styles.bar, barStyle]} pointerEvents="none" />
+          <Animated.View style={[styles.compactTitle, compactTitleStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <DancingText text={title} style={styles.compactTitleText} colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books} wave={false} />
+          </Animated.View>
+          <AppHeader />
         </View>
-      )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -236,9 +266,21 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: t.bg,
   },
-  listArea: { flex: 1 },
-  titleRow: { paddingHorizontal: 16, paddingTop: 8, zIndex: 2, overflow: 'visible' },
-  titleDock: { alignSelf: 'flex-start', transformOrigin: 'left center' },
+  body: { flex: 1 },
+  offset: { paddingTop: HEADER },
+  refreshAnchor: { position: 'absolute', top: HEADER, left: 0, right: 0, zIndex: 2 },
+  headerLayer: { position: 'absolute', top: 0, left: 0, right: 0, height: HEADER, zIndex: 3 },
+  bar: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: `${t.bg}D9`,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.border,
+    // Frosted glass on web; native keeps the translucent tint.
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(14px)' } as object) : null),
+  },
+  compactTitle: { position: 'absolute', left: 16, top: 0, bottom: 0, justifyContent: 'center' },
+  compactTitleText: { fontSize: 20, lineHeight: 24, fontWeight: '800', fontFamily: Fonts.serif, letterSpacing: -0.4, color: t.ink },
+  titleRow: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, alignSelf: 'flex-start', transformOrigin: 'left top' },
   title: {
     fontSize: 36,
     lineHeight: 42,
