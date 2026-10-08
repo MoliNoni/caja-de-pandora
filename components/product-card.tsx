@@ -25,6 +25,8 @@ import { useBurst } from './pixel-burst';
 import { useFlyToCart } from './fly-to-cart';
 import { Product, productCache } from '../lib/database';
 import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-image';
+import { getBookSynopsis } from '../lib/book-info';
+import { getDiscogsTracklist } from '../lib/discogs';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -101,6 +103,12 @@ export const ProductCard = ({
       router.push({ pathname: '/product/[id]', params: { id: product.id } });
     });
 
+  // Warm the detail page's slow lookups (both memoized) so they're usually done when it opens.
+  const prefetch = () => {
+    if (product.category === 'book') void getBookSynopsis(product);
+    else if (product.discogs_id) void getDiscogsTracklist(product.discogs_id);
+  };
+
   // Load product cover image
   useEffect(() => {
     const fetchImage = async () => {
@@ -130,11 +138,15 @@ export const ProductCard = ({
       <Pressable
         focusable={false}
         accessible={false}
-        onHoverIn={() => hover(true)}
+        onHoverIn={() => {
+          hover(true);
+          prefetch();
+        }}
         onHoverOut={() => hover(false)}
         onPointerMove={tilt}
       >
       <TouchableOpacity
+        onPressIn={prefetch}
         onPress={(e) => {
           burst(e, burstColors, 'md');
           openDetail();

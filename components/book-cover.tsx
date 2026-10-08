@@ -6,6 +6,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, Vi
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  FadeIn,
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
@@ -110,9 +111,17 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
             {!!author && <Text style={styles.pageAuthor} numberOfLines={1}>{author}</Text>}
             <View style={styles.rule} />
             <ScrollView style={styles.synopsisScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-              <Text style={styles.synopsis}>
-                {synopsis === undefined ? 'Buscando la sinopsis…' : synopsis || 'Sinopsis no disponible en español.'}
-              </Text>
+              {synopsis === undefined ? (
+                <View accessibilityLabel="Cargando sinopsis" style={styles.lines}>
+                  {[100, 94, 98, 88, 96, 60].map((w, i) => (
+                    <View key={i} style={[styles.line, { width: `${w}%` }]} />
+                  ))}
+                </View>
+              ) : (
+                <Animated.Text entering={FadeIn.duration(260)} style={styles.synopsis}>
+                  {synopsis || 'Sinopsis no disponible en español.'}
+                </Animated.Text>
+              )}
             </ScrollView>
             <Pressable onPress={() => settle(0)} accessibilityRole="button" accessibilityLabel="Cerrar el libro" hitSlop={8}>
               <Text style={styles.close}>Cerrar</Text>
@@ -148,7 +157,8 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     // Full-bleed clip: the turned cover runs off the left edge without making the page scroll sideways.
-    stage: { marginHorizontal: -20, overflow: 'hidden', paddingTop: 4, paddingBottom: 14 },
+    // alignSelf: its parent centres children, which would shrink the clip to the book's own width.
+    stage: { alignSelf: 'stretch', marginHorizontal: -20, overflow: 'hidden', paddingTop: 4, paddingBottom: 14 },
     book: { alignSelf: 'center' },
     pageEdge: {
       position: 'absolute',
@@ -170,6 +180,8 @@ const makeStyles = (t: Theme) =>
     pageAuthor: { fontFamily: Fonts.serif, fontSize: 13, fontStyle: 'italic', color: '#5B5470', textAlign: 'center' },
     rule: { height: 1, backgroundColor: 'rgba(26,16,51,0.15)', marginVertical: 8, marginHorizontal: 24 },
     synopsisScroll: { flex: 1 },
+    lines: { gap: 9, paddingTop: 5 },
+    line: { height: 11, borderRadius: 3, backgroundColor: 'rgba(26,16,51,0.08)' },
     synopsis: { fontFamily: Fonts.serif, fontSize: 14, lineHeight: 21, color: '#2A2340' },
     close: { alignSelf: 'flex-end', marginTop: 8, fontSize: 13, fontWeight: '700', color: t.accent },
     cover: {

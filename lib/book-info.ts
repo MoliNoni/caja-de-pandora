@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOpenLibraryCoverUrl, getOpenLibrarySynopsis, searchOpenLibraryByISBN } from './openlibrary';
 
 // The store is in Spanish: a synopsis is only shown when it is in Spanish.
@@ -45,15 +46,20 @@ export const getBookSynopsis = (book: BookRef) => {
   let pending = synopsisCache.get(id);
   if (!pending) {
     pending = (async () => {
+      const storeKey = `synopsis_${id}`;
+      const stored = await AsyncStorage.getItem(storeKey).catch(() => null);
+      if (stored !== null) return stored || null; // '' = known to have none
+      const fallback = book.descripcion && isSpanish(book.descripcion) ? book.descripcion : null;
       try {
         const openLibrary = await getOpenLibrarySynopsis(book);
-        if (openLibrary && isSpanish(openLibrary)) return openLibrary;
-        const wikipedia = await fromWikipedia(book.titulo, book.autor);
-        if (wikipedia) return wikipedia;
+        const wikipedia = openLibrary && isSpanish(openLibrary) ? null : await fromWikipedia(book.titulo, book.autor);
+        const text = (openLibrary && isSpanish(openLibrary) ? openLibrary : wikipedia) || fallback;
+        AsyncStorage.setItem(storeKey, text ?? '').catch(() => {});
+        return text;
       } catch {
-        synopsisCache.delete(id); // network failure: retry on the next visit
+        synopsisCache.delete(id); // network failure: retry on the next visit, store nothing
+        return fallback;
       }
-      return book.descripcion && isSpanish(book.descripcion) ? book.descripcion : null;
     })();
     synopsisCache.set(id, pending);
   }

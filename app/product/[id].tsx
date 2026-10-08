@@ -90,12 +90,13 @@ export default function ProductDetailScreen() {
     };
   }, [isBook, isbn, titulo, autor, descripcion]);
   // Records list their songs (Discogs, via the proxy) in the room the deck can't use.
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracks] = useState<Track[] | undefined>(undefined); // undefined = loading
   const [allTracks, setAllTracks] = useState(false);
   const discogsId = product?.discogs_id;
   useEffect(() => {
-    if (!isVinyl || !discogsId) return;
+    if (!isVinyl || !discogsId) return setTracks([]);
     let active = true;
+    setTracks(undefined);
     getDiscogsTracklist(discogsId).then((list) => active && setTracks(list));
     return () => {
       active = false;
@@ -211,8 +212,17 @@ export default function ProductDetailScreen() {
           </>
         ) : null}
 
-        {tracks.length > 0 ? (
-          <View style={styles.tracks}>
+        {tracks === undefined ? (
+          <View style={styles.tracks} accessibilityLabel="Cargando canciones">
+            <Text style={styles.tracksTitle}>Canciones</Text>
+            {Array.from({ length: TRACKS_SHOWN }, (_, i) => (
+              <View key={i} style={styles.trackRow}>
+                <Skeleton height={12} width={`${88 - i * 9}%`} style={styles.trackSkeleton} />
+              </View>
+            ))}
+          </View>
+        ) : tracks.length > 0 ? (
+          <Animated.View entering={FadeIn.duration(260)} style={styles.tracks}>
             <Text style={styles.tracksTitle}>Canciones</Text>
             {(allTracks ? tracks : tracks.slice(0, TRACKS_SHOWN)).map((t, i) => (
               <View key={`${t.position}-${i}`} style={styles.trackRow}>
@@ -226,7 +236,7 @@ export default function ProductDetailScreen() {
                 <Text style={styles.more}>{allTracks ? 'Ver menos' : `Ver las ${tracks.length} canciones`}</Text>
               </Pressable>
             ) : null}
-          </View>
+          </Animated.View>
         ) : null}
       </Animated.ScrollView>
 
@@ -250,6 +260,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   tracks: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border },
   tracksTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: t.inkMuted, marginBottom: 6 },
   trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  trackSkeleton: { marginVertical: 3, marginLeft: 36 },
   trackPos: { width: 26, fontSize: 12, fontWeight: '700', color: t.inkMuted },
   trackTitle: { flex: 1, fontSize: 14, color: t.ink },
   trackTime: { fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
