@@ -77,6 +77,8 @@ function useDrift(list: React.RefObject<FlatList<Product> | null>) {
 
 interface SectionCarouselProps {
   title: string;
+  /** Tracked-caps line above the title, e.g. "01 — Libros". */
+  kicker?: string;
   subtitle?: string;
   products: Product[];
   isBestSeller?: boolean;
@@ -86,6 +88,7 @@ interface SectionCarouselProps {
 
 export const SectionCarousel = ({
   title,
+  kicker,
   subtitle,
   products,
   isBestSeller = false,
@@ -99,11 +102,12 @@ export const SectionCarousel = ({
     <View style={styles.section}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
+          {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
           <Animated.Text entering={FadeInDown.springify()} style={styles.title} accessibilityRole="header">{title}</Animated.Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {onSeeAll ? (
-          <Button label="Ver todo" accessibilityLabel={`Ver todo: ${title}`} variant="ghost" onPress={onSeeAll} />
+          <Button label="Ver todo" accessibilityLabel={`Ver todo: ${kicker ? `${kicker}, ` : ''}${title}`} variant="ghost" onPress={onSeeAll} />
         ) : null}
       </View>
 
@@ -147,7 +151,16 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginHorizontal: 8,
-    marginBottom: 10,
+    // Air between the heading and the cards: the title needs room to read as a heading.
+    marginBottom: 18,
+  },
+  kicker: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+    color: t.accent,
+    marginBottom: 6,
   },
   headerText: {
     flex: 1,
