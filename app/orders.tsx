@@ -143,9 +143,9 @@ export default function OrdersScreen() {
       <SafeAreaView style={styles.container}>
       <PatternBackground />
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle} accessibilityRole="header">Necesitas iniciar sesion</Text>
-          <Text style={styles.emptySubtitle}>Para ver tus ordenes</Text>
-          <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
+          <Text style={styles.emptyTitle} accessibilityRole="header">Inicia sesión</Text>
+          <Text style={styles.emptySubtitle}>para ver tus pedidos</Text>
+          <Button label="Iniciar sesión" onPress={() => router.push('/signin')} />
         </View>
       </SafeAreaView>
     );
@@ -158,10 +158,10 @@ export default function OrdersScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.title} accessibilityRole="header">Mis ordenes</Text>
-            <Text style={styles.subtitle}>
-              Total: {ordenes.length} orden{ordenes.length !== 1 ? 'es' : ''}
+            <Text style={styles.kicker}>
+              {ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}
             </Text>
+            <Text style={styles.title} accessibilityRole="header">Mis pedidos</Text>
           </View>
           <ProfileMenu />
         </View>
@@ -170,16 +170,16 @@ export default function OrdersScreen() {
       {loading ? (
         <SkeletonRegion style={styles.listContent}>
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} height={170} radius={12} style={styles.skeletonCard} />
+            <Skeleton key={i} height={170} radius={2} style={styles.skeletonCard} />
           ))}
         </SkeletonRegion>
       ) : ordenes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle} accessibilityRole="header">No tienes ordenes</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">Aún no tienes pedidos</Text>
           <Text style={styles.emptySubtitle}>
-            Realiza tu primera compra en el catalogo
+            Tu primera compra aparecerá aquí
           </Text>
-          <Button label="Ir al catalogo" onPress={() => router.push('/explore')} />
+          <Button label="Ir al catálogo" onPress={() => router.push('/explore')} />
         </View>
       ) : (
         <FlatList
@@ -195,16 +195,9 @@ export default function OrdersScreen() {
                     {new Date(item.fechaCreacion).toLocaleDateString('es-ES')}
                   </Text>
                 </View>
-                <View
-                  style={[
-                    styles.estadoBadge,
-                    { backgroundColor: getEstadoBadgeColor(item.estado) },
-                  ]}
-                >
-                  <Text style={styles.estadoText}>
-                    {getEstadoLabel(item.estado)}
-                  </Text>
-                </View>
+                <Text style={[styles.estadoText, { color: getEstadoBadgeColor(item.estado) }]}>
+                  {getEstadoLabel(item.estado)}
+                </Text>
               </View>
 
               {/* Items */}
@@ -233,7 +226,7 @@ export default function OrdersScreen() {
 
               {/* Total */}
               <View style={styles.totalSection}>
-                <Text style={styles.totalLabel}>Total de Orden:</Text>
+                <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalAmount}>
                   ${item.total.toFixed(2)}
                 </Text>
@@ -266,26 +259,22 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: t.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 8 },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -1,
+    fontWeight: '500',
     fontFamily: Fonts.serif,
     color: t.ink,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: t.inkMuted,
-    marginTop: 4,
   },
   centerContent: {
     flex: 1,
@@ -303,8 +292,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
     color: t.ink,
     marginBottom: 8,
   },
@@ -321,51 +311,35 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginHorizontal: 8,
     marginVertical: 8,
     backgroundColor: t.surface,
-    borderRadius: 12,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   ordenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'baseline',
+    marginBottom: 4,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.inkMuted,
   },
-  ordenId: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: t.ink,
-  },
+  ordenId: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.ink },
   ordenFecha: {
-    fontSize: 12,
+    fontSize: 13,
     color: t.inkMuted,
     marginTop: 4,
   },
-  estadoBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  estadoText: {
-    color: t.onAccent,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
+  estadoText: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase' },
   itemsContainer: {
     marginBottom: 12,
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: t.border,
   },
   itemInfo: {
@@ -373,12 +347,12 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginRight: 8,
   },
   itemTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: Fonts.serif,
     color: t.ink,
   },
   itemAutor: {
-    fontSize: 11,
+    fontSize: 13,
     color: t.inkMuted,
     marginTop: 2,
   },
@@ -391,26 +365,19 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 4,
   },
   itemPrice: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: t.accent,
+    fontSize: 15,
+    fontFamily: Fonts.serif,
+    color: t.ink,
   },
   totalSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: t.border,
+    alignItems: 'baseline',
   },
-  totalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: t.accent,
-  },
+  totalLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
   totalAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontFamily: Fonts.serif,
     color: t.accent,
   },
 });

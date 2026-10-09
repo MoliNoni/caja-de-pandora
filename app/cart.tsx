@@ -4,14 +4,14 @@
 // Checks user authentication
 // Processes orders
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  Platform,
+  Modal,
   ScrollView,
 } from 'react-native';
 import { successHaptic } from '../lib/haptics';
@@ -26,7 +26,7 @@ import { ClickSpark } from '../components/click-spark';
 import { Confetti } from '../components/confetti';
 import { showAlert, showConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 /** Short, human order number (the full id stays server-side). */
@@ -47,21 +47,10 @@ export default function CartScreen() {
     router.push('/');
   };
 
-  // Web: Escape closes the receipt (the checkout confirm is a native Modal and handles it itself).
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !purchaseReceipt) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeReceipt();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [purchaseReceipt]);
-
   // Handle checkout process
   const processCheckout = async () => {
     if (!user) {
-      showAlert('Inicia sesion', 'Necesitas estar autenticado para comprar');
+      showAlert('Inicia sesión', 'Necesitas estar autenticado para comprar');
       router.push('/signin');
       return;
     }
@@ -117,7 +106,9 @@ export default function CartScreen() {
           </View>
         </View>
       )}
-      {purchaseReceipt && (
+      {/* A Modal traps focus and maps Escape / Android back to onRequestClose (WCAG 2.4.3). */}
+      <Modal visible={purchaseReceipt !== null} transparent animationType="fade" onRequestClose={closeReceipt}>
+        {purchaseReceipt && (
         <View style={styles.receiptOverlay}>
           <View style={styles.receiptBackdrop} />
           <View
@@ -181,7 +172,7 @@ export default function CartScreen() {
 
             <View style={styles.receiptActions}>
               <Button
-                label="Ver mis ordenes"
+                label="Ver mis pedidos"
                 variant="outline"
                 style={styles.receiptButton}
                 onPress={() => {
@@ -197,8 +188,9 @@ export default function CartScreen() {
             </View>
           </View>
         </View>
-      )}
-      <Confetti play={purchaseReceipt !== null} />
+        )}
+        <Confetti play={purchaseReceipt !== null} />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -221,7 +213,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   loadingCard: {
     backgroundColor: t.surface,
-    borderRadius: 16,
+    borderRadius: 2,
     paddingHorizontal: 32,
     paddingVertical: 24,
     alignItems: 'center',
@@ -256,11 +248,11 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     maxWidth: 460,
     maxHeight: '88%',
     backgroundColor: t.surface,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: t.border,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
     overflow: 'hidden',
-    boxShadow: '0px 24px 60px rgba(15, 23, 42, 0.22)',
+    boxShadow: '0px 24px 60px rgba(0, 0, 0, 0.35)',
     elevation: 16,
   },
   receiptScroll: {
@@ -279,16 +271,19 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginLeft: 24,
   },
   receiptEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2.4,
     textTransform: 'uppercase',
     color: t.accent,
     marginBottom: 8,
   },
   receiptTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
     color: t.ink,
     marginBottom: 8,
   },
@@ -306,31 +301,29 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     marginBottom: 4,
   },
   receiptSection: {
-    backgroundColor: t.bg,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: t.border,
-    padding: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.inkMuted,
+    paddingTop: 16,
     marginBottom: 16,
   },
   lineRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   lineInfo: { flex: 1 },
-  lineTitle: { fontSize: 14, fontWeight: '700', color: t.ink },
+  lineTitle: { fontSize: 16, fontFamily: Fonts.serif, color: t.ink },
   lineMeta: { fontSize: 13, color: t.inkMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
-  lineAmount: { fontSize: 14, fontWeight: '700', color: t.ink, fontVariant: ['tabular-nums'] },
-  divider: { height: 1, backgroundColor: t.border, marginVertical: 8 },
+  lineAmount: { fontSize: 15, fontFamily: Fonts.serif, color: t.ink, fontVariant: ['tabular-nums'] },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: t.inkMuted, marginVertical: 8 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   sumLabel: { fontSize: 14, color: t.inkMuted },
   sumValue: { fontSize: 14, color: t.ink, fontVariant: ['tabular-nums'] },
-  totalLabel: { fontSize: 16, fontWeight: '800', color: t.ink },
-  totalValue: { fontSize: 16, fontWeight: '800', color: t.accent, fontVariant: ['tabular-nums'] },
+  totalLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.ink, alignSelf: 'center' },
+  totalValue: { fontSize: 22, fontFamily: Fonts.serif, color: t.accent, fontVariant: ['tabular-nums'] },
   receiptActions: {
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 24,
     paddingVertical: 18,
-    borderTopWidth: 1,
-    borderTopColor: t.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.inkMuted,
     backgroundColor: t.surface,
   },
   receiptButton: {

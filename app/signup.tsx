@@ -11,19 +11,34 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  TextInput,
   ScrollView,
+  type TextInputProps,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { DancingText } from '../components/dancing-text';
 import { AppHeader } from '../components/app-header';
 import { Button } from '../components/button';
+import { TextField } from '../components/text-field';
 import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
 import { useRouter } from 'expo-router';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
+
+type FormKey = 'nombre' | 'apellido' | 'email' | 'password' | 'confirmPassword' | 'telefono' | 'direccion' | 'ciudad' | 'codigoPostal';
+
+const FIELDS: ({ key: FormKey; label: string } & TextInputProps)[] = [
+  { key: 'nombre', label: 'Nombre *', placeholder: 'Tu nombre', autoComplete: 'given-name' },
+  { key: 'apellido', label: 'Apellido *', placeholder: 'Tu apellido', autoComplete: 'family-name' },
+  { key: 'email', label: 'Email *', placeholder: 'tu@email.com', keyboardType: 'email-address', autoCapitalize: 'none', autoComplete: 'email' },
+  { key: 'password', label: 'Contraseña *', placeholder: 'Mínimo 8 caracteres', secureTextEntry: true, autoComplete: 'new-password' },
+  { key: 'confirmPassword', label: 'Confirmar contraseña *', placeholder: 'Repite tu contraseña', secureTextEntry: true, autoComplete: 'new-password' },
+  { key: 'telefono', label: 'Teléfono', placeholder: 'Tu teléfono', keyboardType: 'phone-pad', autoComplete: 'tel' },
+  { key: 'direccion', label: 'Dirección', placeholder: 'Tu dirección', autoComplete: 'street-address' },
+  { key: 'ciudad', label: 'Ciudad', placeholder: 'Tu ciudad' },
+  { key: 'codigoPostal', label: 'Código postal', placeholder: 'Tu código postal', autoComplete: 'postal-code' },
+];
 
 // Sign up screen component
 export default function SignUpScreen() {
@@ -115,178 +130,27 @@ export default function SignUpScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
+          <Text style={styles.kicker}>Tu cuenta</Text>
           <DancingText text="Crea tu cuenta" style={styles.title} colors={theme.gradients.warm} />
         </View>
 
         {/* Form */}
         <Animated.View entering={FadeInDown.delay(450).springify().damping(14)} style={styles.form}>
-          {/* Nombre */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nombre *</Text>
-            <TextInput
-              accessibilityLabel="Nombre"
-              style={styles.input}
-              placeholder="Tu nombre"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.nombre}
-              onChangeText={(text) =>
-                setFormData({ ...formData, nombre: text })
-              }
+          {FIELDS.map(({ key, label, ...props }) => (
+            <TextField
+              key={key}
+              label={label}
+              value={formData[key]}
+              onChangeText={(text) => setFormData((prev) => ({ ...prev, [key]: text }))}
               editable={!loading}
+              error={errors[key]}
+              {...props}
             />
-            {errors.nombre && (
-              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.nombre}</Text>
-            )}
-          </View>
-
-          {/* Apellido */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Apellido *</Text>
-            <TextInput
-              accessibilityLabel="Apellido"
-              style={styles.input}
-              placeholder="Tu apellido"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.apellido}
-              onChangeText={(text) =>
-                setFormData({ ...formData, apellido: text })
-              }
-              editable={!loading}
-            />
-            {errors.apellido && (
-              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.apellido}</Text>
-            )}
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email *</Text>
-            <TextInput
-              accessibilityLabel="Email"
-              style={styles.input}
-              placeholder="tu@email.com"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.email}
-              onChangeText={(text) =>
-                setFormData({ ...formData, email: text })
-              }
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
-            {errors.email && (
-              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.email}</Text>
-            )}
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña *</Text>
-            <TextInput
-              accessibilityLabel="Contraseña"
-              style={styles.input}
-              placeholder="Contraseña"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.password}
-              onChangeText={(text) =>
-                setFormData({ ...formData, password: text })
-              }
-              secureTextEntry
-              editable={!loading}
-            />
-            {errors.password && (
-              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.password}</Text>
-            )}
-          </View>
-
-          {/* Confirm Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirmar Contraseña *</Text>
-            <TextInput
-              accessibilityLabel="Confirmar Contraseña"
-              style={styles.input}
-              placeholder="Confirma tu contraseña"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.confirmPassword}
-              onChangeText={(text) =>
-                setFormData({ ...formData, confirmPassword: text })
-              }
-              secureTextEntry
-              editable={!loading}
-            />
-            {errors.confirmPassword && (
-              <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.confirmPassword}</Text>
-            )}
-          </View>
-
-          {/* Teléfono */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Teléfono</Text>
-            <TextInput
-              accessibilityLabel="Teléfono"
-              style={styles.input}
-              placeholder="Tu teléfono"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.telefono}
-              onChangeText={(text) =>
-                setFormData({ ...formData, telefono: text })
-              }
-              keyboardType="phone-pad"
-              editable={!loading}
-            />
-          </View>
-
-          {/* Dirección */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Dirección</Text>
-            <TextInput
-              accessibilityLabel="Dirección"
-              style={styles.input}
-              placeholder="Tu dirección"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.direccion}
-              onChangeText={(text) =>
-                setFormData({ ...formData, direccion: text })
-              }
-              editable={!loading}
-            />
-          </View>
-
-          {/* Ciudad */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ciudad</Text>
-            <TextInput
-              accessibilityLabel="Ciudad"
-              style={styles.input}
-              placeholder="Tu ciudad"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.ciudad}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ciudad: text })
-              }
-              editable={!loading}
-            />
-          </View>
-
-          {/* Código Postal */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Código Postal</Text>
-            <TextInput
-              accessibilityLabel="Código Postal"
-              style={styles.input}
-              placeholder="Tu código postal"
-              placeholderTextColor={theme.inkMuted}
-              value={formData.codigoPostal}
-              onChangeText={(text) =>
-                setFormData({ ...formData, codigoPostal: text })
-              }
-              editable={!loading}
-            />
-          </View>
+          ))}
 
           {/* Sign Up Button */}
           <Button
-            label="Crear Cuenta"
+            label="Crear cuenta"
             fullWidth
             loading={loading || isSubmitting}
             onPress={handleSignUp}
@@ -295,7 +159,7 @@ export default function SignUpScreen() {
 
           {/* Sign In Link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
+            <Text style={styles.footerText}>¿Ya tienes cuenta?</Text>
             <TouchableOpacity
               onPress={() => router.push('/signin')}
               accessibilityRole="link"
@@ -321,13 +185,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  logo: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
-    color: t.inkMuted,
-    marginBottom: 12,
-  },
+  kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 12 },
   title: {
     fontSize: 48,
     lineHeight: 54,
@@ -336,37 +194,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontFamily: Fonts.serif,
   },
   form: {
-    margin: 16,
-    padding: 20,
-    borderRadius: 28,
-    backgroundColor: t.surface,
-    borderWidth: 1,
-    borderColor: t.border,
-    boxShadow: '0px 24px 60px rgba(26,16,51,0.14)',
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: t.ink,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: t.inkMuted,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: t.ink,
-    backgroundColor: t.surface,
-  },
-  error: {
-    color: t.danger,
-    fontSize: 12,
-    marginTop: 4,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 40,
+    paddingTop: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.inkMuted,
+    maxWidth: 440,
   },
   submit: {
     marginTop: 8,
@@ -374,15 +208,19 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    alignItems: 'baseline',
+    marginTop: 24,
   },
   footerText: {
     color: t.inkMuted,
     fontSize: 14,
+    marginRight: 6,
   },
   footerLink: {
     color: t.accent,
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
   },
 });

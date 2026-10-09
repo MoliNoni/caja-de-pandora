@@ -11,12 +11,12 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  TextInput,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { DancingText } from '../components/dancing-text';
 import { AppHeader } from '../components/app-header';
 import { Button } from '../components/button';
+import { TextField } from '../components/text-field';
 import { PatternBackground } from '../components/pattern-background';
 import { useAuth } from '../lib/auth-context';
 import { showAlert } from '../lib/dialog';
@@ -41,8 +41,8 @@ export default function SignInScreen() {
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
-      newErrors.email = 'Email invalido';
-    if (!password) newErrors.password = 'La contrasena es requerida';
+      newErrors.email = 'Email inválido';
+    if (!password) newErrors.password = 'La contraseña es requerida';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -66,7 +66,7 @@ export default function SignInScreen() {
 
       await signIn(email, password);
     } catch (error: any) {
-      const message = error.message || 'No se pudo iniciar sesion';
+      const message = error.message || 'No se pudo iniciar sesión';
       
       if (message.includes('429') || message.includes('Too Many Requests')) {
         showAlert('Demasiadas peticiones', 'Espera un momento antes de intentar de nuevo.');
@@ -75,7 +75,7 @@ export default function SignInScreen() {
       } else if (error?.code === 'email_not_confirmed') {
         showAlert('Confirma tu correo', 'Revisa tu bandeja de entrada y abre el enlace de confirmación.');
       } else {
-        showAlert('Error de autenticacion', message);
+        showAlert('Error de autenticación', message);
       }
     } finally {
       setIsSubmitting(false);
@@ -88,51 +88,38 @@ export default function SignInScreen() {
       <AppHeader back actions={false} />
       {/* Header */}
       <View style={styles.header}>
+        <Text style={styles.kicker}>Tu cuenta</Text>
         <DancingText text="Hola de nuevo" style={styles.title} colors={theme.gradients.warm} />
       </View>
 
       {/* Form */}
       <Animated.View entering={FadeInDown.delay(450).springify().damping(14)} style={styles.form}>
-        {/* Email */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            accessibilityLabel="Email"
-            placeholder="tu@email.com"
-            placeholderTextColor={theme.inkMuted}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!loading}
-          />
-          {errors.email && (
-            <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.email}</Text>
-          )}
-        </View>
-
-        {/* Password */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Contrasena</Text>
-          <TextInput
-            style={styles.input}
-            accessibilityLabel="Contrasena"
-            placeholder="Tu contrasena"
-            placeholderTextColor={theme.inkMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-          />
-          {errors.password && (
-            <Text style={styles.error} accessibilityLiveRegion="polite" aria-live="polite">{errors.password}</Text>
-          )}
-        </View>
+        <TextField
+          label="Email"
+          placeholder="tu@email.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          editable={!loading}
+          error={errors.email}
+        />
+        <TextField
+          label="Contraseña"
+          placeholder="Tu contraseña"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+          editable={!loading}
+          error={errors.password}
+          onSubmitEditing={handleSignIn}
+        />
 
         {/* Sign In Button */}
         <Button
-          label="Iniciar sesion"
+          label="Iniciar sesión"
           fullWidth
           loading={loading || isSubmitting}
           onPress={handleSignIn}
@@ -144,7 +131,7 @@ export default function SignInScreen() {
 
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>No tienes cuenta?</Text>
+          <Text style={styles.signUpText}>¿No tienes cuenta?</Text>
           <TouchableOpacity
             onPress={() => router.push('/signup')}
             accessibilityRole="link"
@@ -177,13 +164,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  logo: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
-    color: t.inkMuted,
-    marginBottom: 12,
-  },
+  kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 12 },
   title: {
     fontSize: 48,
     lineHeight: 54,
@@ -192,59 +173,38 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     fontFamily: Fonts.serif,
   },
   form: {
-    margin: 16,
-    padding: 20,
-    borderRadius: 28,
-    backgroundColor: t.surface,
-    borderWidth: 1,
-    borderColor: t.border,
-    boxShadow: '0px 24px 60px rgba(26,16,51,0.14)',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: t.ink,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: t.inkMuted,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: t.ink,
-    backgroundColor: t.surface,
-  },
-  error: {
-    color: t.danger,
-    fontSize: 12,
-    marginTop: 4,
+    marginHorizontal: 20,
+    marginTop: 16,
+    paddingTop: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.inkMuted,
+    maxWidth: 440,
   },
   submit: {
     marginTop: 8,
   },
   divider: {
-    height: 1,
-    backgroundColor: t.border,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: t.inkMuted,
+    opacity: 0.5,
     marginVertical: 24,
   },
   signUpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'baseline',
     marginBottom: 16,
   },
   signUpText: {
     color: t.inkMuted,
     fontSize: 14,
-    marginRight: 4,
+    marginRight: 6,
   },
   signUpLink: {
     color: t.accent,
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
   },
 });

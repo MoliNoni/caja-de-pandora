@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -32,7 +31,8 @@ import { PatternBackground } from '../components/pattern-background';
 import { Skeleton, SkeletonRegion } from '../components/skeleton';
 import { ToggleGroup } from '../components/toggle-group';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import type { Theme } from '../constants/theme';
+import { Fonts, type Theme } from '../constants/theme';
+import { TextField } from '../components/text-field';
 
 type ProductFormState = {
   titulo: string;
@@ -441,7 +441,7 @@ export default function AdminScreen() {
           </View>
           <View style={styles.categoryGroup}>
             <View style={styles.labelRow}>
-              <Text style={styles.label}>Categoria</Text>
+              <Text style={styles.label}>Categoría</Text>
               {loadingCategorias && <ActivityIndicator size="small" color={theme.accent} />}
             </View>
             {categoriasDisponibles.length > 0 && (
@@ -529,35 +529,7 @@ type InputProps = {
   onChangeText: (text: string) => void;
 };
 
-const Input = ({
-  label,
-  value,
-  error,
-  multiline = false,
-  keyboardType = 'default',
-  autoCapitalize = 'sentences',
-  onChangeText,
-}: InputProps) => {
-  const theme = useTheme();
-  const styles = useThemedStyles(makeStyles);
-
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        style={[styles.input, multiline && styles.textArea, error && styles.inputError]}
-        value={value}
-        onChangeText={onChangeText}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        placeholderTextColor={theme.inkMuted}
-      />
-      {error ? <Text style={styles.errorText} accessibilityLiveRegion="polite" aria-live="polite">{error}</Text> : null}
-    </View>
-  );
-};
+const Input = (props: InputProps) => <TextField {...props} containerStyle={{ flex: 1, marginBottom: 0 }} />;
 
 const makeStyles = (t: Theme) => StyleSheet.create({
   lookupMiss: { fontSize: 13, color: t.danger, marginTop: -4 },
@@ -565,12 +537,12 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.border,
     backgroundColor: t.surface,
   },
-  lookupCover: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.bg },
+  lookupCover: { width: 56, height: 56, borderRadius: 2, backgroundColor: t.bg },
   lookupChecks: { flex: 1, gap: 6, justifyContent: 'center' },
   lookupRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
   lookupText: { flex: 1, fontSize: 13, lineHeight: 18, color: t.ink },
@@ -587,24 +559,26 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: t.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: t.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.inkMuted,
   },
   iconButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: t.border,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
   },
   headerCopy: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
+    letterSpacing: -0.4,
     color: t.ink,
   },
   subtitle: {
@@ -624,12 +598,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   inputGroup: {
     flex: 1,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: t.ink,
-    marginBottom: 6,
-  },
+  label: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -647,10 +616,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   categoryChip: {
     minHeight: 44,
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.inkMuted,
     backgroundColor: t.surface,
-    borderRadius: 8,
+    borderRadius: 2,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
@@ -660,34 +629,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   categoryChipText: {
     color: t.ink,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
   activeCategoryChipText: {
     color: t.onAccent,
-  },
-  input: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderColor: t.inkMuted,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: t.surface,
-    color: t.ink,
-    fontSize: 14,
-  },
-  textArea: {
-    minHeight: 96,
-    textAlignVertical: 'top',
-  },
-  inputError: {
-    borderColor: t.danger,
-  },
-  errorText: {
-    color: t.danger,
-    fontSize: 12,
-    marginTop: 4,
   },
   centerContent: {
     flex: 1,
@@ -696,8 +644,9 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     padding: 24,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '500',
+    fontFamily: Fonts.serif,
     color: t.ink,
     marginBottom: 8,
   },
