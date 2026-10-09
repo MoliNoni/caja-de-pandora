@@ -4,7 +4,7 @@
 // Handles adding to cart
 // Shows best-seller badges
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,11 @@ import {
   StyleSheet,
   Pressable,
   Platform,
+  Modal,
   type GestureResponderEvent,
   type ViewStyle,
 } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Button } from './button';
@@ -27,6 +28,7 @@ import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-imag
 import { getBookSynopsis } from '../lib/book-info';
 import { getDiscogsTracklist } from '../lib/discogs';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
+import { tapHaptic } from '../lib/haptics';
 import { Fonts, type Theme } from '../constants/theme';
 
 
@@ -89,6 +91,17 @@ export const ProductCard = ({
           tiltY.value = withSpring(((e.nativeEvent.clientY - r.top) / r.height) * 2 - 1, spring);
         }
       : undefined;
+  // Touch (native): the card tilts toward the finger while pressed, springs back on release.
+  const imageSize = useRef({ w: 1, h: 1 });
+  const pressTilt =
+    Platform.OS !== 'web' && !reducedMotion
+      ? (e: GestureResponderEvent) => {
+          lift.value = withSpring(1, spring);
+          tiltX.value = withSpring((e.nativeEvent.locationX / imageSize.current.w) * 2 - 1, spring);
+          tiltY.value = withSpring((e.nativeEvent.locationY / imageSize.current.h) * 2 - 1, spring);
+        }
+      : undefined;
+  const [peek, setPeek] = useState(false);
   const { addItem } = useCart();
   const theme = useTheme();
   const burst = useBurst();
@@ -148,14 +161,29 @@ export const ProductCard = ({
         onPointerMove={tilt}
       >
       <TouchableOpacity
-        onPressIn={prefetch}
+        onLayout={(e) => {
+          imageSize.current = { w: e.nativeEvent.layout.width || 1, h: e.nativeEvent.layout.height || 1 };
+        }}
+        onPressIn={(e) => {
+          prefetch();
+          pressTilt?.(e);
+        }}
+        onPressOut={pressTilt ? () => hover(false) : undefined}
         onPress={(e) => {
           burst(e, burstColors, 'md');
           openDetail();
         }}
+        onLongPress={() => {
+          tapHaptic();
+          setPeek(true);
+        }}
+        delayLongPress={350}
         style={styles.imageContainer}
         accessibilityRole="link"
         accessibilityLabel={`Ver detalle de ${product.titulo}`}
+        accessibilityHint="Mantén presionado para una vista rápida"
+        accessibilityActions={[{ name: 'longpress', label: 'Vista rápida' }]}
+        onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setPeek(true)}
       >
         {imageUri ? (
           // Fades over the neutral block instead of popping in; kept on disk across reloads.
@@ -214,6 +242,49 @@ export const ProductCard = ({
       </View>
       </Pressable>
       {tilt && <Animated.View pointerEvents="none" style={[styles.glare, glareStyle]} />}
+      <Modal visible={peek} transparent animationType="fade" onRequestClose={() => setPeek(false)}>
+        <Pressable style={styles.peekBackdrop} onPress={() => setPeek(false)} accessibilityLabel="Cerrar vista rápida" accessibilityRole="button">
+          {/* Inner Pressable swallows taps so only the backdrop closes. */}
+          <Pressable onPress={() => {}} accessible={false} style={styles.peekCardSlot}>
+            <Animated.View entering={reducedMotion ? undefined : ZoomIn.springify().damping(16)} style={styles.peekCard} role="dialog" aria-label={`Vista rápida: ${product.titulo}`}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={[styles.peekImage, product.category === 'book' && styles.peekBook]} contentFit="cover" cachePolicy="memory-disk" />
+              ) : (
+                <View style={[styles.peekImage, product.category === 'book' && styles.peekBook, styles.placeholderImage]} />
+              )}
+              <View style={styles.peekBody}>
+                <Text style={styles.peekKicker}>{product.genero || (product.category === 'vinyl' ? 'Vinilo' : 'Libro')}</Text>
+                <Text style={styles.peekTitle} numberOfLines={2}>{product.titulo}</Text>
+                {product.autor ? <Text style={styles.autor}>{product.autor}</Text> : null}
+                <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
+                <View style={styles.peekActions}>
+                  <Button
+                    label={product.stock > 0 ? 'Agregar' : 'Agotado'}
+                    accessibilityLabel={product.stock > 0 ? `Agregar ${product.titulo} al carrito` : `${product.titulo}, agotado`}
+                    size="sm"
+                    disabled={product.stock <= 0}
+                    style={styles.peekButton}
+                    onPress={(e) => {
+                      handleAddToCart(e);
+                      setPeek(false);
+                    }}
+                  />
+                  <Button
+                    label="Ver detalle"
+                    variant="outline"
+                    size="sm"
+                    style={styles.peekButton}
+                    onPress={() => {
+                      setPeek(false);
+                      openDetail();
+                    }}
+                  />
+                </View>
+              </View>
+            </Animated.View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Animated.View>
   );
 };
@@ -337,4 +408,21 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   addButton: {
     marginTop: 8,
   },
+  peekBackdrop: { flex: 1, backgroundColor: t.scrim, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  peekCardSlot: { width: '100%', maxWidth: 320 },
+  peekCard: {
+    backgroundColor: t.surface,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
+    overflow: 'hidden',
+    boxShadow: '0px 24px 60px rgba(0,0,0,0.45)',
+  },
+  peekImage: { width: '100%', aspectRatio: 1 },
+  peekBook: { aspectRatio: 3 / 4 },
+  peekBody: { padding: 16, gap: 4 },
+  peekKicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent },
+  peekTitle: { fontSize: 22, lineHeight: 28, fontWeight: '500', fontFamily: Fonts.serif, color: t.ink },
+  peekActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  peekButton: { flex: 1 },
 });
