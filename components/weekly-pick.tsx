@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -20,7 +20,8 @@ import Svg, { Circle } from 'react-native-svg';
 import { Fonts, type Theme } from '../constants/theme';
 import { isFocused } from '../hooks/focus';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
-import { productCache, type Product } from '../lib/database';
+import { useCart } from '../lib/cart-context';
+import { getProductoById, productCache, type Product } from '../lib/database';
 import { showAlert } from '../lib/dialog';
 import { usePlayer } from '../lib/player-context';
 import { DancingText } from './dancing-text';
@@ -32,13 +33,12 @@ const DISC = 156;
 const BOOK_W = 112;
 const DISC_OUT = 74; // how far the record slides out of its sleeve
 const TURN_MS = 1800; // 33⅓ rpm
-const BUNDLE_OFF = 0.1; // the pair together
 // Foil-stamp gold: deep, bright, deep. The glint runs to near-white across the letters.
 const GOLD = ['#B8893A', '#F3D98B', '#C99A45'];
 const GOLD_GLINT = '#FFF4D6';
 const money = (n: number) => `$${n.toFixed(2)}`;
 
-/** Same pick for everyone during a calendar week; rotates on its own, no admin step needed. */
+/** Fallback while `weekly_pick` (migration 005) is not applied: same idea, but only the server pair carries the discount. */
 const pickOfTheWeek = (products: Product[]) => {
   const pool = [...new Map(products.filter((p) => p.imageUrl).map((p) => [p.id, p])).values()];
   pool.sort((a, b) => a.id.localeCompare(b.id));
@@ -86,8 +86,22 @@ export function WeeklyPick({ books, vinyls }: Props) {
   const player = usePlayer();
   const reducedMotion = useReducedMotion();
   const wide = useWindowDimensions().width >= 720;
-  const book = useMemo(() => pickOfTheWeek(books), [books]);
-  const record = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
+  // The server decides the pair (and charges the bundle); a local pick without the offer until it answers.
+  const { weeklyPick } = useCart();
+  const [serverPair, setServerPair] = useState<[Product, Product] | null>(null);
+  useEffect(() => {
+    if (!weeklyPick) return;
+    const find = (id: string, list: Product[]) => list.find((p) => p.id === id) ?? getProductoById(id);
+    Promise.all([find(weeklyPick.bookId, books), find(weeklyPick.vinylId, vinyls)])
+      .then(([b, v]) => setServerPair([b, v]))
+      .catch(() => setServerPair(null));
+  }, [weeklyPick, books, vinyls]);
+  const localBook = useMemo(() => pickOfTheWeek(books), [books]);
+  const localRecord = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
+  const [book, record] = serverPair ?? [localBook, localRecord];
+  const off = serverPair && weeklyPick ? weeklyPick.discount : 0;
+  const pairPrice = (book?.precio ?? 0) + (record?.precio ?? 0);
+  const bundlePrice = pairPrice - Math.round(pairPrice * off * 100) / 100;
 
   const trackId = record ? `record:${record.id}` : '';
   const resolve = useCallback(() => getRecordPreviewUrl(record?.autor, record?.titulo ?? ''), [record?.autor, record?.titulo]);
@@ -155,12 +169,14 @@ export function WeeklyPick({ books, vinyls }: Props) {
           Lee <Text style={styles.em} onPress={() => open(book)}>{book.titulo}</Text> mientras suena{' '}
           <Text style={styles.em} onPress={() => open(record)}>{record.titulo}</Text>.
         </Text>
-        <View style={styles.bundle} accessible accessibilityLabel={`Los dos juntos con 10% de descuento: ${money((book.precio + record.precio) * (1 - BUNDLE_OFF))}, antes ${money(book.precio + record.precio)}`}>
-          <Text style={styles.bundleLabel}>Los dos juntos</Text>
-          <DancingText text="10% OFF" style={styles.gold} colors={GOLD} glint={GOLD_GLINT} wave={false} delay={700} />
-          <Text style={styles.bundleWas}>{money(book.precio + record.precio)}</Text>
-          <Text style={styles.bundleNow}>{money((book.precio + record.precio) * (1 - BUNDLE_OFF))}</Text>
-        </View>
+        {off > 0 && (
+          <View style={styles.bundle} accessible accessibilityLabel={`Los dos juntos con ${Math.round(off * 100)}% de descuento: ${money(bundlePrice)}, antes ${money(pairPrice)}`}>
+            <Text style={styles.bundleLabel}>Los dos juntos</Text>
+            <DancingText text={`${Math.round(off * 100)}% OFF`} style={styles.gold} colors={GOLD} glint={GOLD_GLINT} wave={false} delay={700} />
+            <Text style={styles.bundleWas}>{money(pairPrice)}</Text>
+            <Text style={styles.bundleNow}>{money(bundlePrice)}</Text>
+          </View>
+        )}
         <Pressable
           onPress={listen}
           accessibilityRole="button"

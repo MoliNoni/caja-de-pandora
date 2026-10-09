@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Product } from './database';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { bundleDiscount, getWeeklyPick, Product, type WeeklyPick } from './database';
 import { resolveProductImageUrl } from './product-image';
 
 export interface CartItem {
@@ -16,7 +16,11 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
+  subtotal: number;
+  /** Weekly pick bundle discount; `place_order` recomputes it. */
+  discount: number;
   total: number;
+  weeklyPick: WeeklyPick | null;
   addItem: (product: Product, quantity: number) => Promise<void>;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -28,6 +32,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [weeklyPick, setWeeklyPick] = useState<WeeklyPick | null>(null);
+  useEffect(() => {
+    getWeeklyPick().then(setWeeklyPick);
+  }, []);
 
   const addItem = useCallback(async (product: Product, quantity: number) => {
     const imageUrl = (await resolveProductImageUrl(product)) ?? product.imageUrl;
@@ -81,14 +89,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setItems([]);
   }, []);
 
-  const total = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  const discount = bundleDiscount(items, weeklyPick);
+  const total = subtotal - discount;
   const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
   return (
     <CartContext.Provider
       value={{
         items,
+        subtotal,
+        discount,
         total,
+        weeklyPick,
         addItem,
         removeItem,
         updateQuantity,

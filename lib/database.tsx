@@ -324,6 +324,23 @@ export const getHomeData = async (): Promise<HomeData> => {
   return { books, vinyls, newBooks, newVinyls };
 };
 
+export type WeeklyPick = { bookId: string; vinylId: string; discount: number };
+
+/** This week's book + record pair, decided by the server (`weekly_pick`, migration 005). Null until it is applied. */
+export const getWeeklyPick = async (): Promise<WeeklyPick | null> => {
+  const { data, error } = await supabase.rpc('weekly_pick');
+  if (error || !data?.book_id || !data?.vinyl_id) return null;
+  return { bookId: data.book_id, vinylId: data.vinyl_id, discount: Number(data.discount) };
+};
+
+/** Mirrors `place_order`: the discount applies once per complete book + record pair. The server stays the authority. */
+export const bundleDiscount = (items: { id: string; precio: number; cantidad: number }[], pick: WeeklyPick | null) => {
+  const book = pick && items.find((i) => i.id === pick.bookId);
+  const record = pick && items.find((i) => i.id === pick.vinylId);
+  if (!pick || !book || !record) return 0;
+  return (Math.round((book.precio + record.precio) * pick.discount * 100) / 100) * Math.min(book.cantidad, record.cantidad);
+};
+
 /** Warm every tab (data + first covers) at app start, so no tab opens on a blank frame. */
 export const prefetchScreens = async () => {
   const [home, book, vinyl] = await Promise.all([getHomeData(), getProductos('book'), getProductos('vinyl')]);
@@ -516,6 +533,8 @@ interface PlaceOrderResult {
   id: string;
   cliente_id: string;
   fecha: string;
+  subtotal?: number; // since migration 005
+  descuento?: number;
   total: number;
   detalles: {
     id: string;
@@ -544,9 +563,9 @@ export const procesarCompra = async (
       id: order.id,
       idCliente: order.cliente_id,
       fecha: order.fecha || new Date().toISOString(),
-      subtotal: Number(order.total),
+      subtotal: Number(order.subtotal ?? order.total),
       total: Number(order.total),
-      descuentoTotal: 0,
+      descuentoTotal: Number(order.descuento ?? 0),
     };
 
     const detalles: PurchaseReceiptDetail[] = order.detalles.map((d) => ({

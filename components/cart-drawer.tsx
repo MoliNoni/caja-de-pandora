@@ -36,7 +36,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
   const theme = useTheme();
   const burst = useBurst();
   const styles = useThemedStyles(makeStyles);
-  const { items, total, removeItem, updateQuantity, clearCart, itemCount } =
+  const { items, total, discount, removeItem, updateQuantity, clearCart, itemCount } =
     useCart();
 
   // Handle checkout process
@@ -164,6 +164,12 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
             scrollEnabled
           />
 
+          {discount > 0 && (
+            <View style={styles.discountRow}>
+              <Text style={styles.totalLabel}>Selección de la semana · 10% OFF</Text>
+              <RollingNumber text={`−$${discount.toFixed(2)}`} style={styles.discountAmount} />
+            </View>
+          )}
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>Total</Text>
             <RollingNumber text={`$${total.toFixed(2)}`} style={styles.totalAmount} />
@@ -344,6 +350,14 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
   },
+  discountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  discountAmount: { fontSize: 14, color: t.ink },
   totalLabel: {
     fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase',
     color: t.inkMuted,
