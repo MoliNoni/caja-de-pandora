@@ -48,6 +48,31 @@ type CatalogScreenProps = {
 const GAP = 12;
 // Header bar height (AppHeader: 40px buttons + 10px padding). The list scrolls under it.
 const HEADER = 60;
+type Row =
+  | { type: 'genre'; key: string; genre: string; count: number }
+  | { type: 'cards'; key: string; products: Product[]; start: number };
+
+/** One section per genre (biggest first, untagged last), each chunked into grid rows; one virtualized list. */
+const genreRows = (products: Product[], columns: number): Row[] => {
+  const groups = new Map<string, Product[]>();
+  for (const p of products) {
+    const genre = p.genero.trim() || 'Otros';
+    groups.set(genre, [...(groups.get(genre) ?? []), p]);
+  }
+  const sorted = [...groups].sort(([a, x], [b, y]) =>
+    (a === 'Otros' ? 1 : 0) - (b === 'Otros' ? 1 : 0) || y.length - x.length || a.localeCompare(b, 'es'));
+  const rows: Row[] = [];
+  let index = 0;
+  for (const [genre, items] of sorted) {
+    rows.push({ type: 'genre', key: `g:${genre}`, genre, count: items.length });
+    for (let i = 0; i < items.length; i += columns) {
+      rows.push({ type: 'cards', key: `c:${genre}:${i}`, products: items.slice(i, i + columns), start: index + i });
+    }
+    index += items.length;
+  }
+  return rows;
+};
+
 // Relay, never both at once: the large title leaves over OUT px of scroll, then the compact one enters over IN.
 const OUT: [number, number] = [0, 30];
 const IN: [number, number] = [26, 56];
@@ -149,6 +174,7 @@ export const CatalogScreen = ({
     () => filterProducts(productos, searchQuery),
     [filterProducts, productos, searchQuery]
   );
+  const rows = useMemo(() => genreRows(filteredProductos, columns), [filteredProductos, columns]);
 
   useFocusEffect(
     useCallback(() => {
@@ -213,12 +239,23 @@ export const CatalogScreen = ({
               key={`${visit}-${columns}`}
               onScroll={onScroll}
               scrollEventThrottle={16}
-              data={filteredProductos}
-              numColumns={columns}
+              data={rows}
               onContentSizeChange={(w) => w !== listWidth && setListWidth(w)}
-              columnWrapperStyle={styles.columnWrapper}
-              renderItem={({ item, index }) => <ProductCard product={item} index={index} width={cardWidth} />}
-              keyExtractor={(item) => item.id}
+              renderItem={({ item }) =>
+                item.type === 'genre' ? (
+                  <View style={styles.genreHeader}>
+                    <Text style={styles.genreTitle} accessibilityRole="header">{item.genre}</Text>
+                    <Text style={styles.genreCount}>{item.count}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.columnWrapper}>
+                    {item.products.map((product, i) => (
+                      <ProductCard key={product.id} product={product} index={item.start + i} width={cardWidth} />
+                    ))}
+                  </View>
+                )
+              }
+              keyExtractor={(item) => item.key}
               ListHeaderComponent={
                 <>
                   {top}
@@ -353,9 +390,23 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingBottom: 92,
   },
   columnWrapper: {
+    flexDirection: 'row',
     gap: GAP,
     paddingHorizontal: 8,
   },
+  genreHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginHorizontal: 8,
+    marginTop: 12,
+    marginBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.inkMuted,
+  },
+  genreTitle: { fontSize: 22, fontWeight: '500', fontFamily: Fonts.serif, letterSpacing: -0.4, color: t.ink, textTransform: 'capitalize' },
+  genreCount: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, color: t.inkMuted },
   resultCount: {
     fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase',
     color: t.inkMuted,
