@@ -7,13 +7,13 @@
 
 import { Image } from 'react-native';
 import type { WeeklyPick } from './bundle';
-export type { WeeklyPick } from './bundle';
-export { bundleDiscount } from './bundle';
 import { supabase } from './supabase';
 import { writeCache } from './cache';
 import { getOpenLibraryCoverUrl } from './openlibrary';
 import { getDiscogsCoverUrl } from './discogs';
 import { sendOrderConfirmationEmail } from './email';
+export type { WeeklyPick } from './bundle';
+export { bundleDiscount } from './bundle';
 
 export type ProductCategory = 'book' | 'vinyl';
 export type UserRole = 'cliente' | 'admin';
