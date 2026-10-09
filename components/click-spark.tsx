@@ -5,6 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import { useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
+// Rays reach 27 px (22 + half the 10 px ray): the receipt anchor sits ~31 px under the scroll's clipping edge.
 const RAYS = Array.from({ length: 8 }, (_, i) => i * 45);
 
 function Ray({ angle, play }: { angle: number; play: boolean }) {
@@ -15,7 +16,7 @@ function Ray({ angle, play }: { angle: number; play: boolean }) {
   }, [play, progress]);
   const style = useAnimatedStyle(() => ({
     opacity: play ? 1 - progress.value : 0,
-    transform: [{ rotate: `${angle}deg` }, { translateY: -(15 + 15 * progress.value) }] as const,
+    transform: [{ rotate: `${angle}deg` }, { translateY: -(12 + 10 * progress.value) }] as const,
   }));
   return <Animated.View style={[styles.ray, style]} />;
 }

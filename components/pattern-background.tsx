@@ -18,9 +18,15 @@ import { useAudioLevel } from '../lib/player-context';
 const forcedQuery =
   Platform.OS === 'web' && typeof window !== 'undefined' ? window.matchMedia?.('(forced-colors: active)') : undefined;
 
+// Safari < 14 only has the deprecated addListener/removeListener on MediaQueryList.
 const subscribe = (onChange: () => void) => {
-  forcedQuery?.addEventListener?.('change', onChange);
-  return () => forcedQuery?.removeEventListener?.('change', onChange);
+  if (!forcedQuery) return () => {};
+  if (forcedQuery.addEventListener) {
+    forcedQuery.addEventListener('change', onChange);
+    return () => forcedQuery.removeEventListener('change', onChange);
+  }
+  forcedQuery.addListener(onChange);
+  return () => forcedQuery.removeListener(onChange);
 };
 const getForcedColors = () => forcedQuery?.matches ?? false;
 
