@@ -23,6 +23,8 @@ interface CartContextType {
   weeklyPick: WeeklyPick | null;
   addItem: (product: Product, quantity: number) => Promise<void>;
   removeItem: (productId: string) => void;
+  /** Undo for a removal: puts the item back where it was. */
+  restoreItem: (item: CartItem, index: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   itemCount: number;
@@ -75,6 +77,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== productId));
   }, []);
 
+  const restoreItem = useCallback((item: CartItem, index: number) => {
+    setItems((prevItems) =>
+      prevItems.some((i) => i.id === item.id)
+        ? prevItems
+        : [...prevItems.slice(0, index), item, ...prevItems.slice(index)]
+    );
+  }, []);
+
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     setItems((prevItems) =>
       prevItems.map((item) =>
@@ -104,6 +114,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         weeklyPick,
         addItem,
         removeItem,
+        restoreItem,
         updateQuantity,
         clearCart,
         itemCount,

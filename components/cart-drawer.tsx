@@ -3,7 +3,8 @@
 // Displays cart items with quantity controls
 // Handles cart management and checkout
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import {
   View,
   Text,
@@ -14,16 +15,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RollingNumber } from './rolling-number';
-import Animated, { FadeInRight, FadeOutLeft, LinearTransition, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInRight, FadeOutDown, FadeOutLeft, LinearTransition, ZoomIn } from 'react-native-reanimated';
 import { DancingText } from './dancing-text';
 import { useBurst } from './pixel-burst';
 import { Button } from './button';
-import { useCart } from '../lib/cart-context';
+import { useCart, type CartItem } from '../lib/cart-context';
+import { tapHaptic } from '../lib/haptics';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
 const QTY_HIT_SLOP = { top: 10, bottom: 10, left: 6, right: 6 };
+const UNDO_MS = 5000;
 
 interface CartDrawerProps {
   onCheckout?: () => void;
@@ -36,8 +39,21 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
   const theme = useTheme();
   const burst = useBurst();
   const styles = useThemedStyles(makeStyles);
-  const { items, total, discount, removeItem, updateQuantity, clearCart, itemCount } =
+  const { items, total, discount, removeItem, restoreItem, updateQuantity, clearCart, itemCount } =
     useCart();
+
+  // Last removal, offered back for a few seconds ("Deshacer").
+  const [removed, setRemoved] = useState<{ item: CartItem; index: number } | null>(null);
+  useEffect(() => {
+    if (!removed) return;
+    const timer = setTimeout(() => setRemoved(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [removed]);
+  const removeWithUndo = (item: CartItem) => {
+    tapHaptic();
+    setRemoved({ item, index: items.findIndex((i) => i.id === item.id) });
+    removeItem(item.id);
+  };
 
   // Handle checkout process
   const handleCheckout = () => {
@@ -89,8 +105,20 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
               <Animated.View
                 entering={FadeInRight.delay(Math.min(index, 6) * 70).springify().damping(14)}
                 exiting={FadeOutLeft.duration(220)}
-                style={styles.cartItem}
               >
+               <ReanimatedSwipeable
+                friction={1.6}
+                rightThreshold={72}
+                overshootRight={false}
+                enabled={!loading}
+                onSwipeableWillOpen={() => removeWithUndo(item)}
+                renderRightActions={() => (
+                  <View style={styles.swipeAction}>
+                    <Text style={styles.swipeActionText}>Eliminar</Text>
+                  </View>
+                )}
+               >
+               <View style={styles.cartItem}>
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                 ) : (
@@ -146,7 +174,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                   <TouchableOpacity
                     onPress={(e) => {
                       burst(e, theme.gradients.warm, 'sm');
-                      removeItem(item.id);
+                      removeWithUndo(item);
                     }}
                     disabled={loading}
                     style={styles.deleteButton}
@@ -158,12 +186,30 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                     <Text style={styles.deleteButtonText}>Eliminar</Text>
                   </TouchableOpacity>
                 </View>
+               </View>
+               </ReanimatedSwipeable>
               </Animated.View>
             )}
             contentContainerStyle={styles.listContent}
             scrollEnabled
           />
 
+          {removed && (
+            <Animated.View entering={FadeInDown.duration(200)} exiting={FadeOutDown.duration(160)} style={styles.undoBar} accessibilityLiveRegion="polite" aria-live="polite">
+              <Text style={styles.undoText} numberOfLines={1}>Quitaste «{removed.item.titulo}»</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  restoreItem(removed.item, removed.index);
+                  setRemoved(null);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Deshacer: volver a agregar ${removed.item.titulo}`}
+                hitSlop={10}
+              >
+                <Text style={styles.undoAction}>Deshacer</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
           {discount > 0 && (
             <View style={styles.discountRow}>
               <Text style={styles.totalLabel}>Selección de la semana · 10% OFF</Text>
@@ -257,6 +303,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   cartItem: {
     flexDirection: 'row',
+    // Opaque so the swipe action stays hidden until the row slides.
+    backgroundColor: t.bg,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: t.border,
@@ -347,6 +395,31 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
   },
+  swipeAction: {
+    flex: 1,
+    minWidth: 120,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    backgroundColor: t.danger,
+  },
+  swipeActionText: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: '#fff' },
+  undoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.inkMuted,
+    backgroundColor: t.surface,
+  },
+  undoText: { flex: 1, fontSize: 14, color: t.ink },
+  undoAction: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent },
   discountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
