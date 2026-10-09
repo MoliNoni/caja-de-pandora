@@ -280,7 +280,7 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   compactTitle: { position: 'absolute', left: 16, top: 0, bottom: 0, justifyContent: 'center' },
   compactTitleText: { fontSize: 20, lineHeight: 24, fontWeight: '500', fontFamily: Fonts.serif, letterSpacing: -0.4, color: t.ink },
-  titleRow: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, alignSelf: 'flex-start', transformOrigin: 'left top' },
+  titleRow: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, alignSelf: 'flex-start', transformOrigin: 'left top' },
   title: {
     fontSize: 36,
     lineHeight: 42,
