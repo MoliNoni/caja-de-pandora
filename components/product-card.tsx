@@ -187,7 +187,8 @@ export const ProductCard = ({
       >
         {imageUri ? (
           // Fades over the neutral block instead of popping in; kept on disk across reloads.
-          <Image
+          // Decorative (the link names the product); expo-image web takes alt from accessibilityLabel only.
+          <Image accessibilityLabel=""
             source={{ uri: imageUri }}
             style={styles.image}
             contentFit="cover"
@@ -248,7 +249,7 @@ export const ProductCard = ({
           <Pressable onPress={() => {}} accessible={false} style={styles.peekCardSlot}>
             <Animated.View entering={reducedMotion ? undefined : ZoomIn.springify().damping(16)} style={styles.peekCard} role="dialog" aria-label={`Vista rápida: ${product.titulo}`}>
               {imageUri ? (
-                <Image source={{ uri: imageUri }} style={[styles.peekImage, product.category === 'book' && styles.peekBook]} contentFit="cover" cachePolicy="memory-disk" />
+                <Image accessibilityLabel="" source={{ uri: imageUri }} style={[styles.peekImage, product.category === 'book' && styles.peekBook]} contentFit="cover" cachePolicy="memory-disk" />
               ) : (
                 <View style={[styles.peekImage, product.category === 'book' && styles.peekBook, styles.placeholderImage]} />
               )}

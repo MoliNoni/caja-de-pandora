@@ -5,6 +5,7 @@
 
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { prefetchScreens } from '../lib/database';
 import { AuthProvider } from '../lib/auth-context';
@@ -24,7 +25,12 @@ export default function RootLayout() {
     prefetchScreens().catch(() => undefined); // best effort: screens still load on their own
   }, []);
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    // role="main": the whole app is one landmark on web, so axe's "content outside landmarks" no longer fires.
+    <GestureHandlerRootView style={{ flex: 1 }} role="main">
+    {/* Static rendering injects an empty Helmet <title> ahead of +html's; this one wins. */}
+    <Head>
+      <title>Caja de Pandora</title>
+    </Head>
     <AuthProvider>
       <CartProvider>
         <PlayerProvider>

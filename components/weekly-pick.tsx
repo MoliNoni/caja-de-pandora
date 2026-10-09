@@ -70,7 +70,7 @@ function Record({ cover, spinning }: { cover?: string | null; spinning: boolean 
           <Circle key={i} cx={r} cy={r} r={r * (0.46 + i * 0.058)} fill="none" stroke="#fff" strokeOpacity={i % 2 ? 0.05 : 0.09} strokeWidth={0.8} />
         ))}
       </Svg>
-      <Image source={cover ? { uri: cover } : undefined} style={[styles.label, { width: label, height: label, borderRadius: label / 2, left: r - label / 2, top: r - label / 2 }]} contentFit="cover" />
+      <Image accessibilityLabel="" source={cover ? { uri: cover } : undefined} style={[styles.label, { width: label, height: label, borderRadius: label / 2, left: r - label / 2, top: r - label / 2 }]} contentFit="cover" />
       <View style={[styles.spindle, { left: r - 3, top: r - 3 }]} />
     </Animated.View>
   );
@@ -145,7 +145,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
             accessibilityLabel={`Ver disco: ${record.titulo}`}
             style={(state) => [styles.sleeve, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
           >
-            <Image source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+            <Image accessibilityLabel="" source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
           </Pressable>
         </Animated.View>
 
@@ -156,7 +156,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
             accessibilityLabel={`Ver libro: ${book.titulo}`}
             style={(state) => [styles.book, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
           >
-            <Image source={{ uri: book.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+            <Image accessibilityLabel="" source={{ uri: book.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
             {/* Spine shading so it reads as a book, not a flat card. */}
             <View style={styles.spine} />
           </Pressable>
