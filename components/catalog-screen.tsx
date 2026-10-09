@@ -93,6 +93,7 @@ export const CatalogScreen = ({
     scrollY.value = e.contentOffset.y;
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const reducedMotion = useReducedMotion();
   // Everything is tied to the scroll offset, so it moves exactly with the finger (no timed animation).
   const largeTitleStyle = useAnimatedStyle((): ViewStyle => {
@@ -173,7 +174,7 @@ export const CatalogScreen = ({
       <Animated.View style={[styles.titleRow, largeTitleStyle]}>
         <DancingText text={title} style={styles.title} colors={category === 'vinyl' ? theme.gradients.vinyl : theme.gradients.books} />
       </Animated.View>
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, searchFocused && styles.searchContainerFocused]}>
         <Text style={styles.searchLabel}>Buscar</Text>
         <TextInput
           style={styles.searchInput}
@@ -183,6 +184,8 @@ export const CatalogScreen = ({
           value={searchQuery}
           onChangeText={handleSearch}
           ref={searchRef}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
         />
       </View>
     </View>
@@ -301,6 +304,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.inkMuted,
   },
+  // The input drops the browser outline; focus shows on the hairline frame instead.
+  searchContainerFocused: { borderColor: t.accent },
   searchLabel: {
     fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase',
     color: t.accent,
@@ -311,6 +316,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: t.ink,
+    // Chrome draws `outline-style: auto` even at width 0; 'none' is valid CSS but missing from RN types.
+    ...({ outlineStyle: 'none' } as object),
   },
   skeletonGrid: {
     flexDirection: 'row',
