@@ -193,9 +193,6 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
               onPress={handleClearCart}
             />
 
-            {onClose && (
-              <Button label="Cerrar" variant="outline" size="lg" fullWidth disabled={loading} onPress={onClose} />
-            )}
           </View>
         </>
       ) : (
