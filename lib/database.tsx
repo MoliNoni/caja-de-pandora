@@ -334,6 +334,13 @@ export const getWeeklyPick = async (): Promise<WeeklyPick | null> => {
   return { bookId: data.book_id, vinylId: data.vinyl_id, discount: Number(data.discount) };
 };
 
+/** "Para ti": purchase-based picks for the signed-in user (`recommendations`, migration 006). Empty on any error. */
+export const getRecommendations = async (limit = 8): Promise<Product[]> => {
+  const { data, error } = await supabase.rpc('recommendations', { p_limit: limit });
+  if (error || !Array.isArray(data)) return [];
+  return data.map(normalizeProduct);
+};
+
 /** Warm every tab (data + first covers) at app start, so no tab opens on a blank frame. */
 export const prefetchScreens = async () => {
   const [home, book, vinyl] = await Promise.all([getHomeData(), getProductos('book'), getProductos('vinyl')]);

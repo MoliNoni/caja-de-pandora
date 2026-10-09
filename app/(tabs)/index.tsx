@@ -21,7 +21,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-import { getHomeData, type HomeData, type Product } from '../../lib/database';
+import { getHomeData, getRecommendations, type HomeData, type Product } from '../../lib/database';
+import { useAuth } from '../../lib/auth-context';
 import { useCachedState } from '../../lib/cache';
 import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
@@ -75,6 +76,8 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [home, setHome] = useCachedState<HomeData>('home');
+  const { user } = useAuth();
+  const [forYou, setForYou] = useState<Product[]>([]);
   const loading = home === undefined;
   // Bumped on every visit: remounting the sections replays their entrance each time.
   const [visit, setVisit] = useState(0);
@@ -118,7 +121,8 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error loading home data:', error);
     }
-  }, [setHome]);
+    setForYou(user ? await getRecommendations() : []);
+  }, [setHome, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -164,6 +168,10 @@ export default function HomeScreen() {
           <GenreTicker products={[...home.books, ...home.vinyls, ...home.newBooks, ...home.newVinyls]} />
 
           <WeeklyPick books={[...home.books, ...home.newBooks]} vinyls={[...home.vinyls, ...home.newVinyls]} />
+
+          {forYou.length > 0 && (
+            <SectionCarousel kicker="Para ti" title="Según tus compras" products={forYou} />
+          )}
 
           <SectionCarousel
             kicker="Libros"
