@@ -15,11 +15,12 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getAudiobookPreviewUrl, getRecordPreviewUrl } from '../../lib/previews';
-import { getProductoById, Product, productCache } from '../../lib/database';
+import { getAlsoBought, getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
 import { getBookSynopsis } from '../../lib/book-info';
 import { getDiscogsTracklist, type Track } from '../../lib/discogs';
 import { Button } from '../../components/button';
+import { SectionCarousel } from '../../components/section-carousel';
 import { PatternBackground } from '../../components/pattern-background';
 import { VinylPlayer } from '../../components/vinyl-player';
 import { BookCover } from '../../components/book-cover';
@@ -32,6 +33,7 @@ import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
 const TRACKS_SHOWN = 5;
+const FOOTER_CLEARANCE = 88; // room under the content for the floating add-to-cart pill
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -101,6 +103,18 @@ export default function ProductDetailScreen() {
       active = false;
     };
   }, [isVinyl, discogsId]);
+
+  // Below the first screen: the fold keeps its full-screen layout and the row is reached by scrolling.
+  const [alsoBought, setAlsoBought] = useState<Product[]>([]);
+  const [viewport, setViewport] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setAlsoBought([]);
+    getAlsoBought(String(id)).then((list) => active && setAlsoBought(list));
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   const recordKey = `record:${id}`;
   const resolveRecord = useCallback(
@@ -174,77 +188,89 @@ export default function ProductDetailScreen() {
       <Stack.Screen options={{ title: product.titulo }} />
       {back}
 
-      <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={styles.content}>
-        {/* Flexible box: its height comes from the free space, never from the media inside it. */}
-        <View style={styles.mediaBox} onLayout={(e) => setMediaBox(Math.round(e.nativeEvent.layout.height))}>
-          <View style={styles.mediaFill}>
-            {isVinyl ? (
-              <Animated.View entering={FadeIn.duration(200)}>
-                <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
-              </Animated.View>
-            ) : (
-              <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={bookWidth} />
+      <Animated.ScrollView
+        entering={FadeIn.duration(220)}
+        contentContainerStyle={styles.content}
+        onLayout={(e) => setViewport(Math.round(e.nativeEvent.layout.height))}
+      >
+        <View style={[styles.fold, alsoBought.length > 0 && viewport > 0 && { minHeight: viewport - FOOTER_CLEARANCE }]}>
+          {/* Flexible box: its height comes from the free space, never from the media inside it. */}
+          <View style={styles.mediaBox} onLayout={(e) => setMediaBox(Math.round(e.nativeEvent.layout.height))}>
+            <View style={styles.mediaFill}>
+              {isVinyl ? (
+                <Animated.View entering={FadeIn.duration(200)}>
+                  <VinylPlayer trackId={recordKey} title={product.titulo} coverUri={imageUri} size={discSize} resolve={resolveRecord} meta={recordMeta} />
+                </Animated.View>
+              ) : (
+                <BookCover uri={imageUri} title={product.titulo} author={product.autor} synopsis={synopsis} width={bookWidth} />
+              )}
+            </View>
+          </View>
+
+          <Animated.View entering={FadeInDown.delay(150).springify()}>
+            <Text style={styles.kicker}>{isVinyl ? 'Vinilo' : 'Libro'}</Text>
+            <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+              {product.titulo}
+            </Text>
+            {!!product.autor && <Text style={styles.author} numberOfLines={1}>{product.autor}</Text>}
+            {!isVinyl && (
+              <ListenButton trackId={`book:${product.id}`} resolve={resolveBook} meta={recordMeta} label="Escuchar el comienzo" />
             )}
-          </View>
-        </View>
-
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Text style={styles.kicker}>{isVinyl ? 'Vinilo' : 'Libro'}</Text>
-          <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-            {product.titulo}
-          </Text>
-          {!!product.autor && <Text style={styles.author} numberOfLines={1}>{product.autor}</Text>}
-          {!isVinyl && (
-            <ListenButton trackId={`book:${product.id}`} resolve={resolveBook} meta={recordMeta} label="Escuchar el comienzo" />
-          )}
-        </Animated.View>
-
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
-          <Text style={[styles.stockText, inStock ? styles.stock : styles.noStock]}>
-            {inStock ? `${product.stock} en stock` : 'Agotado'}
-          </Text>
-        </View>
-
-        {!!meta && <Text style={styles.meta} numberOfLines={1}>{meta}</Text>}
-
-        {description ? (
-          <>
-            <Text style={styles.description} numberOfLines={expanded ? undefined : 3}>{description}</Text>
-            {longDescription ? (
-              <Pressable onPress={() => setExpanded((v) => !v)} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.more}>{expanded ? 'Leer menos' : 'Leer más'}</Text>
-              </Pressable>
-            ) : null}
-          </>
-        ) : null}
-
-        {tracks === undefined ? (
-          <View style={styles.tracks} accessibilityLabel="Cargando canciones">
-            <Text style={styles.tracksTitle}>Canciones</Text>
-            {Array.from({ length: TRACKS_SHOWN }, (_, i) => (
-              <View key={i} style={styles.trackRow}>
-                <Skeleton height={12} width={`${88 - i * 9}%`} style={styles.trackSkeleton} />
-              </View>
-            ))}
-          </View>
-        ) : tracks.length > 0 ? (
-          <Animated.View entering={FadeIn.duration(260)} style={styles.tracks}>
-            <Text style={styles.tracksTitle}>Canciones</Text>
-            {(allTracks ? tracks : tracks.slice(0, TRACKS_SHOWN)).map((t, i) => (
-              <View key={`${t.position}-${i}`} style={styles.trackRow}>
-                <Text style={styles.trackPos}>{t.position || i + 1}</Text>
-                <Text style={styles.trackTitle} numberOfLines={1}>{t.title}</Text>
-                {!!t.duration && <Text style={styles.trackTime}>{t.duration}</Text>}
-              </View>
-            ))}
-            {tracks.length > TRACKS_SHOWN ? (
-              <Pressable onPress={() => setAllTracks((v) => !v)} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.more}>{allTracks ? 'Ver menos' : `Ver las ${tracks.length} canciones`}</Text>
-              </Pressable>
-            ) : null}
           </Animated.View>
-        ) : null}
+
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
+            <Text style={[styles.stockText, inStock ? styles.stock : styles.noStock]}>
+              {inStock ? `${product.stock} en stock` : 'Agotado'}
+            </Text>
+          </View>
+
+          {!!meta && <Text style={styles.meta} numberOfLines={1}>{meta}</Text>}
+
+          {description ? (
+            <>
+              <Text style={styles.description} numberOfLines={expanded ? undefined : 3}>{description}</Text>
+              {longDescription ? (
+                <Pressable onPress={() => setExpanded((v) => !v)} accessibilityRole="button" hitSlop={8}>
+                  <Text style={styles.more}>{expanded ? 'Leer menos' : 'Leer más'}</Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
+
+          {tracks === undefined ? (
+            <View style={styles.tracks} accessibilityLabel="Cargando canciones">
+              <Text style={styles.tracksTitle}>Canciones</Text>
+              {Array.from({ length: TRACKS_SHOWN }, (_, i) => (
+                <View key={i} style={styles.trackRow}>
+                  <Skeleton height={12} width={`${88 - i * 9}%`} style={styles.trackSkeleton} />
+                </View>
+              ))}
+            </View>
+          ) : tracks.length > 0 ? (
+            <Animated.View entering={FadeIn.duration(260)} style={styles.tracks}>
+              <Text style={styles.tracksTitle}>Canciones</Text>
+              {(allTracks ? tracks : tracks.slice(0, TRACKS_SHOWN)).map((t, i) => (
+                <View key={`${t.position}-${i}`} style={styles.trackRow}>
+                  <Text style={styles.trackPos}>{t.position || i + 1}</Text>
+                  <Text style={styles.trackTitle} numberOfLines={1}>{t.title}</Text>
+                  {!!t.duration && <Text style={styles.trackTime}>{t.duration}</Text>}
+                </View>
+              ))}
+              {tracks.length > TRACKS_SHOWN ? (
+                <Pressable onPress={() => setAllTracks((v) => !v)} accessibilityRole="button" hitSlop={8}>
+                  <Text style={styles.more}>{allTracks ? 'Ver menos' : `Ver las ${tracks.length} canciones`}</Text>
+                </Pressable>
+              ) : null}
+            </Animated.View>
+          ) : null}
+        </View>
+
+        {alsoBought.length > 0 && (
+          <View style={styles.alsoBought}>
+            <SectionCarousel kicker="También compraron" title="Quienes lo llevaron" products={alsoBought} />
+          </View>
+        )}
       </Animated.ScrollView>
 
       {/* Always in reach: a floating pill over the content, no bar behind it. */}
@@ -258,7 +284,10 @@ export default function ProductDetailScreen() {
 const makeStyles = (t: Theme) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: t.bg },
   // Bottom padding clears the floating add-to-cart pill.
-  content: { paddingHorizontal: 20, paddingBottom: 88, flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: FOOTER_CLEARANCE, flexGrow: 1 },
+  fold: { flexGrow: 1 },
+  // Starts past the pill so nothing peeks half-covered; the carousel header lines up with the page text.
+  alsoBought: { marginHorizontal: -8, marginTop: FOOTER_CLEARANCE + 12 },
   skeletonCover: { marginBottom: 16 },
   skeletonGap: { marginTop: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },

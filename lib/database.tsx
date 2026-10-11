@@ -341,6 +341,13 @@ export const getRecommendations = async (limit = 8): Promise<Product[]> => {
   return data.map(normalizeProduct);
 };
 
+/** "También compraron" on the product page (`also_bought`, migration 007). Empty on any error. */
+export const getAlsoBought = async (productId: string, limit = 8): Promise<Product[]> => {
+  const { data, error } = await supabase.rpc('also_bought', { p_product: productId, p_limit: limit });
+  if (error || !Array.isArray(data)) return [];
+  return data.map(normalizeProduct);
+};
+
 /** Warm every tab (data + first covers) at app start, so no tab opens on a blank frame. */
 export const prefetchScreens = async () => {
   const [home, book, vinyl] = await Promise.all([getHomeData(), getProductos('book'), getProductos('vinyl')]);
