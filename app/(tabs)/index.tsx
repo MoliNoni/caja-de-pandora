@@ -11,7 +11,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   Extrapolation,
-  FadeInDown,
+  FadeIn,
   interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -30,7 +30,6 @@ import { SectionCarousel } from '../../components/section-carousel';
 import { HeroButton } from '../../components/hero-button';
 import { DancingText } from '../../components/dancing-text';
 import { AppHeader } from '../../components/app-header';
-import { Skeleton, SkeletonCard, SkeletonRegion } from '../../components/skeleton';
 import { useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
@@ -79,7 +78,6 @@ export default function HomeScreen() {
   const [home, setHome] = useCachedState<HomeData>('home');
   const { user } = useAuth();
   const [forYou, setForYou] = useState<Product[]>([]);
-  const loading = home === undefined;
   // Bumped on every visit: remounting the sections replays their entrance each time.
   const [visit, setVisit] = useState(0);
 
@@ -144,32 +142,21 @@ export default function HomeScreen() {
         <PatternBackground />
       </Animated.View>
       <View style={styles.body}>
-      {loading || !home ? (
-        <SkeletonRegion style={styles.scrollContent}>
-          {[0, 1].map((row) => (
-            <View key={row} style={styles.skeletonSection}>
-              <Skeleton height={20} width="50%" style={styles.skeletonTitle} />
-              <View style={styles.skeletonRow}>
-                {[0, 1, 2].map((card) => (
-                  <SkeletonCard key={card} width={180} />
-                ))}
-              </View>
-            </View>
-          ))}
-        </SkeletonRegion>
-      ) : (
         <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
-            <DancingText text="Caja de Pandora" style={styles.heroTitle} record={10} />
-            <Animated.View entering={FadeInDown.delay(380).duration(700)}>
-              <HeroButton
-                label="Buscar en el catálogo"
-                onPress={() =>
-                  router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
-                }
-              />
-            </Animated.View>
+            {/* Static from the first paint: the hero needs no data, so the static HTML already shows it. */}
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} record={10} enter={false} />
+            <HeroButton
+              label="Buscar en el catálogo"
+              onPress={() =>
+                router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
+              }
+            />
           </Animated.View>
+
+          {/* Everything that needs data arrives as one block, no skeleton and no piece-by-piece entrances. */}
+          {home && (
+          <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(320)}>
 
           <GenreTicker products={[...home.books, ...home.vinyls, ...home.newBooks, ...home.newVinyls]} />
 
@@ -207,14 +194,15 @@ export default function HomeScreen() {
             products={home.newVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
+          </Animated.View>
+          )}
         </Animated.ScrollView>
-      )}
 
         {/* Same docking bar as the catalogs: frosted once content slides under it, and receives the title. */}
         <View style={styles.headerLayer} pointerEvents="box-none">
           <Animated.View style={[styles.bar, barStyle]} pointerEvents="none" />
           <Animated.View style={[styles.compactTitle, compactTitleStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <DancingText text="Caja de Pandora" style={styles.compactTitleText} wave={false} />
+            <DancingText text="Caja de Pandora" style={styles.compactTitleText} wave={false} enter={false} />
           </Animated.View>
           <AppHeader />
         </View>
@@ -250,19 +238,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   tickerTrack: { flexDirection: 'row', alignSelf: 'flex-start' },
   tickerText: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.inkMuted },
-  skeletonSection: {
-    marginVertical: 10,
-  },
-  skeletonTitle: {
-    marginHorizontal: 8,
-    marginBottom: 10,
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingLeft: 8,
-    overflow: 'hidden',
-  },
   scrollContent: {
     paddingHorizontal: 8,
     paddingTop: HEADER + 8,

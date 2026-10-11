@@ -51,7 +51,7 @@ export const ProductCard = ({
   onPress,
   compact = false,
   featured = false,
-  index = 0,
+  index,
   width,
 }: ProductCardProps) => {
   const styles = useThemedStyles(makeStyles);
@@ -141,7 +141,7 @@ export const ProductCard = ({
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(14)}
+      entering={index === undefined ? undefined : FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(14)}
       style={[
         styles.container,
         compact && styles.compactContainer,

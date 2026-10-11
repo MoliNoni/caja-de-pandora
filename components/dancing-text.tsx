@@ -61,7 +61,7 @@ const SHEEN_PERIOD = SHEEN_IN_MS + SHEEN_OUT_MS + SHEEN_REST_MS;
 function useWebLetterMotion(
   ref: React.RefObject<unknown>,
   inkRef: React.RefObject<unknown>,
-  { index, delay, wave, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; color?: string; glint?: string; reducedMotion: boolean }
+  { index, delay, wave, enter, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; enter: boolean; color?: string; glint?: string; reducedMotion: boolean }
 ) {
   useEffect(() => {
     const el = ref.current as HTMLElement | null;
@@ -70,19 +70,21 @@ function useWebLetterMotion(
     const tilt = index % 2 ? 8 : -8;
     // Chrome composites a transform animation only when it is the element's sole one and uses 'replace':
     // the entrance ends at identity with no forward fill, and is removed before the wave is created.
-    const entrance = el.animate(
-      SPRING_FRAMES.map((e) => ({ transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})` })),
-      { duration: SPRING_MS, delay: start, fill: 'backwards' }
-    );
-    const anims = [
-      el.animate(SPRING_FRAMES.map((e) => ({ opacity: Math.min(e, 1) })), { duration: SPRING_MS, delay: start, fill: 'both' }),
-      entrance,
-    ];
+    // Without an entrance the letters are already in place (static HTML included) and only the wave runs.
+    const entrance = enter
+      ? el.animate(
+          SPRING_FRAMES.map((e) => ({ transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})` })),
+          { duration: SPRING_MS, delay: start, fill: 'backwards' }
+        )
+      : null;
+    const anims: Animation[] = entrance
+      ? [el.animate(SPRING_FRAMES.map((e) => ({ opacity: Math.min(e, 1) })), { duration: SPRING_MS, delay: start, fill: 'both' }), entrance]
+      : [];
     if (wave) {
       const up = WAVE_UP_MS / WAVE_PERIOD;
-      entrance.finished.then(
+      (entrance?.finished ?? Promise.resolve()).then(
         () => {
-          entrance.cancel();
+          entrance?.cancel();
           anims.push(
             el.animate(
               [
@@ -115,7 +117,7 @@ function useWebLetterMotion(
       );
     }
     return () => anims.forEach((a) => a.cancel());
-  }, [ref, inkRef, index, delay, wave, color, glint, reducedMotion]);
+  }, [ref, inkRef, index, delay, wave, enter, color, glint, reducedMotion]);
 }
 
 type Props = {
@@ -126,6 +128,8 @@ type Props = {
   wave?: boolean;
   /** Ms before the first letter enters. */
   delay?: number;
+  /** Letters spring in on mount. Off: they are there from the first paint (no pop on page load). */
+  enter?: boolean;
   /** Gradient stops spread across the letters (#RRGGBB). Default: theme.gradients.pandora. */
   colors?: string[];
   /** Colour the travelling glint brightens each letter to. Default: theme.ink. */
@@ -143,16 +147,17 @@ type LetterProps = {
   style?: StyleProp<TextStyle>;
   wave: boolean;
   delay: number;
+  enter: boolean;
   record?: boolean;
 };
 
-const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
+const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wave, delay, enter, record }: LetterProps) {
   const reducedMotion = useReducedMotion();
   const ref = useRef<View>(null);
   const inkRef = useRef<Text>(null);
-  useWebLetterMotion(ref, inkRef, { index, delay, wave, color, glint: color && glint ? glint : undefined, reducedMotion });
+  useWebLetterMotion(ref, inkRef, { index, delay, wave, enter, color, glint: color && glint ? glint : undefined, reducedMotion });
   // Hidden until its entrance runs (the static HTML must not flash the whole title first).
-  const hidden = { opacity: reducedMotion ? 1 : 0 };
+  const hidden = { opacity: reducedMotion || !enter ? 1 : 0 };
   if (record) {
     const { fontSize = 32, lineHeight = fontSize * 1.1 } = StyleSheet.flatten(style) ?? {};
     const size = Math.round(fontSize * 0.56);
@@ -170,9 +175,9 @@ const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wa
   );
 });
 
-const NativeLetter = memo(function NativeLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
+const NativeLetter = memo(function NativeLetter({ char, index, color, glint, style, wave, delay, enter: entrance, record }: LetterProps) {
   const reducedMotion = useReducedMotion();
-  const enter = useSharedValue(reducedMotion ? 1 : 0);
+  const enter = useSharedValue(reducedMotion || !entrance ? 1 : 0);
   const bob = useSharedValue(0);
   const sheen = useSharedValue(0);
 
@@ -182,7 +187,7 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
       return;
     }
     const start = delay + index * STAGGER_MS;
-    enter.value = withDelay(start, withSpring(1, { damping: 18, stiffness: 120 }));
+    if (entrance) enter.value = withDelay(start, withSpring(1, { damping: 18, stiffness: 120 }));
     if (wave) {
       // Same period for every letter, offset start: the bump travels across the word.
       bob.value = withDelay(
@@ -213,7 +218,7 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
       cancelAnimation(bob);
       cancelAnimation(sheen);
     };
-  }, [reducedMotion, wave, delay, index, enter, bob, sheen]);
+  }, [reducedMotion, wave, delay, entrance, index, enter, bob, sheen]);
 
   const tilt = index % 2 ? 8 : -8;
   const animated = useAnimatedStyle((): TextStyle => {
@@ -245,7 +250,7 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
 const Letter = Platform.OS === 'web' ? WebLetter : NativeLetter;
 
 /** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
-export const DancingText = memo(function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, glint, record }: Props) {
+export const DancingText = memo(function DancingText({ text, style, containerStyle, wave = true, delay = 0, enter = true, colors, glint, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -271,6 +276,7 @@ export const DancingText = memo(function DancingText({ text, style, containerSty
                 style={style}
                 wave={wave}
                 delay={delay}
+                enter={enter}
                 record={index === record}
                 color={gradientAt(stops, index / last)}
                 glint={glint ?? theme.ink}

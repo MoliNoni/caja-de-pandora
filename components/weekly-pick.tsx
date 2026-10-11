@@ -6,7 +6,6 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, {
   cancelAnimation,
   Easing,
-  FadeInDown,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -24,6 +23,7 @@ import { useCart } from '../lib/cart-context';
 import { getProductoById, productCache, type Product } from '../lib/database';
 import { showAlert } from '../lib/dialog';
 import { usePlayer } from '../lib/player-context';
+import { readCache, writeCache } from '../lib/cache';
 import { DancingText } from './dancing-text';
 import { getRecordPreviewUrl } from '../lib/previews';
 
@@ -89,13 +89,19 @@ export function WeeklyPick({ books, vinyls }: Props) {
   const wide = useWindowDimensions().width >= 720;
   // The server decides the pair (and charges the bundle); a local pick without the offer until it answers.
   const { weeklyPick } = useCart();
-  const [serverPair, setServerPair] = useState<[Product, Product] | null>(null);
+  // The last server pair is remembered, so a reload paints it at once instead of swapping the local pick out.
+  // Read synchronously: this mounts only after the home data, never in the static HTML, so it cannot mismatch.
+  const [serverPair, setServerPair] = useState(() => readCache<[Product, Product]>('weekly-pair'));
   useEffect(() => {
     if (!weeklyPick) return;
     const find = (id: string, list: Product[]) => list.find((p) => p.id === id) ?? getProductoById(id);
     Promise.all([find(weeklyPick.bookId, books), find(weeklyPick.vinylId, vinyls)])
-      .then(([b, v]) => setServerPair([b, v]))
-      .catch(() => setServerPair(null));
+      .then(([b, v]) => {
+        writeCache('weekly-pair', [b, v]);
+        // Same pair: keep the objects, a new source object would replay the covers' fade.
+        setServerPair((cur) => (cur?.[0].id === b.id && cur?.[1].id === v.id ? cur : [b, v]));
+      })
+      .catch(() => {});
   }, [weeklyPick, books, vinyls]);
   const localBook = useMemo(() => pickOfTheWeek(books), [books]);
   const localRecord = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
@@ -139,7 +145,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
           <Record cover={record.imageUrl} spinning={playing} />
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).springify().damping(18)} style={styles.sleeveSlot}>
+        <View style={styles.sleeveSlot}>
           <View style={styles.sleeveTilt}>
             <Pressable
               onPress={() => open(record)}
@@ -150,9 +156,9 @@ export function WeeklyPick({ books, vinyls }: Props) {
               <Image accessibilityLabel="" source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.delay(220).springify().damping(18)} style={styles.bookSlot}>
+        <View style={styles.bookSlot}>
           <View style={styles.bookTilt}>
             <Pressable
               onPress={() => open(book)}
@@ -165,10 +171,10 @@ export function WeeklyPick({ books, vinyls }: Props) {
               <View style={styles.spine} />
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
       </View>
 
-      <Animated.View entering={FadeInDown.delay(320).springify().damping(18)} style={styles.copy}>
+      <View style={styles.copy}>
         <Text style={styles.kicker}>Esta semana</Text>
         <Text style={styles.sentence}>
           Lee <Text style={styles.em} onPress={() => open(book)}>{book.titulo}</Text> mientras suena{' '}
@@ -177,7 +183,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
         {off > 0 && (
           <View style={styles.bundle} accessible accessibilityLabel={`Los dos juntos con ${Math.round(off * 100)}% de descuento: ${money(bundlePrice)}, antes ${money(pairPrice)}`}>
             <Text style={styles.bundleLabel}>Los dos juntos</Text>
-            <DancingText text={`${Math.round(off * 100)}% OFF`} style={styles.gold} colors={GOLD} glint={GOLD_GLINT} wave={false} delay={700} />
+            <DancingText text={`${Math.round(off * 100)}% OFF`} style={styles.gold} colors={GOLD} glint={GOLD_GLINT} wave={false} enter={false} />
             <Text style={styles.bundleWas}>{money(pairPrice)}</Text>
             <Text style={styles.bundleNow}>{money(bundlePrice)}</Text>
           </View>
@@ -192,7 +198,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
           <Ionicons name={playing ? 'pause' : 'play'} size={16} color={theme.accent} />
           <Text style={styles.playText}>{playing ? 'Pausar' : 'Escuchar el disco'}</Text>
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -210,7 +216,7 @@ const makeStyles = (t: Theme) =>
     stage: { height: SLEEVE + 56, width: SLEEVE_X + (SLEEVE + DISC) / 2 + DISC_OUT },
     stageNarrow: { alignSelf: 'center' },
     disc: { position: 'absolute', left: SLEEVE_X + (SLEEVE - DISC) / 2, top: 18 + (SLEEVE - DISC) / 2 },
-    // Tilts sit on the covers, not the slots: the entering animation owns the slot's transform.
+    // Tilts sit on the covers, not the slots.
     sleeveSlot: { position: 'absolute', left: SLEEVE_X, top: 18 },
     sleeveTilt: { transform: [{ rotate: '2deg' }] },
     sleeve: { width: SLEEVE, height: SLEEVE, borderRadius: 4, overflow: 'hidden', boxShadow: '0 16px 32px rgba(0,0,0,0.35)' },

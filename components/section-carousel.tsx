@@ -7,7 +7,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';
 import { Product } from '../lib/database';
 import { Button } from './button';
@@ -101,7 +101,7 @@ export const SectionCarousel = ({
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
           {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
-          <Animated.Text entering={FadeInDown.springify()} style={styles.title} accessibilityRole="header">{title}</Animated.Text>
+          <Text style={styles.title} accessibilityRole="header">{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         {onSeeAll ? (
@@ -124,7 +124,6 @@ export const SectionCarousel = ({
               product={item}
               compact
               featured={featuredFirst && index === 0}
-              index={index}
             />
           </View>
         )}
