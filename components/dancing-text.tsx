@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { memo, useEffect, useRef } from 'react';
+import { Platform, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -37,6 +37,76 @@ function gradientAt(stops: string[], t: number) {
   return `#${mix.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Web runs the same motion through the Web Animations API: the browser animates it off the JS thread,
+// so the wave stays smooth while carousels and scroll effects keep the page busy.
+const SPRING_FRAMES = (() => {
+  // withSpring({ damping: 18, stiffness: 120 }), mass 1, sampled every ~16ms until it settles.
+  const out: number[] = [];
+  let x = 0;
+  let v = 0;
+  for (let step = 0; step < 4000; step++) {
+    if (step % 4 === 0) out.push(x);
+    v += (-120 * (x - 1) - 18 * v) / 240;
+    x += v / 240;
+    if (Math.abs(x - 1) < 0.001 && Math.abs(v) < 0.001) break;
+  }
+  out.push(1);
+  return out;
+})();
+const SPRING_MS = (SPRING_FRAMES.length - 1) * (4000 / 240 / 4);
+const SINE = 'cubic-bezier(0.37, 0, 0.63, 1)'; // Easing.inOut(Easing.sin)
+const WAVE_PERIOD = WAVE_UP_MS * 2 + WAVE_REST_MS;
+const SHEEN_PERIOD = SHEEN_IN_MS + SHEEN_OUT_MS + SHEEN_REST_MS;
+
+function useWebLetterMotion(
+  ref: React.RefObject<unknown>,
+  { index, delay, wave, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; color?: string; glint?: string; reducedMotion: boolean }
+) {
+  useEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    if (!el?.animate || reducedMotion) return;
+    const start = delay + index * STAGGER_MS;
+    const tilt = index % 2 ? 8 : -8;
+    const anims = [
+      el.animate(
+        SPRING_FRAMES.map((e) => ({
+          opacity: Math.min(e, 1),
+          transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})`,
+        })),
+        { duration: SPRING_MS, delay: start, fill: 'both' }
+      ),
+    ];
+    if (wave) {
+      const up = WAVE_UP_MS / WAVE_PERIOD;
+      anims.push(
+        el.animate(
+          [
+            { transform: 'translateY(0px)', easing: SINE },
+            { transform: 'translateY(-5px)', offset: up, easing: SINE },
+            { transform: 'translateY(0px)', offset: up * 2 },
+            { transform: 'translateY(0px)' },
+          ],
+          { duration: WAVE_PERIOD, delay: start + 900 + index * 70, iterations: Infinity, composite: 'add' }
+        )
+      );
+    }
+    if (color && glint) {
+      anims.push(
+        el.animate(
+          [
+            { color, easing: SINE },
+            { color: glint, offset: SHEEN_IN_MS / SHEEN_PERIOD, easing: SINE },
+            { color, offset: (SHEEN_IN_MS + SHEEN_OUT_MS) / SHEEN_PERIOD },
+            { color },
+          ],
+          { duration: SHEEN_PERIOD, delay: start + 600 + index * SHEEN_STEP_MS, iterations: Infinity }
+        )
+      );
+    }
+    return () => anims.forEach((a) => a.cancel());
+  }, [ref, index, delay, wave, color, glint, reducedMotion]);
+}
+
 type Props = {
   text: string;
   style?: StyleProp<TextStyle>;
@@ -53,7 +123,7 @@ type Props = {
   record?: number;
 };
 
-function Letter({ char, index, color, glint, style, wave, delay, record }: {
+type LetterProps = {
   char: string;
   index: number;
   color?: string;
@@ -63,7 +133,26 @@ function Letter({ char, index, color, glint, style, wave, delay, record }: {
   wave: boolean;
   delay: number;
   record?: boolean;
-}) {
+};
+
+const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
+  const reducedMotion = useReducedMotion();
+  const ref = useRef<View & Text>(null);
+  useWebLetterMotion(ref, { index, delay, wave, color, glint: color && glint ? glint : undefined, reducedMotion });
+  // Hidden until its entrance runs (the static HTML must not flash the whole title first).
+  if (record) {
+    const { fontSize = 32, lineHeight = fontSize * 1.1 } = StyleSheet.flatten(style) ?? {};
+    const size = Math.round(fontSize * 0.56);
+    return (
+      <View ref={ref} style={{ opacity: reducedMotion ? 1 : 0, height: lineHeight, justifyContent: 'flex-end', paddingBottom: (lineHeight - fontSize) / 2 + fontSize * 0.2, marginHorizontal: fontSize * 0.03 }}>
+        <SpinningRecord size={size} />
+      </View>
+    );
+  }
+  return <Text ref={ref} style={[style, color ? { color } : null, { opacity: reducedMotion ? 1 : 0 }]}>{char}</Text>;
+});
+
+const NativeLetter = memo(function NativeLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
   const reducedMotion = useReducedMotion();
   const enter = useSharedValue(reducedMotion ? 1 : 0);
   const bob = useSharedValue(0);
@@ -133,10 +222,12 @@ function Letter({ char, index, color, glint, style, wave, delay, record }: {
     );
   }
   return <Animated.Text style={[style, color ? { color } : null, animated]}>{char}</Animated.Text>;
-}
+});
+
+const Letter = Platform.OS === 'web' ? WebLetter : NativeLetter;
 
 /** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
-export function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, glint, record }: Props) {
+export const DancingText = memo(function DancingText({ text, style, containerStyle, wave = true, delay = 0, colors, glint, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;
   const fontSize = StyleSheet.flatten(style)?.fontSize ?? 32;
@@ -172,7 +263,7 @@ export function DancingText({ text, style, containerStyle, wave = true, delay = 
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
