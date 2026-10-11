@@ -48,7 +48,8 @@ export default function ProductDetailScreen() {
   // not resize the book or deck under the reader's eyes.
   const [mediaBox, setMediaBox] = useState(height * 0.45);
   const mediaMeasuredFor = useRef(0);
-  const discSize = Math.min(width - 40, 340, (mediaBox - 8) / 0.9); // deck is 0.9 x its width tall
+  // Deck is 0.9 x its width tall, plus headroom for the record lifting and the glow while it plays.
+  const discSize = Math.min(width - 40, 340, (mediaBox - 24) / 0.9);
   const bookWidth = Math.min(width * 0.8, 320, (mediaBox - 18) / 1.5); // book is 1.5 x its width tall
   const [expanded, setExpanded] = useState(false);
   // A tapped card primes the cache: render it at once (no blank frame, no skeleton), refresh behind.
@@ -191,8 +192,10 @@ export default function ProductDetailScreen() {
       >
         <View style={[styles.fold, alsoBought.length > 0 && viewport > 0 && { minHeight: viewport - FOOTER_CLEARANCE }]}>
           {/* Flexible box: its height comes from the free space, never from the media inside it. */}
+          {/* Never shorter than the media sized from the first measure: late content (tracks) scrolls the page
+              instead of squeezing the box, which pushed the deck past the top edge. */}
           <View
-            style={styles.mediaBox}
+            style={[styles.mediaBox, isVinyl && { minHeight: Math.max(260, discSize * 0.9 + 24) }]}
             onLayout={(e) => {
               if (mediaMeasuredFor.current === height) return;
               mediaMeasuredFor.current = height;
