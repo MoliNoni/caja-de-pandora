@@ -45,9 +45,6 @@ lerna-debug.log*
 .env*.backup
 !.env.example
 
-
-
-
 # Misc
 *.pid
 *.seed
@@ -65,4 +62,3 @@ expo-env.d.ts
 
 # Tests
 __tests__/
-
