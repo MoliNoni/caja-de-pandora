@@ -22,6 +22,7 @@ import { Button } from './button';
 import { useCart, type CartItem } from '../lib/cart-context';
 import { tapHaptic } from '../lib/haptics';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
+import { CoverPlaceholder } from './cover-placeholder';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -122,8 +123,8 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                 ) : (
-                  <View style={[styles.itemImage, styles.placeholderImage]}>
-                    <Text style={styles.placeholderText}>Sin imagen</Text>
+                  <View style={styles.itemImage}>
+                    <CoverPlaceholder title={item.titulo} />
                   </View>
                 )}
 
@@ -316,16 +317,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     borderRadius: 2,
     marginRight: 14,
     backgroundColor: t.border,
-  },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: t.inkMuted,
-    paddingHorizontal: 4,
   },
   itemInfo: {
     flex: 1,

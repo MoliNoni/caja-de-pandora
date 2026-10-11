@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Fonts, type Theme } from '../constants/theme';
+import { CoverPlaceholder } from './cover-placeholder';
 import { useThemedStyles } from '../hooks/use-theme';
 
 type Props = {
@@ -139,8 +140,8 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
                 {uri ? (
                   <Image source={{ uri }} style={styles.image} resizeMode="cover" />
                 ) : (
-                  <View style={[styles.image, styles.placeholder]}>
-                    <Text style={styles.pageTitle} numberOfLines={4}>{title}</Text>
+                  <View style={styles.image}>
+                    <CoverPlaceholder title={title} author={author} />
                   </View>
                 )}
                 <View style={styles.spine} />
@@ -192,7 +193,6 @@ const makeStyles = (t: Theme) =>
     },
     coverInside: { ...StyleSheet.absoluteFillObject, backgroundColor: t.accent },
     image: { width: '100%', height: '100%' },
-    placeholder: { backgroundColor: t.surface, justifyContent: 'center', alignItems: 'center', padding: 16 },
     // Spine: dark band where the cover folds, a thin highlight just after it.
     spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 12, backgroundColor: 'rgba(0,0,0,0.28)' },
     spineHighlight: { position: 'absolute', left: 12, top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(255,255,255,0.25)' },

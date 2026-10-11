@@ -19,6 +19,7 @@ import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { showAlert } from '../lib/dialog';
 import { useAudioLevel, usePlayer, type NowPlaying, type ResolvePreview } from '../lib/player-context';
 import type { Theme } from '../constants/theme';
+import { CoverPlaceholder } from './cover-placeholder';
 
 const TURN_MS = 1800; // 33⅓ rpm
 const STOP_MS = 600; // decelerate to rest on pause
@@ -191,7 +192,11 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
           <Circle cx={r} cy={r} r={r} fill="url(#sheen)" />
         </Svg>
         <Animated.View pointerEvents="none" style={[discBox, styles.sleeve, sleeveStyle]}>
-          {coverUri ? <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} /> : null}
+          {coverUri ? (
+            <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} />
+          ) : (
+            <CoverPlaceholder title={title} author={meta?.subtitle} />
+          )}
         </Animated.View>
         <Animated.View
           pointerEvents="none"

@@ -19,6 +19,7 @@ import {
 import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { CoverPlaceholder } from './cover-placeholder';
 import { Button } from './button';
 import { useCart } from '../lib/cart-context';
 import { useBurst } from './pixel-burst';
@@ -195,10 +196,10 @@ export const ProductCard = ({
             transition={reducedMotion ? 0 : 250}
             cachePolicy="memory-disk"
           />
+        ) : imageUri === null ? (
+          <CoverPlaceholder title={product.titulo} author={product.autor} />
         ) : (
-          <View style={[styles.image, styles.placeholderImage]}>
-            {imageUri === null && <Text style={styles.placeholderText}>Sin imagen</Text>}
-          </View>
+          <View style={[styles.image, styles.placeholderImage]} />
         )}
         {isBestSeller && (
           <View style={styles.bestSellerBadge}>
@@ -251,7 +252,9 @@ export const ProductCard = ({
               {imageUri ? (
                 <Image accessibilityLabel="" source={{ uri: imageUri }} style={[styles.peekImage, product.category === 'book' && styles.peekBook]} contentFit="cover" cachePolicy="memory-disk" />
               ) : (
-                <View style={[styles.peekImage, product.category === 'book' && styles.peekBook, styles.placeholderImage]} />
+                <View style={[styles.peekImage, product.category === 'book' && styles.peekBook]}>
+                  <CoverPlaceholder title={product.titulo} author={product.autor} />
+                </View>
               )}
               <View style={styles.peekBody}>
                 <Text style={styles.peekKicker}>{product.genero || (product.category === 'vinyl' ? 'Vinilo' : 'Libro')}</Text>
@@ -326,10 +329,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     backgroundColor: t.border,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 13,
-    color: t.inkMuted,
   },
   bestSellerBadge: {
     position: 'absolute',
