@@ -52,7 +52,7 @@ export default function RootLayout() {
             <Stack.Screen name="admin" options={{ headerShown: false }} />
             <Stack.Screen name="signin" options={{ headerShown: false }} />
             <Stack.Screen name="signup" options={{ headerShown: false }} />
-            <Stack.Screen name="orders" options={{ title: 'Mis pedidos' }} />
+            <Stack.Screen name="orders" options={{ headerShown: false }} />
           </Stack>
           <MiniPlayer />
           <DialogHost />

@@ -18,7 +18,7 @@ import { getClienteOrdenes } from '../lib/database';
 import { useRouter } from 'expo-router';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
-import { ProfileMenu } from '../components/profile-menu';
+import { AppHeader } from '../components/app-header';
 import { Skeleton, SkeletonRegion } from '../components/skeleton';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
@@ -61,7 +61,7 @@ interface Orden {
 export default function OrdersScreen() {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,10 +99,10 @@ export default function OrdersScreen() {
   useEffect(() => {
     if (user) {
       loadOrdenes();
-    } else {
+    } else if (!authLoading) {
       setLoading(false);
     }
-  }, [user, loadOrdenes]);
+  }, [user, authLoading, loadOrdenes]);
 
   // Handle pull-to-refresh
   const onRefresh = () => {
@@ -138,10 +138,11 @@ export default function OrdersScreen() {
     }
   };
 
-  if (!user) {
+  if (!user && !authLoading) {
     return (
       <SafeAreaView style={styles.container}>
-      <PatternBackground />
+        <PatternBackground />
+        <AppHeader back actions={false} />
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle} accessibilityRole="header">Inicia sesión</Text>
           <Text style={styles.emptySubtitle}>para ver tus pedidos</Text>
@@ -154,17 +155,17 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <PatternBackground />
-      {/* Header */}
+      {/* Own header (not the stack's): its back arrow survives a reload with no history. */}
+      <AppHeader back />
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.kicker}>
-              {ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}
-            </Text>
-            <Text style={styles.title} accessibilityRole="header">Mis pedidos</Text>
-          </View>
-          <ProfileMenu />
-        </View>
+        {loading ? (
+          <Skeleton width={90} height={11} radius={2} style={styles.kickerSkeleton} />
+        ) : (
+          <Text style={styles.kicker}>
+            {ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}
+          </Text>
+        )}
+        <Text style={styles.title} accessibilityRole="header">Mis pedidos</Text>
       </View>
 
       {loading ? (
@@ -259,14 +260,10 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 4,
     paddingBottom: 12,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  kickerSkeleton: { marginBottom: 8 },
   kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 8 },
   title: {
     fontSize: 36,
