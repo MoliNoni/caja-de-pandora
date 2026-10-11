@@ -10,6 +10,9 @@ const escapeHtml = (value: unknown) =>
 
 const money = (value: unknown) => `$${Number(value).toFixed(2)}`;
 
+// Same short number the app shows (app/cart.tsx, app/orders.tsx).
+const orderNumber = (id: string) => id.replace(/-/g, '').slice(0, 8).toUpperCase();
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(req) });
   if (req.method !== 'POST') return jsonResponse(req, { error: 'Method not allowed' }, 405);
@@ -48,13 +51,17 @@ Deno.serve(async (req: Request) => {
       precio: d.precio_unitario,
       subtotal: d.subtotal,
     }));
-    const fecha = new Date(order.fecha_creacion ?? Date.now()).toLocaleString('es-CO');
+    const fecha = new Date(order.fecha_creacion ?? Date.now()).toLocaleString('es-CO', {
+      timeZone: 'America/Bogota', // edge functions run in UTC
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
 
     const htmlContent = `
     <div style="font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#1f2937;">
       <h1 style="color:#4b0082;">Confirmación de compra</h1>
       <p>Gracias por comprar en Librería Caja de Pandora.</p>
-      <p><strong>Orden:</strong> ${escapeHtml(order.id)}</p>
+      <p><strong>Pedido N.º:</strong> ${escapeHtml(orderNumber(order.id))}</p>
       <p><strong>Fecha:</strong> ${escapeHtml(fecha)}</p>
       <p><strong>Total:</strong> ${escapeHtml(money(order.total))}</p>
       <h2>Detalle de productos</h2>
@@ -67,7 +74,7 @@ Deno.serve(async (req: Request) => {
       <p>Esperamos verte pronto de nuevo.</p>
     </div>`;
 
-    const textContent = `Gracias por su compra en Librería Caja de Pandora.\n\nOrden: ${order.id}\nFecha: ${fecha}\n\nDetalles:\n${lines
+    const textContent = `Gracias por su compra en Librería Caja de Pandora.\n\nPedido N.º: ${orderNumber(order.id)}\nFecha: ${fecha}\n\nDetalles:\n${lines
       .map((l: any) => `- ${l.titulo} x${l.cantidad} @ ${money(l.precio)} = ${money(l.subtotal)}`)
       .join('\n')}\n\nTotal: ${money(order.total)}\n\nEsperamos volver a verte pronto.`;
 
