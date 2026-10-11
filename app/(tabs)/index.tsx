@@ -140,14 +140,20 @@ export default function HomeScreen() {
   }, [setHome, user]);
 
   // The first focus is the mount itself: bumping then would mount the sections twice on load.
+  // Kept apart from the data load: the session resolving after mount changes loadHomeData, and
+  // re-running this then would remount the page and replay the title entrance.
   const focused = useRef(false);
   useFocusEffect(
     useCallback(() => {
       scrollY.value = 0;
       if (focused.current) setVisit((v) => v + 1);
       focused.current = true;
+    }, [scrollY])
+  );
+  useFocusEffect(
+    useCallback(() => {
       loadHomeData();
-    }, [loadHomeData, scrollY])
+    }, [loadHomeData])
   );
 
   return (
