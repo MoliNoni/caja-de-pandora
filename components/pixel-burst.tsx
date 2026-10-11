@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
+import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Platform, StyleSheet, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 // Pixel burst: square particles fly out from the tap point, spin, fall a little and fade.
@@ -22,7 +22,34 @@ const BurstContext = createContext<BurstFn>(() => undefined);
 /** Fire a burst at a press event's position: `burst(e, theme.gradients.books, 'lg')`. */
 export const useBurst = () => useContext(BurstContext);
 
-function Pixel({ p, ms }: { p: Particle; ms: number }) {
+const FRAMES = 16;
+const easeOutCubic = (x: number) => 1 - (1 - x) ** 3;
+
+/** The same flight as the native Pixel, sampled into keyframes the browser runs off the JS thread. */
+function WebPixel({ p, ms }: { p: Particle; ms: number }) {
+  const ref = useRef<View>(null);
+  useEffect(() => {
+    const el = ref.current as unknown as HTMLElement | null;
+    if (!el?.animate) return;
+    const frames = Array.from({ length: FRAMES + 1 }, (_, i) => {
+      const t = easeOutCubic(i / FRAMES);
+      return {
+        opacity: 1 - t * t,
+        transform: `translateX(${p.dx * t}px) translateY(${p.dy * t + GRAVITY * t * t}px) rotate(${p.spin * t}deg) scale(${1 - 0.5 * t})`,
+      };
+    });
+    const anim = el.animate(frames, { duration: ms, fill: 'forwards' });
+    return () => anim.cancel();
+  }, [p, ms]);
+  return (
+    <View
+      ref={ref}
+      style={{ position: 'absolute', width: p.size, height: p.size, left: -p.size / 2, top: -p.size / 2, backgroundColor: p.color }}
+    />
+  );
+}
+
+function NativePixel({ p, ms }: { p: Particle; ms: number }) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withTiming(1, { duration: ms, easing: Easing.out(Easing.cubic) });
@@ -45,6 +72,20 @@ function Pixel({ p, ms }: { p: Particle; ms: number }) {
     />
   );
 }
+
+const Pixel = Platform.OS === 'web' ? WebPixel : NativePixel;
+
+// Memoized: adding or removing one burst must not re-render the particles of the others in flight
+// (fast repeated taps stacked dozens of re-renders per tap).
+const BurstGroup = memo(function BurstGroup({ b }: { b: Burst }) {
+  return (
+    <View style={{ position: 'absolute', left: b.x, top: b.y }}>
+      {b.particles.map((p, i) => (
+        <Pixel key={i} p={p} ms={b.ms} />
+      ))}
+    </View>
+  );
+});
 
 export function PixelBurstProvider({ children }: { children: ReactNode }) {
   const reducedMotion = useReducedMotion();
@@ -74,18 +115,6 @@ export function PixelBurstProvider({ children }: { children: ReactNode }) {
     [reducedMotion]
   );
 
-  const overlay = useMemo(
-    () =>
-      bursts.map((b) => (
-        <View key={b.id} style={{ position: 'absolute', left: b.x, top: b.y }}>
-          {b.particles.map((p, i) => (
-            <Pixel key={i} p={p} ms={b.ms} />
-          ))}
-        </View>
-      )),
-    [bursts]
-  );
-
   return (
     <BurstContext.Provider value={burst}>
       {children}
@@ -96,7 +125,9 @@ export function PixelBurstProvider({ children }: { children: ReactNode }) {
         importantForAccessibility="no-hide-descendants"
         style={StyleSheet.absoluteFill}
       >
-        {overlay}
+        {bursts.map((b) => (
+          <BurstGroup key={b.id} b={b} />
+        ))}
       </View>
     </BurstContext.Provider>
   );

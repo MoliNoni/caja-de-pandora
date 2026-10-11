@@ -3,7 +3,7 @@
 // Displays cart items with quantity controls
 // Handles cart management and checkout
 
-import React, { useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import {
   View,
@@ -19,7 +19,7 @@ import Animated, { FadeInDown, FadeInRight, FadeOutDown, FadeOutLeft, LinearTran
 import { DancingText } from './dancing-text';
 import { useBurst } from './pixel-burst';
 import { Button } from './button';
-import { useCart, type CartItem } from '../lib/cart-context';
+import { useCart, useCartActions, type CartItem } from '../lib/cart-context';
 import { tapHaptic } from '../lib/haptics';
 import { showAlert, showDestructiveConfirm } from '../lib/dialog';
 import { CoverPlaceholder } from './cover-placeholder';
@@ -35,13 +35,116 @@ interface CartDrawerProps {
   loading?: boolean;
 }
 
-// Main cart drawer component
-export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerProps) => {
+type CartRowProps = {
+  item: CartItem;
+  index: number;
+  loading: boolean;
+  onRemove: (item: CartItem, index: number) => void;
+};
+
+// Memoized: a +/- tap re-renders only the row whose quantity changed, not the whole list.
+const CartRow = memo(function CartRow({ item, index, loading, onRemove }: CartRowProps) {
   const theme = useTheme();
   const burst = useBurst();
   const styles = useThemedStyles(makeStyles);
-  const { items, total, discount, removeItem, restoreItem, updateQuantity, clearCart, itemCount } =
-    useCart();
+  const { removeItem, updateQuantity } = useCartActions();
+
+  return (
+    <Animated.View
+      entering={FadeInRight.delay(Math.min(index, 6) * 70).springify().damping(14)}
+      exiting={FadeOutLeft.duration(220)}
+    >
+     <ReanimatedSwipeable
+      friction={1.6}
+      rightThreshold={72}
+      overshootRight={false}
+      enabled={!loading}
+      onSwipeableWillOpen={() => onRemove(item, index)}
+      renderRightActions={() => (
+        <View style={styles.swipeAction}>
+          <Text style={styles.swipeActionText}>Eliminar</Text>
+        </View>
+      )}
+     >
+     <View style={styles.cartItem}>
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+      ) : (
+        <View style={styles.itemImage}>
+          <CoverPlaceholder title={item.titulo} kind={item.category} />
+        </View>
+      )}
+
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemTitle} numberOfLines={2}>
+          {item.titulo}
+        </Text>
+        <Text style={styles.itemPrice}>${item.precio.toFixed(2)}</Text>
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity
+            onPress={(e) => {
+              burst(e, theme.gradients.warm, 'sm');
+              if (item.cantidad > 1) updateQuantity(item.id, item.cantidad - 1);
+              else
+                showDestructiveConfirm('Quitar del carrito', `¿Quieres quitar "${item.titulo}" del carrito?`, 'Quitar', () =>
+                  removeItem(item.id)
+                );
+            }}
+            disabled={loading}
+            style={styles.quantityButton}
+            accessibilityRole="button"
+            accessibilityLabel={`Disminuir cantidad de ${item.titulo}`}
+            accessibilityState={{ disabled: loading }}
+            hitSlop={QTY_HIT_SLOP}
+          >
+            <Text style={styles.quantityButtonText}>-</Text>
+          </TouchableOpacity>
+          <RollingNumber text={String(item.cantidad)} style={styles.quantity} />
+          <TouchableOpacity
+            onPress={(e) => {
+              burst(e, theme.gradients.warm, 'sm');
+              updateQuantity(item.id, item.cantidad + 1);
+            }}
+            disabled={loading}
+            style={styles.quantityButton}
+            accessibilityRole="button"
+            accessibilityLabel={`Aumentar cantidad de ${item.titulo}`}
+            accessibilityState={{ disabled: loading }}
+            hitSlop={QTY_HIT_SLOP}
+          >
+            <Text style={styles.quantityButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.itemRight}>
+        <RollingNumber text={`$${(item.precio * item.cantidad).toFixed(2)}`} style={styles.itemSubtotal} />
+        <TouchableOpacity
+          onPress={(e) => {
+            burst(e, theme.gradients.warm, 'sm');
+            onRemove(item, index);
+          }}
+          disabled={loading}
+          style={styles.deleteButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Eliminar ${item.titulo}`}
+          accessibilityState={{ disabled: loading }}
+          hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+        >
+          <Text style={styles.deleteButtonText}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
+     </View>
+     </ReanimatedSwipeable>
+    </Animated.View>
+  );
+});
+
+// Main cart drawer component
+export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerProps) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { items, total, discount, removeItem, restoreItem, clearCart, itemCount } = useCart();
 
   // Last removal, offered back for a few seconds ("Deshacer").
   const [removed, setRemoved] = useState<{ item: CartItem; index: number } | null>(null);
@@ -50,11 +153,14 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
     const timer = setTimeout(() => setRemoved(null), UNDO_MS);
     return () => clearTimeout(timer);
   }, [removed]);
-  const removeWithUndo = (item: CartItem) => {
-    tapHaptic();
-    setRemoved({ item, index: items.findIndex((i) => i.id === item.id) });
-    removeItem(item.id);
-  };
+  const removeWithUndo = useCallback(
+    (item: CartItem, index: number) => {
+      tapHaptic();
+      setRemoved({ item, index });
+      removeItem(item.id);
+    },
+    [removeItem]
+  );
 
   // Handle checkout process
   const handleCheckout = () => {
@@ -103,93 +209,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
             keyExtractor={(item) => item.id}
             itemLayoutAnimation={LinearTransition.springify().damping(16)}
             renderItem={({ item, index }) => (
-              <Animated.View
-                entering={FadeInRight.delay(Math.min(index, 6) * 70).springify().damping(14)}
-                exiting={FadeOutLeft.duration(220)}
-              >
-               <ReanimatedSwipeable
-                friction={1.6}
-                rightThreshold={72}
-                overshootRight={false}
-                enabled={!loading}
-                onSwipeableWillOpen={() => removeWithUndo(item)}
-                renderRightActions={() => (
-                  <View style={styles.swipeAction}>
-                    <Text style={styles.swipeActionText}>Eliminar</Text>
-                  </View>
-                )}
-               >
-               <View style={styles.cartItem}>
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                ) : (
-                  <View style={styles.itemImage}>
-                    <CoverPlaceholder title={item.titulo} kind={item.category} />
-                  </View>
-                )}
-
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemTitle} numberOfLines={2}>
-                    {item.titulo}
-                  </Text>
-                  <Text style={styles.itemPrice}>${item.precio.toFixed(2)}</Text>
-                  <View style={styles.quantityContainer}>
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        burst(e, theme.gradients.warm, 'sm');
-                        if (item.cantidad > 1) updateQuantity(item.id, item.cantidad - 1);
-                        else
-                          showDestructiveConfirm('Quitar del carrito', `¿Quieres quitar "${item.titulo}" del carrito?`, 'Quitar', () =>
-                            removeItem(item.id)
-                          );
-                      }}
-                      disabled={loading}
-                      style={styles.quantityButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Disminuir cantidad de ${item.titulo}`}
-                      accessibilityState={{ disabled: loading }}
-                      hitSlop={QTY_HIT_SLOP}
-                    >
-                      <Text style={styles.quantityButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <RollingNumber text={String(item.cantidad)} style={styles.quantity} />
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        burst(e, theme.gradients.warm, 'sm');
-                        updateQuantity(item.id, item.cantidad + 1);
-                      }}
-                      disabled={loading}
-                      style={styles.quantityButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Aumentar cantidad de ${item.titulo}`}
-                      accessibilityState={{ disabled: loading }}
-                      hitSlop={QTY_HIT_SLOP}
-                    >
-                      <Text style={styles.quantityButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.itemRight}>
-                  <RollingNumber text={`$${(item.precio * item.cantidad).toFixed(2)}`} style={styles.itemSubtotal} />
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      burst(e, theme.gradients.warm, 'sm');
-                      removeWithUndo(item);
-                    }}
-                    disabled={loading}
-                    style={styles.deleteButton}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Eliminar ${item.titulo}`}
-                    accessibilityState={{ disabled: loading }}
-                    hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-                  >
-                    <Text style={styles.deleteButtonText}>Eliminar</Text>
-                  </TouchableOpacity>
-                </View>
-               </View>
-               </ReanimatedSwipeable>
-              </Animated.View>
+              <CartRow item={item} index={index} loading={loading} onRemove={removeWithUndo} />
             )}
             contentContainerStyle={styles.listContent}
             scrollEnabled

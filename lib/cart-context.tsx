@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { bundleDiscount, getWeeklyPick, Product, type WeeklyPick } from './database';
 import { resolveProductImageUrl } from './product-image';
 
@@ -30,7 +30,12 @@ interface CartContextType {
   itemCount: number;
 }
 
+type CartActions = Pick<CartContextType, 'addItem' | 'removeItem' | 'restoreItem' | 'updateQuantity' | 'clearCart'>;
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
+// Stable functions only: components that just add or remove (every product card) don't re-render
+// on each cart change, which made fast +/- taps lag with a full catalog behind the drawer.
+const CartActionsContext = createContext<CartActions | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -104,24 +109,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const total = subtotal - discount;
   const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
+  const actions = useMemo(
+    () => ({ addItem, removeItem, restoreItem, updateQuantity, clearCart }),
+    [addItem, removeItem, restoreItem, updateQuantity, clearCart]
+  );
+  const value = useMemo(
+    () => ({ items, subtotal, discount, total, weeklyPick, itemCount, ...actions }),
+    [items, subtotal, discount, total, weeklyPick, itemCount, actions]
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        subtotal,
-        discount,
-        total,
-        weeklyPick,
-        addItem,
-        removeItem,
-        restoreItem,
-        updateQuantity,
-        clearCart,
-        itemCount,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartActionsContext.Provider value={actions}>
+      <CartContext.Provider value={value}>{children}</CartContext.Provider>
+    </CartActionsContext.Provider>
   );
 };
 
@@ -129,6 +129,15 @@ export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
     throw new Error('useCart debe usarse dentro de CartProvider');
+  }
+  return context;
+};
+
+/** Cart mutations without subscribing to the cart's contents. */
+export const useCartActions = () => {
+  const context = useContext(CartActionsContext);
+  if (!context) {
+    throw new Error('useCartActions debe usarse dentro de CartProvider');
   }
   return context;
 };

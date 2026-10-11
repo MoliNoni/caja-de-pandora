@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCart } from '../../lib/cart-context';
+import { useCartActions } from '../../lib/cart-context';
 import { getAudiobookPreviewUrl, getRecordPreviewUrl } from '../../lib/previews';
 import { getAlsoBought, getProductoById, Product, productCache } from '../../lib/database';
 import { resolveProductImageUrl } from '../../lib/product-image';
@@ -37,7 +37,7 @@ const FOOTER_CLEARANCE = 88; // room under the content for the floating add-to-c
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useThemedStyles(makeStyles);
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const theme = useTheme();
   const burst = useBurst();
   const fly = useFlyToCart();

@@ -1,14 +1,15 @@
 // Odometer text: every digit is a 0-9 column that rolls to its new value when `text` changes.
 // Non-digit characters ($ . ,) render as plain text. Screen readers get the whole string once.
 
-import { useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const DIGITS = '0123456789'.split('');
 const SPRING = { damping: 22, stiffness: 420, overshootClamping: true };
 
-function Digit({ digit, height, style }: { digit: number; height: number; style: StyleProp<TextStyle> }) {
+// Memoized: when 12.40 becomes 12.50 only the tens-of-cents column re-renders and rolls.
+const Digit = memo(function Digit({ digit, height, style }: { digit: number; height: number; style: StyleProp<TextStyle> }) {
   const reducedMotion = useReducedMotion();
   const y = useSharedValue(-digit * height);
   useEffect(() => {
@@ -27,20 +28,27 @@ function Digit({ digit, height, style }: { digit: number; height: number; style:
       </Animated.View>
     </View>
   );
-}
+});
 
-export function RollingNumber({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
+// Memoized: a cart change re-renders only the numbers whose text changed.
+export const RollingNumber = memo(function RollingNumber({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
   // Margins and horizontal padding belong to the row: on each digit they would break the roll
   // offsets or spread multi-digit numbers apart.
-  const {
-    margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
-    paddingHorizontal, paddingLeft, paddingRight,
-    ...textStyle
-  } = StyleSheet.flatten(style) ?? {};
-  const outer = {
-    margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
-    paddingHorizontal, paddingLeft, paddingRight,
-  };
+  const { outer, textStyle, digitStyle } = useMemo(() => {
+    const {
+      margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
+      paddingHorizontal, paddingLeft, paddingRight,
+      ...text
+    } = StyleSheet.flatten(style) ?? {};
+    return {
+      outer: {
+        margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
+        paddingHorizontal, paddingLeft, paddingRight,
+      },
+      textStyle: text,
+      digitStyle: [text, styles.tabular],
+    };
+  }, [style]);
   const height = textStyle.lineHeight ?? Math.round((textStyle.fontSize ?? 14) * 1.3);
   const chars = text.split('');
 
@@ -50,7 +58,7 @@ export function RollingNumber({ text, style }: { text: string; style?: StyleProp
         // Keyed from the right, so units stay units when the number grows a digit.
         const key = chars.length - i;
         return /\d/.test(c) ? (
-          <Digit key={key} digit={Number(c)} height={height} style={[textStyle, styles.tabular]} />
+          <Digit key={key} digit={Number(c)} height={height} style={digitStyle} />
         ) : (
           <Text key={key} style={[textStyle, { height, lineHeight: height }]}>
             {c}
@@ -59,7 +67,7 @@ export function RollingNumber({ text, style }: { text: string; style?: StyleProp
       })}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },

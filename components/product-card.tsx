@@ -21,7 +21,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { CoverPlaceholder } from './cover-placeholder';
 import { Button } from './button';
-import { useCart } from '../lib/cart-context';
+import { useCartActions } from '../lib/cart-context';
 import { useBurst } from './pixel-burst';
 import { useFlyToCart } from './fly-to-cart';
 import { Product, productCache } from '../lib/database';
@@ -103,7 +103,7 @@ export const ProductCard = ({
         }
       : undefined;
   const [peek, setPeek] = useState(false);
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const theme = useTheme();
   const burst = useBurst();
   const fly = useFlyToCart();
