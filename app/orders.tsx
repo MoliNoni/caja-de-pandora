@@ -13,13 +13,13 @@ import {
   SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useAuth } from '../lib/auth-context';
-import { getClienteOrdenes } from '../lib/database';
+import { getCachedClienteOrdenes, getClienteOrdenes } from '../lib/database';
 import { useRouter } from 'expo-router';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { AppHeader } from '../components/app-header';
-import { Skeleton, SkeletonRegion } from '../components/skeleton';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { Fonts, type Theme } from '../constants/theme';
 
@@ -57,52 +57,53 @@ interface Orden {
   }[];
 }
 
+const normalize = (data: unknown[]): Orden[] =>
+  (data as OrdenRaw[]).map((orden) => ({
+    id: orden.id,
+    estado: orden.estado,
+    total: Number(orden.total || 0),
+    fechaCreacion: orden.fecha_creacion || new Date().toISOString(),
+    detalles: (orden.detalles || []).map((detalle) => ({
+      cantidad: Number(detalle.cantidad || 0),
+      precioUnitario: Number(detalle.precio_unitario || 0),
+      producto: {
+        titulo: detalle.producto?.titulo || 'Producto sin titulo',
+        autor: detalle.producto?.autor || 'Autor no disponible',
+      },
+    })),
+  }));
+
 // Orders screen component
 export default function OrdersScreen() {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [ordenes, setOrdenes] = useState<Orden[]>([]);
-  const [loading, setLoading] = useState(true);
+  // No loading state: the list is usually prefetched (profile menu, checkout); otherwise the
+  // page shows its title alone and the list fades in. null = not loaded yet.
+  const [ordenes, setOrdenes] = useState<Orden[] | null>(() => {
+    const cached = user ? getCachedClienteOrdenes(user.id) : undefined;
+    return cached ? normalize(cached) : null;
+  });
+  const [wasCached] = useState(ordenes !== null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Load user's orders from database
   const loadOrdenes = useCallback(async () => {
     try {
       if (!user) return;
-      const data = await getClienteOrdenes(user.id);
-      const normalizedOrdenes = (data as OrdenRaw[]).map((orden) => ({
-        id: orden.id,
-        estado: orden.estado,
-        total: Number(orden.total || 0),
-        fechaCreacion: orden.fecha_creacion || new Date().toISOString(),
-        detalles: (orden.detalles || []).map((detalle) => ({
-          cantidad: Number(detalle.cantidad || 0),
-          precioUnitario: Number(detalle.precio_unitario || 0),
-          producto: {
-            titulo: detalle.producto?.titulo || 'Producto sin titulo',
-            autor: detalle.producto?.autor || 'Autor no disponible',
-          },
-        })),
-      }));
-
-      setOrdenes(normalizedOrdenes);
+      setOrdenes(normalize(await getClienteOrdenes(user.id)));
     } catch (error) {
       console.error('Error loading ordenes:', error);
+      setOrdenes((current) => current ?? []);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      loadOrdenes();
-    } else if (!authLoading) {
-      setLoading(false);
-    }
-  }, [user, authLoading, loadOrdenes]);
+    if (user) loadOrdenes();
+  }, [user, loadOrdenes]);
 
   // Handle pull-to-refresh
   const onRefresh = () => {
@@ -158,102 +159,88 @@ export default function OrdersScreen() {
       {/* Own header (not the stack's): its back arrow survives a reload with no history. */}
       <AppHeader back />
       <View style={styles.header}>
-        {loading ? (
-          <Skeleton width={90} height={11} radius={2} style={styles.kickerSkeleton} />
-        ) : (
-          <Text style={styles.kicker}>
-            {ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}
-          </Text>
-        )}
         <Text style={styles.title} accessibilityRole="header">Mis pedidos</Text>
       </View>
 
-      {loading ? (
-        <SkeletonRegion style={styles.listContent}>
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} height={170} radius={2} style={styles.skeletonCard} />
-          ))}
-        </SkeletonRegion>
-      ) : ordenes.length === 0 ? (
-        <View style={styles.emptyContainer}>
+      {ordenes === null ? null : ordenes.length === 0 ? (
+        <Animated.View entering={wasCached ? undefined : FadeIn.duration(220)} style={styles.emptyContainer}>
           <Text style={styles.emptyTitle} accessibilityRole="header">Aún no tienes pedidos</Text>
           <Text style={styles.emptySubtitle}>
             Tu primera compra aparecerá aquí
           </Text>
           <Button label="Ir al catálogo" onPress={() => router.push('/explore')} />
-        </View>
+        </Animated.View>
       ) : (
-        <FlatList
-          data={ordenes}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.ordenCard}>
-              {/* Header orden */}
-              <View style={styles.ordenHeader}>
-                <View>
-                  <Text style={styles.ordenId}>Pedido N.º {item.id.replace(/-/g, '').slice(0, 8).toUpperCase()}</Text>
-                  <Text style={styles.ordenFecha}>
-                    {new Date(item.fechaCreacion).toLocaleDateString('es-ES')}
+        <Animated.View entering={wasCached ? undefined : FadeIn.duration(220)} style={styles.listWrap}>
+          <FlatList
+            data={ordenes}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.ordenCard}>
+                {/* Header orden */}
+                <View style={styles.ordenHeader}>
+                  <View>
+                    <Text style={styles.ordenId}>Pedido N.º {item.id.replace(/-/g, '').slice(0, 8).toUpperCase()}</Text>
+                    <Text style={styles.ordenFecha}>
+                      {new Date(item.fechaCreacion).toLocaleDateString('es-ES')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.estadoText, { color: getEstadoBadgeColor(item.estado) }]}>
+                    {getEstadoLabel(item.estado)}
                   </Text>
                 </View>
-                <Text style={[styles.estadoText, { color: getEstadoBadgeColor(item.estado) }]}>
-                  {getEstadoLabel(item.estado)}
-                </Text>
-              </View>
 
-              {/* Items */}
-              <View style={styles.itemsContainer}>
-                {item.detalles.map((detalle, index) => (
-                  <View key={index} style={styles.itemRow}>
-                    <View style={styles.itemInfo}>
-                      <Text style={styles.itemTitle} numberOfLines={2}>
-                        {detalle.producto.titulo}
-                      </Text>
-                      <Text style={styles.itemAutor}>
-                        {detalle.producto.autor}
-                      </Text>
+                {/* Items */}
+                <View style={styles.itemsContainer}>
+                  {item.detalles.map((detalle, index) => (
+                    <View key={index} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemTitle} numberOfLines={2}>
+                          {detalle.producto.titulo}
+                        </Text>
+                        <Text style={styles.itemAutor}>
+                          {detalle.producto.autor}
+                        </Text>
+                      </View>
+                      <View style={styles.itemRight}>
+                        <Text style={styles.itemCantidad}>
+                          x{detalle.cantidad}
+                        </Text>
+                        <Text style={styles.itemPrice}>
+                          ${detalle.precioUnitario.toFixed(2)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.itemRight}>
-                      <Text style={styles.itemCantidad}>
-                        x{detalle.cantidad}
-                      </Text>
-                      <Text style={styles.itemPrice}>
-                        ${detalle.precioUnitario.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
 
-              {/* Total */}
-              <View style={styles.totalSection}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalAmount}>
-                  ${item.total.toFixed(2)}
-                </Text>
+                {/* Total */}
+                <View style={styles.totalSection}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalAmount}>
+                    ${item.total.toFixed(2)}
+                  </Text>
+                </View>
               </View>
-            </View>
-          )}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[theme.accent]}
-              tintColor={theme.accent}
-            />
-          }
-        />
+            )}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.accent]}
+                tintColor={theme.accent}
+              />
+            }
+          />
+        </Animated.View>
       )}
     </SafeAreaView>
   );
 };
 
 const makeStyles = (t: Theme) => StyleSheet.create({
-  skeletonCard: {
-    marginHorizontal: 8,
-    marginVertical: 8,
-  },
+  listWrap: { flex: 1 },
   container: {
     flex: 1,
     backgroundColor: t.bg,
@@ -263,8 +250,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 12,
   },
-  kickerSkeleton: { marginBottom: 8 },
-  kicker: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 8 },
   title: {
     fontSize: 36,
     lineHeight: 42,

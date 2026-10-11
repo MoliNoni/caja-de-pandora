@@ -499,6 +499,10 @@ export const deleteProducto = async (id: string) => {
   }
 };
 
+// Last orders per user: Mis pedidos renders them at once instead of a loading state, then refreshes.
+const ordenesCache = new Map<string, unknown[]>();
+export const getCachedClienteOrdenes = (userId: string) => ordenesCache.get(userId);
+
 // Obtener órdenes del cliente
 export const getClienteOrdenes = async (userId: string) => {
   try {
@@ -510,6 +514,7 @@ export const getClienteOrdenes = async (userId: string) => {
       .single();
 
     if (clienteError || !cliente) {
+      ordenesCache.set(userId, []);
       return []; // No hay cliente, no hay órdenes
     }
 
@@ -529,6 +534,7 @@ export const getClienteOrdenes = async (userId: string) => {
       .order('fecha_creacion', { ascending: false });
 
     if (error) throw error;
+    ordenesCache.set(userId, data || []);
     return data || [];
   } catch (error) {
     console.error('Error fetching ordenes:', error);

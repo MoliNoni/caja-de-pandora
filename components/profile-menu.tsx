@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth-context';
+import { getClienteOrdenes } from '../lib/database';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import type { Theme } from '../constants/theme';
 
@@ -28,6 +29,8 @@ export const ProfileMenu = () => {
       return;
     }
 
+    // Warm Mis pedidos while the menu is open, so it opens with its list already there.
+    if (!open) getClienteOrdenes(user.id).catch(() => {});
     setOpen((current) => !current);
   };
 

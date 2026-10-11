@@ -18,7 +18,7 @@ import { successHaptic } from '../lib/haptics';
 import { useRouter } from 'expo-router';
 import { useCart } from '../lib/cart-context';
 import { useAuth } from '../lib/auth-context';
-import { procesarCompra, PurchaseReceipt } from '../lib/database';
+import { getClienteOrdenes, procesarCompra, PurchaseReceipt } from '../lib/database';
 import { Button } from '../components/button';
 import { PatternBackground } from '../components/pattern-background';
 import { CartDrawer } from '../components/cart-drawer';
@@ -65,6 +65,7 @@ export default function CartScreen() {
 
       const receipt = await procesarCompra(items, user.email);
       setPurchaseReceipt(receipt);
+      getClienteOrdenes(user.id).catch(() => {}); // "Ver mis pedidos" then opens with this order listed
       successHaptic();
       clearCart();
     } catch (error) {
