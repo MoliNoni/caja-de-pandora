@@ -32,6 +32,7 @@ const SLEEVE = 168;
 const DISC = 156;
 const BOOK_W = 112;
 const DISC_OUT = 74; // how far the record slides out of its sleeve
+const SLEEVE_X = 92;
 const TURN_MS = 1800; // 33⅓ rpm
 // Foil-stamp gold: deep, bright, deep. The glint runs to near-white across the letters.
 const GOLD = ['#B8893A', '#F3D98B', '#C99A45'];
@@ -132,34 +133,38 @@ export function WeeklyPick({ books, vinyls }: Props) {
 
   return (
     <View style={[styles.section, wide && styles.sectionWide]}>
-      <View style={styles.stage}>
+      <View style={[styles.stage, !wide && styles.stageNarrow]}>
         {/* Back to front: record, its sleeve, then the book leaning on the sleeve. */}
         <Animated.View style={[styles.disc, slideStyle]}>
           <Record cover={record.imageUrl} spinning={playing} />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).springify().damping(18)} style={styles.sleeveSlot}>
-          <Pressable
-            onPress={() => open(record)}
-            accessibilityRole="link"
-            accessibilityLabel={`Ver disco: ${record.titulo}`}
-            style={(state) => [styles.sleeve, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
-          >
-            <Image accessibilityLabel="" source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
-          </Pressable>
+          <View style={styles.sleeveTilt}>
+            <Pressable
+              onPress={() => open(record)}
+              accessibilityRole="link"
+              accessibilityLabel={`Ver disco: ${record.titulo}`}
+              style={(state) => [styles.sleeve, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+            >
+              <Image accessibilityLabel="" source={{ uri: record.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+            </Pressable>
+          </View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(220).springify().damping(18)} style={styles.bookSlot}>
-          <Pressable
-            onPress={() => open(book)}
-            accessibilityRole="link"
-            accessibilityLabel={`Ver libro: ${book.titulo}`}
-            style={(state) => [styles.book, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
-          >
-            <Image accessibilityLabel="" source={{ uri: book.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
-            {/* Spine shading so it reads as a book, not a flat card. */}
-            <View style={styles.spine} />
-          </Pressable>
+          <View style={styles.bookTilt}>
+            <Pressable
+              onPress={() => open(book)}
+              accessibilityRole="link"
+              accessibilityLabel={`Ver libro: ${book.titulo}`}
+              style={(state) => [styles.book, state.pressed && styles.pressed, isFocused(state) && styles.focusRing]}
+            >
+              <Image accessibilityLabel="" source={{ uri: book.imageUrl }} style={styles.fill} contentFit="cover" transition={200} />
+              {/* Spine shading so it reads as a book, not a flat card. */}
+              <View style={styles.spine} />
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
 
@@ -201,11 +206,16 @@ const makeStyles = (t: Theme) =>
   StyleSheet.create({
     section: { marginHorizontal: 8, marginBottom: 36, gap: 20 },
     sectionWide: { flexDirection: 'row', alignItems: 'center', gap: 40 },
-    stage: { height: SLEEVE + 56, width: 16 + 90 + SLEEVE + DISC_OUT + 8 },
-    disc: { position: 'absolute', left: 90 + (SLEEVE - DISC) / 2, top: 18 + (SLEEVE - DISC) / 2 },
-    sleeveSlot: { position: 'absolute', left: 90, top: 18, transform: [{ rotate: '2deg' }] },
+    // As wide as what shows: the tilted book's corner at 0, the slid-out record's edge at the right.
+    stage: { height: SLEEVE + 56, width: SLEEVE_X + (SLEEVE + DISC) / 2 + DISC_OUT },
+    stageNarrow: { alignSelf: 'center' },
+    disc: { position: 'absolute', left: SLEEVE_X + (SLEEVE - DISC) / 2, top: 18 + (SLEEVE - DISC) / 2 },
+    // Tilts sit on the covers, not the slots: the entering animation owns the slot's transform.
+    sleeveSlot: { position: 'absolute', left: SLEEVE_X, top: 18 },
+    sleeveTilt: { transform: [{ rotate: '2deg' }] },
     sleeve: { width: SLEEVE, height: SLEEVE, borderRadius: 4, overflow: 'hidden', boxShadow: '0 16px 32px rgba(0,0,0,0.35)' },
-    bookSlot: { position: 'absolute', left: 8, top: 44, transform: [{ rotate: '-7deg' }] },
+    bookSlot: { position: 'absolute', left: 10, top: 44 },
+    bookTilt: { transform: [{ rotate: '-7deg' }] },
     book: { width: BOOK_W, height: BOOK_W * 1.5, borderRadius: 3, overflow: 'hidden', boxShadow: '0 18px 30px rgba(0,0,0,0.45)' },
     spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, backgroundColor: 'rgba(0,0,0,0.22)' },
     fill: { width: '100%', height: '100%' },

@@ -4,7 +4,7 @@
 // Modular sections and carousel support
 
 import { WeeklyPick } from '../../components/weekly-pick';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -124,10 +124,13 @@ export default function HomeScreen() {
     setForYou(user ? await getRecommendations() : []);
   }, [setHome, user]);
 
+  // The first focus is the mount itself: bumping then would mount the sections twice on load.
+  const focused = useRef(false);
   useFocusEffect(
     useCallback(() => {
       scrollY.value = 0;
-      setVisit((v) => v + 1);
+      if (focused.current) setVisit((v) => v + 1);
+      focused.current = true;
       loadHomeData();
     }, [loadHomeData, scrollY])
   );
