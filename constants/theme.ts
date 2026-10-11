@@ -1,36 +1,11 @@
 /**
  * Design tokens. Source of truth: design.md#tokens.
- * Read colors through `useTheme()` / `useThemedStyles()` so light and dark both work.
+ * Dark only: the shop has one look. Read colors through `useTheme()` / `useThemedStyles()`.
  */
 
 import { Platform } from 'react-native';
 
 export const Colors = {
-  light: {
-    bg: '#F7F2EA',
-    surface: '#FFFDF9',
-    ink: '#1C1420',
-    inkMuted: '#5F5563',
-    accent: '#8E3B54',
-    onAccent: '#FFFFFF',
-    border: '#E6DCCF',
-    danger: '#B42318',
-    success: '#0F7A55',
-    scrim: 'rgba(28, 20, 32, 0.5)',
-    /** Frosted chrome (tab bar, hero CTA): translucent fill, hairline edge, diffuse shadow. */
-    glass: 'rgba(255, 253, 249, 0.72)',
-    glassBorder: 'rgba(28, 20, 32, 0.08)',
-    glassShadow: '0 18px 48px rgba(28,20,32,0.14), inset 0 1px 0 rgba(255,255,255,0.8)',
-    /** Muted jewel tones for blobs and glows. Each keeps >= 3:1 against `bg` for large text. */
-    vivid: ['#9B3F5C', '#B0603F', '#9A7A3A', '#2F7A68', '#3D5A99', '#6B4A9E'],
-    /** Letter gradients for DancingText titles (start → end): wine, rose gold and antique gold. */
-    gradients: {
-      pandora: ['#7A2E4A', '#A8545A', '#A87A3E'],
-      vinyl: ['#5B3F8C', '#7A2E4A', '#A87A3E'],
-      books: ['#2F6B5C', '#6B6A3A', '#A87A3E'],
-      warm: ['#8E3B54', '#A87A3E'],
-    },
-  },
   dark: {
     bg: '#0B0A0C',
     surface: '#151317',
@@ -56,7 +31,7 @@ export const Colors = {
   },
 };
 
-export type Theme = typeof Colors.light;
+export type Theme = typeof Colors.dark;
 
 export const Spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 

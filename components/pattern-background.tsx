@@ -12,7 +12,6 @@ import Animated, {
 import Svg, { Circle, Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTheme } from '../hooks/use-theme';
-import { useColorScheme } from '../hooks/use-color-scheme';
 import { useAudioLevel } from '../lib/player-context';
 
 const forcedQuery =
@@ -85,7 +84,6 @@ function Blob({ color, left, top, dx, dy, ms, opacity }: (typeof BLOBS)[number] 
  */
 export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'contours' }) {
   const theme = useTheme();
-  const dark = useColorScheme() === 'dark';
   const id = `pattern${useId().replace(/:/g, '')}`;
   const forcedColors = useSyncExternalStore(subscribe, getForcedColors, () => false);
 
@@ -100,7 +98,7 @@ export function PatternBackground({ variant = 'dots' }: { variant?: 'dots' | 'co
       style={[StyleSheet.absoluteFill, styles.clip]}
     >
       {BLOBS.map((b) => (
-        <Blob key={b.color} {...b} opacity={dark ? 0.16 : 0.1} />
+        <Blob key={b.color} {...b} opacity={0.16} />
       ))}
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
