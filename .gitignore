@@ -62,3 +62,7 @@ lerna-debug.log*
 
 expo-env.d.ts
 # @end expo-cli
+
+# Tests
+__tests__/
+
