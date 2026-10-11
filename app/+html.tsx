@@ -2,8 +2,11 @@ import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 // Web-only document shell (static export). Loads the display face used by Fonts.serif.
+// Background before JS loads, plus a keyboard focus ring for controls without their own (TouchableOpacity).
 const PAGE_BG = `html, body { background-color: #F7F2EA; }
-@media (prefers-color-scheme: dark) { html, body { background-color: #0B0A0C; } }`;
+@media (prefers-color-scheme: dark) { html, body { background-color: #0B0A0C; } }
+:is(a, [role=button], [role=link], [role=tab], [role=checkbox], [role=switch]):focus-visible { outline: 2px solid #8E3B54; outline-offset: 2px; }
+@media (prefers-color-scheme: dark) { :is(a, [role=button], [role=link], [role=tab], [role=checkbox], [role=switch]):focus-visible { outline-color: #E7B7A3; } }`;
 
 export default function Root({ children }: PropsWithChildren) {
   return (
