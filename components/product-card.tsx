@@ -27,6 +27,7 @@ import { useFlyToCart } from './fly-to-cart';
 import { Product, productCache } from '../lib/database';
 import { peekProductImageUrl, resolveProductImageUrl } from '../lib/product-image';
 import { getBookSynopsis } from '../lib/book-info';
+import { useIsBestSeller } from '../lib/best-sellers';
 import { getDiscogsTracklist } from '../lib/discogs';
 import { useTheme, useThemedStyles } from '../hooks/use-theme';
 import { tapHaptic } from '../lib/haptics';
@@ -36,7 +37,6 @@ import { Fonts, type Theme } from '../constants/theme';
 interface ProductCardProps {
   product: Product;
   onPress?: () => void;
-  isBestSeller?: boolean;
   compact?: boolean;
   featured?: boolean;
   /** Position in its list: staggers the entrance. */
@@ -49,13 +49,13 @@ interface ProductCardProps {
 export const ProductCard = ({
   product,
   onPress,
-  isBestSeller = false,
   compact = false,
   featured = false,
   index = 0,
   width,
 }: ProductCardProps) => {
   const styles = useThemedStyles(makeStyles);
+  const isBestSeller = useIsBestSeller(product.id);
   const reducedMotion = useReducedMotion();
   const lift = useSharedValue(0);
   // Cursor position over the card, -1..1 on each axis (web only).

@@ -81,7 +81,6 @@ interface SectionCarouselProps {
   kicker?: string;
   subtitle?: string;
   products: Product[];
-  isBestSeller?: boolean;
   featuredFirst?: boolean;
   onSeeAll?: () => void;
 }
@@ -91,7 +90,6 @@ export const SectionCarousel = ({
   kicker,
   subtitle,
   products,
-  isBestSeller = false,
   featuredFirst = false,
   onSeeAll,
 }: SectionCarouselProps) => {
@@ -125,7 +123,6 @@ export const SectionCarousel = ({
             <ProductCard
               product={item}
               compact
-              isBestSeller={isBestSeller}
               featured={featuredFirst && index === 0}
               index={index}
             />

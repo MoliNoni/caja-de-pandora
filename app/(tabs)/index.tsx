@@ -24,6 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getHomeData, getRecommendations, type HomeData, type Product } from '../../lib/database';
 import { useAuth } from '../../lib/auth-context';
 import { useCachedState } from '../../lib/cache';
+import { setBestSellers } from '../../lib/best-sellers';
 import { PatternBackground } from '../../components/pattern-background';
 import { SectionCarousel } from '../../components/section-carousel';
 import { HeroButton } from '../../components/hero-button';
@@ -117,7 +118,9 @@ export default function HomeScreen() {
 
   const loadHomeData = useCallback(async () => {
     try {
-      setHome(await getHomeData());
+      const data = await getHomeData();
+      setHome(data);
+      setBestSellers(data);
     } catch (error) {
       console.error('Error loading home data:', error);
     }
@@ -180,7 +183,6 @@ export default function HomeScreen() {
             kicker="Libros"
             title="Los más vendidos"
             products={home.books}
-            isBestSeller
             featuredFirst
             onSeeAll={() => router.push('/(tabs)/explore')}
           />
@@ -196,7 +198,6 @@ export default function HomeScreen() {
             kicker="Vinilos"
             title="Los más vendidos"
             products={home.vinyls}
-            isBestSeller
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
 
