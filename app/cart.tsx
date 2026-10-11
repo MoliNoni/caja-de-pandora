@@ -174,7 +174,6 @@ export default function CartScreen() {
               <Button
                 label="Ver mis pedidos"
                 variant="outline"
-                style={styles.receiptButton}
                 onPress={() => {
                   setPurchaseReceipt(null);
                   router.push('/orders');
@@ -182,7 +181,6 @@ export default function CartScreen() {
               />
               <Button
                 label="Seguir comprando"
-                style={styles.receiptButton}
                 onPress={closeReceipt}
               />
             </View>
@@ -317,16 +315,13 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   sumValue: { fontSize: 14, color: t.ink, fontVariant: ['tabular-nums'] },
   totalLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.ink, alignSelf: 'center' },
   totalValue: { fontSize: 22, fontFamily: Fonts.serif, color: t.accent, fontVariant: ['tabular-nums'] },
+  // Stacked: the tracked uppercase labels don't fit side by side within the card's 460px.
   receiptActions: {
-    flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: t.inkMuted,
     backgroundColor: t.surface,
-  },
-  receiptButton: {
-    flex: 1,
   },
 });
