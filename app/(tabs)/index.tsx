@@ -11,7 +11,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   Extrapolation,
-  FadeIn,
+  withDelay,
   interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -39,6 +39,20 @@ const HEADER = 60;
 // The compact title docks in the bar as the large one finishes leaving.
 const DOCK: [number, number] = [HERO_FADE - 70, HERO_FADE];
 const TICKER_PX_S = 28;
+
+/**
+ * Fades its children in on mount, driven by a shared value. Not `entering`: on web that paints one
+ * fully visible frame before the animation starts, which read as a pop.
+ */
+function FadeIn({ delay, duration, children }: { delay: number; duration: number; children: React.ReactNode }) {
+  const reducedMotion = useReducedMotion();
+  const opacity = useSharedValue(reducedMotion ? 1 : 0);
+  useEffect(() => {
+    if (!reducedMotion) opacity.value = withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.cubic) }));
+  }, [reducedMotion, delay, duration, opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
 
 /** Tracked-caps line of genres drifting sideways, like a shop-front ticker. */
 function GenreTicker({ products }: { products: Product[] }) {
@@ -144,19 +158,21 @@ export default function HomeScreen() {
       <View style={styles.body}>
         <Animated.ScrollView onScroll={onScroll} key={visit} contentContainerStyle={styles.scrollContent} scrollEventThrottle={16}>
           <Animated.View style={[styles.hero, heroStyle]}>
-            {/* Static from the first paint: the hero needs no data, so the static HTML already shows it. */}
-            <DancingText text="Caja de Pandora" style={styles.heroTitle} record={10} enter={false} />
-            <HeroButton
-              label="Buscar en el catálogo"
-              onPress={() =>
-                router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
-              }
-            />
+            {/* One choreographed entrance: the title rises letter by letter, the button and the
+                data block follow, so nothing appears on its own. */}
+            <DancingText text="Caja de Pandora" style={styles.heroTitle} record={10} />
+            <FadeIn delay={700} duration={900}>
+              <HeroButton
+                label="Buscar en el catálogo"
+                onPress={() =>
+                  router.push({ pathname: '/(tabs)/explore', params: { focus: 'search' } } as any)
+                }
+              />
+            </FadeIn>
           </Animated.View>
 
-          {/* Everything that needs data arrives as one block, no skeleton and no piece-by-piece entrances. */}
           {home && (
-          <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(320)}>
+          <FadeIn delay={400} duration={900}>
 
           <GenreTicker products={[...home.books, ...home.vinyls, ...home.newBooks, ...home.newVinyls]} />
 
@@ -194,7 +210,7 @@ export default function HomeScreen() {
             products={home.newVinyls}
             onSeeAll={() => router.push('/(tabs)/vinyl')}
           />
-          </Animated.View>
+          </FadeIn>
           )}
         </Animated.ScrollView>
 

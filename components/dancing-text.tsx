@@ -10,14 +10,19 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../hooks/use-theme';
 import { SpinningRecord } from './app-header';
 
-const STAGGER_MS = 45;
+const STAGGER_MS = 60;
+// Entrance: each letter rises a little out of a soft blur, slow ease-out, no bounce (luxury, not cartoon).
+const ENTER_MS = 1100;
+const ENTER_RISE = 14;
+const RECORD_TURN = -140; // the record letter turns into place as it lands
+const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const easeOut = Easing.bezier(0.22, 1, 0.36, 1);
 const WAVE_UP_MS = 700;
 const WAVE_REST_MS = 2600; // pause between waves so the title settles and stays readable
 const sine = Easing.inOut(Easing.sin);
@@ -39,21 +44,6 @@ function gradientAt(stops: string[], t: number) {
 
 // Web runs the same motion through the Web Animations API: the browser animates it off the JS thread,
 // so the wave stays smooth while carousels and scroll effects keep the page busy.
-const SPRING_FRAMES = (() => {
-  // withSpring({ damping: 18, stiffness: 120 }), mass 1, sampled every ~16ms until it settles.
-  const out: number[] = [];
-  let x = 0;
-  let v = 0;
-  for (let step = 0; step < 4000; step++) {
-    if (step % 4 === 0) out.push(x);
-    v += (-120 * (x - 1) - 18 * v) / 240;
-    x += v / 240;
-    if (Math.abs(x - 1) < 0.001 && Math.abs(v) < 0.001) break;
-  }
-  out.push(1);
-  return out;
-})();
-const SPRING_MS = (SPRING_FRAMES.length - 1) * (4000 / 240 / 4);
 const SINE = 'cubic-bezier(0.37, 0, 0.63, 1)'; // Easing.inOut(Easing.sin)
 const WAVE_PERIOD = WAVE_UP_MS * 2 + WAVE_REST_MS;
 const SHEEN_PERIOD = SHEEN_IN_MS + SHEEN_OUT_MS + SHEEN_REST_MS;
@@ -61,24 +51,27 @@ const SHEEN_PERIOD = SHEEN_IN_MS + SHEEN_OUT_MS + SHEEN_REST_MS;
 function useWebLetterMotion(
   ref: React.RefObject<unknown>,
   inkRef: React.RefObject<unknown>,
-  { index, delay, wave, enter, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; enter: boolean; color?: string; glint?: string; reducedMotion: boolean }
+  { index, delay, wave, enter, record, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; enter: boolean; record: boolean; color?: string; glint?: string; reducedMotion: boolean }
 ) {
   useEffect(() => {
     const el = ref.current as HTMLElement | null;
     if (!el?.animate || reducedMotion) return;
     const start = delay + index * STAGGER_MS;
-    const tilt = index % 2 ? 8 : -8;
     // Chrome composites a transform animation only when it is the element's sole one and uses 'replace':
     // the entrance ends at identity with no forward fill, and is removed before the wave is created.
     // Without an entrance the letters are already in place (static HTML included) and only the wave runs.
+    const timing = { duration: ENTER_MS, delay: start, easing: EASE_OUT };
     const entrance = enter
       ? el.animate(
-          SPRING_FRAMES.map((e) => ({ transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})` })),
-          { duration: SPRING_MS, delay: start, fill: 'backwards' }
+          [
+            { transform: `translateY(${ENTER_RISE}px)${record ? ` rotate(${RECORD_TURN}deg)` : ''}`, filter: 'blur(8px)' },
+            { transform: `translateY(0px)${record ? ' rotate(0deg)' : ''}`, filter: 'blur(0px)' },
+          ],
+          { ...timing, fill: 'backwards' }
         )
       : null;
     const anims: Animation[] = entrance
-      ? [el.animate(SPRING_FRAMES.map((e) => ({ opacity: Math.min(e, 1) })), { duration: SPRING_MS, delay: start, fill: 'both' }), entrance]
+      ? [el.animate([{ opacity: 0 }, { opacity: 1 }], { ...timing, duration: ENTER_MS * 0.8, fill: 'both' }), entrance]
       : [];
     if (wave) {
       const up = WAVE_UP_MS / WAVE_PERIOD;
@@ -93,7 +86,7 @@ function useWebLetterMotion(
                 { transform: 'translateY(0px)', offset: up * 2 },
                 { transform: 'translateY(0px)' },
               ],
-              { duration: WAVE_PERIOD, delay: Math.max(900 - SPRING_MS, 0) + index * 70, iterations: Infinity }
+              { duration: WAVE_PERIOD, delay: 300 + index * 70, iterations: Infinity }
             )
           );
         },
@@ -112,12 +105,12 @@ function useWebLetterMotion(
             { color, offset: (SHEEN_IN_MS + SHEEN_OUT_MS) / SHEEN_PERIOD },
             { color },
           ],
-          { duration: SHEEN_PERIOD, delay: start + 600 + index * SHEEN_STEP_MS, iterations: Infinity }
+          { duration: SHEEN_PERIOD, delay: start + ENTER_MS + index * SHEEN_STEP_MS, iterations: Infinity }
         )
       );
     }
     return () => anims.forEach((a) => a.cancel());
-  }, [ref, inkRef, index, delay, wave, enter, color, glint, reducedMotion]);
+  }, [ref, inkRef, index, delay, wave, enter, record, color, glint, reducedMotion]);
 }
 
 type Props = {
@@ -155,7 +148,7 @@ const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wa
   const reducedMotion = useReducedMotion();
   const ref = useRef<View>(null);
   const inkRef = useRef<Text>(null);
-  useWebLetterMotion(ref, inkRef, { index, delay, wave, enter, color, glint: color && glint ? glint : undefined, reducedMotion });
+  useWebLetterMotion(ref, inkRef, { index, delay, wave, enter, record: !!record, color, glint: color && glint ? glint : undefined, reducedMotion });
   // Hidden until its entrance runs (the static HTML must not flash the whole title first).
   const hidden = { opacity: reducedMotion || !enter ? 1 : 0 };
   if (record) {
@@ -187,11 +180,11 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
       return;
     }
     const start = delay + index * STAGGER_MS;
-    if (entrance) enter.value = withDelay(start, withSpring(1, { damping: 18, stiffness: 120 }));
+    if (entrance) enter.value = withDelay(start, withTiming(1, { duration: ENTER_MS, easing: easeOut }));
     if (wave) {
       // Same period for every letter, offset start: the bump travels across the word.
       bob.value = withDelay(
-        start + 900 + index * 70,
+        start + ENTER_MS + 300 + index * 70,
         withRepeat(
           withSequence(
             withTiming(-5, { duration: WAVE_UP_MS, easing: sine }),
@@ -203,7 +196,7 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
       );
     }
     sheen.value = withDelay(
-      start + 600 + index * SHEEN_STEP_MS,
+      start + ENTER_MS + index * SHEEN_STEP_MS,
       withRepeat(
         withSequence(
           withTiming(1, { duration: SHEEN_IN_MS, easing: sine }),
@@ -220,15 +213,13 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
     };
   }, [reducedMotion, wave, delay, entrance, index, enter, bob, sheen]);
 
-  const tilt = index % 2 ? 8 : -8;
   const animated = useAnimatedStyle((): TextStyle => {
     return {
       ...(color && glint && !reducedMotion ? { color: interpolateColor(sheen.value, [0, 1], [color, glint]) } : null),
       opacity: Math.min(enter.value, 1),
       transform: [
-        { translateY: (1 - enter.value) * 24 + bob.value },
-        { rotate: `${(1 - enter.value) * tilt}deg` },
-        { scale: 0.85 + 0.15 * enter.value },
+        { translateY: (1 - enter.value) * ENTER_RISE + bob.value },
+        { rotate: `${record ? (1 - enter.value) * RECORD_TURN : 0}deg` },
       ],
     };
   });
@@ -249,7 +240,7 @@ const NativeLetter = memo(function NativeLetter({ char, index, color, glint, sty
 
 const Letter = Platform.OS === 'web' ? WebLetter : NativeLetter;
 
-/** Display title whose letters spring in one by one, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
+/** Display title whose letters rise in one by one out of a soft blur, dance in a slow wave and catch a travelling glint. Reads as one label to AT. */
 export const DancingText = memo(function DancingText({ text, style, containerStyle, wave = true, delay = 0, enter = true, colors, glint, record }: Props) {
   const theme = useTheme();
   const stops = colors ?? theme.gradients.pandora;

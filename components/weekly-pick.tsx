@@ -89,24 +89,26 @@ export function WeeklyPick({ books, vinyls }: Props) {
   const wide = useWindowDimensions().width >= 720;
   // The server decides the pair (and charges the bundle); a local pick without the offer until it answers.
   const { weeklyPick } = useCart();
-  // The last server pair is remembered, so a reload paints it at once instead of swapping the local pick out.
+  // The last server pair and its discount are remembered, so a reload paints them at once instead of swapping
+  // the local pick out or dropping the bundle row in late (it pushed the play button down).
   // Read synchronously: this mounts only after the home data, never in the static HTML, so it cannot mismatch.
-  const [serverPair, setServerPair] = useState(() => readCache<[Product, Product]>('weekly-pair'));
+  const [serverPair, setServerPair] = useState(() => readCache<[Product, Product, number]>('weekly-pick'));
   useEffect(() => {
     if (!weeklyPick) return;
     const find = (id: string, list: Product[]) => list.find((p) => p.id === id) ?? getProductoById(id);
     Promise.all([find(weeklyPick.bookId, books), find(weeklyPick.vinylId, vinyls)])
       .then(([b, v]) => {
-        writeCache('weekly-pair', [b, v]);
+        const d = weeklyPick.discount;
+        writeCache('weekly-pick', [b, v, d]);
         // Same pair: keep the objects, a new source object would replay the covers' fade.
-        setServerPair((cur) => (cur?.[0].id === b.id && cur?.[1].id === v.id ? cur : [b, v]));
+        setServerPair((cur) => (cur?.[0].id === b.id && cur?.[1].id === v.id && cur[2] === d ? cur : [b, v, d]));
       })
       .catch(() => {});
   }, [weeklyPick, books, vinyls]);
   const localBook = useMemo(() => pickOfTheWeek(books), [books]);
   const localRecord = useMemo(() => pickOfTheWeek(vinyls), [vinyls]);
   const [book, record] = serverPair ?? [localBook, localRecord];
-  const off = serverPair && weeklyPick ? weeklyPick.discount : 0;
+  const off = serverPair?.[2] ?? 0;
   const pairPrice = (book?.precio ?? 0) + (record?.precio ?? 0);
   const bundlePrice = pairPrice - Math.round(pairPrice * off * 100) / 100;
 
