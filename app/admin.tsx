@@ -163,15 +163,15 @@ export default function AdminScreen() {
         checks.push(
           synopsis
             ? { ok: true, text: 'Sinopsis encontrada: se muestra al abrir el libro' }
-            : { ok: false, text: 'Sin sinopsis en español: escribe la descripcion en español' }
+            : { ok: false, text: 'Sin sinopsis en español: escribe la descripción en español' }
         );
       } else {
         // Same search the product page runs, on the values that will be saved.
         const preview = await getRecordPreviewUrl(next.autor, next.titulo);
         checks.push(
           preview
-            ? { ok: true, text: 'Vista previa de audio encontrada: el disco sonara al girar' }
-            : { ok: false, text: 'Sin vista previa de audio: revisa artista y titulo; el disco girara en silencio' }
+            ? { ok: true, text: 'Vista previa de audio encontrada: el disco sonará al girar' }
+            : { ok: false, text: 'Sin vista previa de audio: revisa artista y título; el disco girará en silencio' }
         );
       }
       setLookup({ state: 'done', cover: next.imageUrl || null, checks });
@@ -214,15 +214,15 @@ export default function AdminScreen() {
     const anio = formData.anio_publicacion ? Number(formData.anio_publicacion) : null;
 
     if (!Number.isFinite(precio) || precio <= 0) {
-      nextErrors.precio = 'Ingresa un precio valido';
+      nextErrors.precio = 'Ingresa un precio válido';
     }
 
     if (!Number.isInteger(stock) || stock < 0) {
-      nextErrors.stock = 'Ingresa un stock valido';
+      nextErrors.stock = 'Ingresa un stock válido';
     }
 
     if (anio !== null && (!Number.isInteger(anio) || anio < 0)) {
-      nextErrors.anio_publicacion = 'Ingresa un año valido';
+      nextErrors.anio_publicacion = 'Ingresa un año válido';
     }
 
     if (formData.category === 'book' && !formData.isbn.trim()) {
@@ -287,7 +287,7 @@ export default function AdminScreen() {
       await createProducto(await buildPayload());
       setFormData({ ...initialFormState, category: formData.category });
       setLookup({ state: 'idle' });
-      showAlert('Producto creado', 'El producto fue añadido al catalogo.');
+      showAlert('Producto creado', 'El producto fue añadido al catálogo.');
     } catch (error: any) {
       showAlert('No se pudo crear', error?.message || 'Revisa los datos e intenta de nuevo.');
     } finally {
@@ -313,9 +313,9 @@ export default function AdminScreen() {
       <SafeAreaView style={styles.container}>
         <PatternBackground />
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle} accessibilityRole="header">Inicia sesion</Text>
+          <Text style={styles.emptyTitle} accessibilityRole="header">Inicia sesión</Text>
           <Text style={styles.emptySubtitle}>Necesitas autenticarte para administrar productos.</Text>
-          <Button label="Iniciar sesion" onPress={() => router.push('/signin')} />
+          <Button label="Iniciar sesión" onPress={() => router.push('/signin')} />
         </View>
       </SafeAreaView>
     );
@@ -327,7 +327,7 @@ export default function AdminScreen() {
         <PatternBackground />
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle} accessibilityRole="header">Acceso restringido</Text>
-          <Text style={styles.emptySubtitle}>Tu usuario no esta habilitado como administrador.</Text>
+          <Text style={styles.emptySubtitle}>Tu usuario no está habilitado como administrador.</Text>
           <Button label="Volver" variant="outline" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -351,8 +351,8 @@ export default function AdminScreen() {
             <Ionicons name="arrow-back" size={22} color={theme.ink} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={styles.title} accessibilityRole="header">Administracion</Text>
-            <Text style={styles.subtitle}>Añadir productos al catalogo</Text>
+            <Text style={styles.title} accessibilityRole="header">Administración</Text>
+            <Text style={styles.subtitle}>Añadir productos al catálogo</Text>
           </View>
         </View>
 
@@ -386,7 +386,7 @@ export default function AdminScreen() {
           {lookup.state === 'notfound' ? (
             <Text style={styles.lookupMiss} accessibilityLiveRegion="polite" aria-live="polite">
               {formData.category === 'book'
-                ? 'No encontramos ese ISBN en Open Library. Revisa el numero o completa los datos a mano.'
+                ? 'No encontramos ese ISBN en Open Library. Revisa el número o completa los datos a mano.'
                 : 'No encontramos ese release en Discogs. Revisa el ID o completa los datos a mano.'}
             </Text>
           ) : null}
@@ -405,7 +405,7 @@ export default function AdminScreen() {
           ) : null}
 
           <Input
-            label="Titulo"
+            label="Título"
             value={formData.titulo}
             error={errors.titulo}
             onChangeText={(text) => setField('titulo', text)}
@@ -417,7 +417,7 @@ export default function AdminScreen() {
             onChangeText={(text) => setField('autor', text)}
           />
           <Input
-            label="Descripcion"
+            label="Descripción"
             value={formData.descripcion}
             error={errors.descripcion}
             multiline
@@ -470,7 +470,7 @@ export default function AdminScreen() {
               </View>
             )}
             <Input
-              label="Nueva categoria"
+              label="Nueva categoría"
               value={formData.genero}
               error={errors.genero}
               onChangeText={(text) => {

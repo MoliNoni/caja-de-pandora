@@ -271,7 +271,7 @@ export default function ProductDetailScreen() {
 
         {alsoBought.length > 0 && (
           <View style={styles.alsoBought}>
-            <SectionCarousel kicker="También compraron" title="Quienes lo llevaron" products={alsoBought} />
+            <SectionCarousel kicker="También compraron" title="Quiénes lo llevaron" products={alsoBought} />
           </View>
         )}
       </Animated.ScrollView>

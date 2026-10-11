@@ -6,9 +6,9 @@ export default function VinylCatalogScreen() {
     <CatalogScreen
       category="vinyl"
       title="Catálogo de Vinilos"
-      searchPlaceholder="Buscar vinilos por titulo, artista o genero"
+      searchPlaceholder="Buscar vinilos por título, artista o género"
       emptyTitle="No se encontraron vinilos"
-      emptySubtitle="Intenta con otra busqueda"
+      emptySubtitle="Intenta con otra búsqueda"
     />
   );
 }

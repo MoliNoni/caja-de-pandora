@@ -6,9 +6,9 @@ export default function BooksCatalogScreen() {
     <CatalogScreen
       category="book"
       title="Catálogo de Libros"
-      searchPlaceholder="Buscar libros por titulo, autor o genero"
+      searchPlaceholder="Buscar libros por título, autor o género"
       emptyTitle="No se encontraron libros"
-      emptySubtitle="Intenta con otra busqueda"
+      emptySubtitle="Intenta con otra búsqueda"
     />
   );
 }

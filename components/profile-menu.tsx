@@ -104,7 +104,7 @@ export const ProfileMenu = () => {
               activeOpacity={0.75}
             >
               <Ionicons name="receipt-outline" size={20} color={theme.accent} />
-              <Text style={styles.menuItemText}>Mis ordenes</Text>
+              <Text style={styles.menuItemText}>Mis pedidos</Text>
             </TouchableOpacity>
 
             {isAdmin && (
@@ -118,7 +118,7 @@ export const ProfileMenu = () => {
                 activeOpacity={0.75}
               >
                 <Ionicons name="settings-outline" size={20} color={theme.accent} />
-                <Text style={styles.menuItemText}>Administracion</Text>
+                <Text style={styles.menuItemText}>Administración</Text>
               </TouchableOpacity>
             )}
 
@@ -135,7 +135,7 @@ export const ProfileMenu = () => {
               ) : (
                 <Ionicons name="log-out-outline" size={20} color={theme.accent} />
               )}
-              <Text style={styles.menuItemText}>Cerrar sesion</Text>
+              <Text style={styles.menuItemText}>Cerrar sesión</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
