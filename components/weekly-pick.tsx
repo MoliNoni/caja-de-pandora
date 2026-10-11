@@ -37,6 +37,9 @@ const TURN_MS = 1800; // 33⅓ rpm
 // Foil-stamp gold: deep, bright, deep. The glint runs to near-white across the letters.
 const GOLD = ['#B8893A', '#F3D98B', '#C99A45'];
 const GOLD_GLINT = '#FFF4D6';
+// As wide as what shows: the tilted book's corner at 0, the slid-out record's edge at the right.
+const STAGE_W = SLEEVE_X + (SLEEVE + DISC) / 2 + DISC_OUT;
+const STAGE_H = SLEEVE + 56;
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 /** Fallback while `weekly_pick` (migration 005) is not applied: same idea, but only the server pair carries the discount. */
@@ -86,7 +89,10 @@ export function WeeklyPick({ books, vinyls }: Props) {
   const router = useRouter();
   const player = usePlayer();
   const reducedMotion = useReducedMotion();
-  const wide = useWindowDimensions().width >= 720;
+  const { width } = useWindowDimensions();
+  const wide = width >= 720;
+  // Small phones (320-360): the stage is drawn scaled inside a box of the scaled size, so layout never overflows.
+  const fit = Math.min(1, (width - 40) / STAGE_W);
   // The server decides the pair (and charges the bundle); a local pick without the offer until it answers.
   const { weeklyPick } = useCart();
   // The last server pair and its discount are remembered, so a reload paints them at once instead of swapping
@@ -141,7 +147,8 @@ export function WeeklyPick({ books, vinyls }: Props) {
 
   return (
     <View style={[styles.section, wide && styles.sectionWide]}>
-      <View style={[styles.stage, !wide && styles.stageNarrow]}>
+      <View style={[{ width: STAGE_W * fit, height: STAGE_H * fit }, !wide && styles.stageNarrow]}>
+      <View style={[styles.stage, fit < 1 && { transform: [{ scale: fit }], transformOrigin: 'left top' }]}>
         {/* Back to front: record, its sleeve, then the book leaning on the sleeve. */}
         <Animated.View style={[styles.disc, slideStyle]}>
           <Record cover={record.imageUrl} spinning={playing} />
@@ -174,6 +181,7 @@ export function WeeklyPick({ books, vinyls }: Props) {
             </Pressable>
           </View>
         </View>
+      </View>
       </View>
 
       <View style={styles.copy}>
@@ -214,8 +222,7 @@ const makeStyles = (t: Theme) =>
   StyleSheet.create({
     section: { marginHorizontal: 8, marginBottom: 36, gap: 20 },
     sectionWide: { flexDirection: 'row', alignItems: 'center', gap: 40 },
-    // As wide as what shows: the tilted book's corner at 0, the slid-out record's edge at the right.
-    stage: { height: SLEEVE + 56, width: SLEEVE_X + (SLEEVE + DISC) / 2 + DISC_OUT },
+    stage: { height: STAGE_H, width: STAGE_W },
     stageNarrow: { alignSelf: 'center' },
     disc: { position: 'absolute', left: SLEEVE_X + (SLEEVE - DISC) / 2, top: 18 + (SLEEVE - DISC) / 2 },
     // Tilts sit on the covers, not the slots.
