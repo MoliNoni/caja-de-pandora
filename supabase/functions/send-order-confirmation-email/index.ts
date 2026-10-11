@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
     });
 
     if (!response.ok) {
-      console.error('brevo failure', response.status);
+      console.error('brevo failure', response.status, await response.text()); // Brevo's reason, e.g. unauthorised IP or unverified sender
       return jsonResponse(req, { error: 'Email delivery failed' }, 502);
     }
     return jsonResponse(req, { success: true });
