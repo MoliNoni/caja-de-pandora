@@ -1,7 +1,7 @@
 // Product Detail Screen
 // Deep-linkable route: /product/:id
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCart } from '../../lib/cart-context';
 import { getAudiobookPreviewUrl, getRecordPreviewUrl } from '../../lib/previews';
@@ -28,7 +28,6 @@ import { ListenButton } from '../../components/listen-button';
 import { useBurst } from '../../components/pixel-burst';
 import { useFlyToCart } from '../../components/fly-to-cart';
 import { AppHeader } from '../../components/app-header';
-import { Skeleton, SkeletonRegion } from '../../components/skeleton';
 import { useTheme, useThemedStyles } from '../../hooks/use-theme';
 import { Fonts, type Theme } from '../../constants/theme';
 
@@ -45,7 +44,10 @@ export default function ProductDetailScreen() {
   const { width, height } = useWindowDimensions();
   // The media box takes whatever height the info leaves (measured), so the book or deck grows to
   // fill the screen instead of leaving a gap above the button. First frame uses an estimate.
+  // Measured once per window height: the listen button, synopsis and tracks arrive later and must
+  // not resize the book or deck under the reader's eyes.
   const [mediaBox, setMediaBox] = useState(height * 0.45);
+  const mediaMeasuredFor = useRef(0);
   const discSize = Math.min(width - 40, 340, (mediaBox - 8) / 0.9); // deck is 0.9 x its width tall
   const bookWidth = Math.min(width * 0.8, 320, (mediaBox - 18) / 1.5); // book is 1.5 x its width tall
   const [expanded, setExpanded] = useState(false);
@@ -146,18 +148,12 @@ export default function ProductDetailScreen() {
 
   const back = <AppHeader back fallback={isVinyl ? '/(tabs)/vinyl' : '/(tabs)/explore'} />;
 
+  // No skeleton (it shimmered on every reload): the page background and header hold the frame.
   if (status === 'loading') {
     return (
       <SafeAreaView style={styles.screen}>
+        <PatternBackground />
         {back}
-        <SkeletonRegion style={styles.content}>
-          <Skeleton height={mediaBox} radius={16} style={styles.skeletonCover} />
-          <Skeleton height={24} width="75%" />
-          <Skeleton height={16} width="45%" style={styles.skeletonGap} />
-          <Skeleton height={24} width={96} style={styles.skeletonGap} />
-          <Skeleton height={14} style={styles.skeletonGap} />
-          <Skeleton height={14} width="80%" style={styles.skeletonGap} />
-        </SkeletonRegion>
       </SafeAreaView>
     );
   }
@@ -195,7 +191,14 @@ export default function ProductDetailScreen() {
       >
         <View style={[styles.fold, alsoBought.length > 0 && viewport > 0 && { minHeight: viewport - FOOTER_CLEARANCE }]}>
           {/* Flexible box: its height comes from the free space, never from the media inside it. */}
-          <View style={styles.mediaBox} onLayout={(e) => setMediaBox(Math.round(e.nativeEvent.layout.height))}>
+          <View
+            style={styles.mediaBox}
+            onLayout={(e) => {
+              if (mediaMeasuredFor.current === height) return;
+              mediaMeasuredFor.current = height;
+              setMediaBox(Math.round(e.nativeEvent.layout.height));
+            }}
+          >
             <View style={styles.mediaFill}>
               {isVinyl ? (
                 <Animated.View entering={FadeIn.duration(200)}>
@@ -207,7 +210,7 @@ export default function ProductDetailScreen() {
             </View>
           </View>
 
-          <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <View>
             <Text style={styles.kicker}>{isVinyl ? 'Vinilo' : 'Libro'}</Text>
             <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
               {product.titulo}
@@ -216,7 +219,7 @@ export default function ProductDetailScreen() {
             {!isVinyl && (
               <ListenButton trackId={`book:${product.id}`} resolve={resolveBook} meta={recordMeta} label="Escuchar el comienzo" />
             )}
-          </Animated.View>
+          </View>
 
           <View style={styles.priceRow}>
             <Text style={styles.price}>${product.precio.toFixed(2)}</Text>
@@ -243,7 +246,7 @@ export default function ProductDetailScreen() {
               <Text style={styles.tracksTitle}>Canciones</Text>
               {Array.from({ length: TRACKS_SHOWN }, (_, i) => (
                 <View key={i} style={styles.trackRow}>
-                  <Skeleton height={12} width={`${88 - i * 9}%`} style={styles.trackSkeleton} />
+                  <View style={[styles.trackPlaceholder, { width: `${88 - i * 9}%` }]} />
                 </View>
               ))}
             </View>
@@ -288,8 +291,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   fold: { flexGrow: 1 },
   // Starts past the pill so nothing peeks half-covered; the carousel header lines up with the page text.
   alsoBought: { marginHorizontal: -8, marginTop: FOOTER_CLEARANCE + 12 },
-  skeletonCover: { marginBottom: 16 },
-  skeletonGap: { marginTop: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   // minHeight keeps the media readable when a long text makes the page scroll.
   mediaBox: { flex: 1, minHeight: 260, marginBottom: 8 },
@@ -297,7 +298,8 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   tracks: { marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.border },
   tracksTitle: { fontSize: 11, fontWeight: '600', letterSpacing: 2.4, textTransform: 'uppercase', color: t.accent, marginBottom: 10 },
   trackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.border },
-  trackSkeleton: { marginVertical: 3, marginLeft: 36 },
+  // Still lines, no shimmer: they only hold the rows' height until the list arrives.
+  trackPlaceholder: { height: 12, marginVertical: 3, marginLeft: 36, borderRadius: 2, backgroundColor: t.border, opacity: 0.5 },
   trackPos: { width: 26, fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },
   trackTitle: { flex: 1, fontSize: 14, color: t.ink },
   trackTime: { fontSize: 12, color: t.inkMuted, fontVariant: ['tabular-nums'] },

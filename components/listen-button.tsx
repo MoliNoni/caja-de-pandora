@@ -39,25 +39,36 @@ type Props = { trackId: string; resolve: ResolvePreview; meta?: NowPlaying; labe
 
 /**
  * Plays a preview through the global player (so the mini-player takes over when you leave the page).
- * Renders nothing until a preview is known to exist.
+ * Holds its space (invisible) while resolving so the page around it doesn't shift; renders nothing
+ * once no preview is known to exist.
  */
 export function ListenButton({ trackId, resolve, meta, label }: Props) {
   const theme = useTheme();
   const themed = useThemedStyles(makeStyles);
   const player = usePlayer();
-  const [available, setAvailable] = useState(false);
+  const [available, setAvailable] = useState<boolean | undefined>(undefined); // undefined = resolving
 
   // Resolving up front also keeps the tap inside the browser's user-gesture window.
   useEffect(() => {
     let alive = true;
-    setAvailable(false);
+    setAvailable(undefined);
     resolve(false).then((url) => alive && setAvailable(!!url));
     return () => {
       alive = false;
     };
   }, [resolve]);
 
-  if (!available) return null;
+  if (available === false) return null;
+  if (available === undefined) {
+    return (
+      <View style={[themed.wrap, styles.hidden]} importantForAccessibility="no-hide-descendants" aria-hidden>
+        <View style={themed.pill}>
+          <View style={themed.icon} />
+          <Text style={themed.text}>{label}</Text>
+        </View>
+      </View>
+    );
+  }
 
   const active = player.trackId === trackId;
   const loading = active && player.loading;
@@ -94,6 +105,7 @@ export function ListenButton({ trackId, resolve, meta, label }: Props) {
 const styles = StyleSheet.create({
   bars: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 16 },
   bar: { width: 3, height: 16, borderRadius: 2 },
+  hidden: { opacity: 0, pointerEvents: 'none' },
 });
 
 const makeStyles = (t: Theme) =>
