@@ -20,7 +20,8 @@ Deno.serve(async (req: Request) => {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return jsonResponse(req, { error: 'Bad request' }, 400);
 
-  const apiKey = Deno.env.get('BREVO_API_KEY');
+  // Pasted secrets often carry a trailing newline or quotes; Brevo then answers 401 "Key not found".
+  const apiKey = Deno.env.get('BREVO_API_KEY')?.trim().replace(/^["']|["']$/g, '');
   const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL');
   if (!apiKey || !senderEmail) {
     console.error('Missing config: BREVO_API_KEY and BREVO_SENDER_EMAIL are required');
