@@ -195,7 +195,7 @@ export function VinylPlayer({ trackId, title, coverUri, size, resolve, meta }: P
           {coverUri ? (
             <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} />
           ) : (
-            <CoverPlaceholder title={title} author={meta?.subtitle} />
+            <CoverPlaceholder title={title} author={meta?.subtitle} kind="vinyl" />
           )}
         </Animated.View>
         <Animated.View

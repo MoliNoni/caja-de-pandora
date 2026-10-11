@@ -197,7 +197,7 @@ export const ProductCard = ({
             cachePolicy="memory-disk"
           />
         ) : imageUri === null ? (
-          <CoverPlaceholder title={product.titulo} author={product.autor} />
+          <CoverPlaceholder title={product.titulo} author={product.autor} kind={product.category} />
         ) : (
           <View style={[styles.image, styles.placeholderImage]} />
         )}
@@ -253,7 +253,7 @@ export const ProductCard = ({
                 <Image accessibilityLabel="" source={{ uri: imageUri }} style={[styles.peekImage, product.category === 'book' && styles.peekBook]} contentFit="cover" cachePolicy="memory-disk" />
               ) : (
                 <View style={[styles.peekImage, product.category === 'book' && styles.peekBook]}>
-                  <CoverPlaceholder title={product.titulo} author={product.autor} />
+                  <CoverPlaceholder title={product.titulo} author={product.autor} kind={product.category} />
                 </View>
               )}
               <View style={styles.peekBody}>

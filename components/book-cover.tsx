@@ -141,7 +141,7 @@ export function BookCover({ uri, title, author, synopsis, width }: Props) {
                   <Image source={{ uri }} style={styles.image} resizeMode="cover" />
                 ) : (
                   <View style={styles.image}>
-                    <CoverPlaceholder title={title} author={author} />
+                    <CoverPlaceholder title={title} author={author} kind="book" />
                   </View>
                 )}
                 <View style={styles.spine} />

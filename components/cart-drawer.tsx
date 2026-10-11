@@ -124,7 +124,7 @@ export const CartDrawer = ({ onCheckout, onClose, loading = false }: CartDrawerP
                   <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
                 ) : (
                   <View style={styles.itemImage}>
-                    <CoverPlaceholder title={item.titulo} />
+                    <CoverPlaceholder title={item.titulo} kind={item.category} />
                   </View>
                 )}
 

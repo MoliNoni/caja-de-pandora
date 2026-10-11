@@ -32,17 +32,17 @@ const wedge = (r: number, from: number, to: number) => {
   return `M ${r} ${r} L ${pt(from)} A ${r} ${r} 0 0 1 ${pt(to)} Z`;
 };
 
-/** Brand mark: a glossy record that keeps turning under a fixed studio light. */
-export function SpinningRecord({ size }: { size: number }) {
+/** Brand mark: a glossy record that keeps turning under a fixed studio light (`still`: no turn). */
+export function SpinningRecord({ size, still = false }: { size: number; still?: boolean }) {
   const theme = useTheme();
   const id = useId().replace(/:/g, '');
   const reducedMotion = useReducedMotion();
   const turn = useSharedValue(0);
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || still) return;
     turn.value = withRepeat(withTiming(360, { duration: 4000, easing: Easing.linear }), -1);
     return () => cancelAnimation(turn);
-  }, [reducedMotion, turn]);
+  }, [reducedMotion, still, turn]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
   const r = size / 2;
   const hairline = Math.max(size / 160, 0.4);
