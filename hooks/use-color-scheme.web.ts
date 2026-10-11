@@ -11,6 +11,11 @@ export function useColorScheme() {
     setHasHydrated(true);
   }, []);
 
+  // Reveals the page hidden by +html in dark mode, once it renders with the real scheme.
+  useEffect(() => {
+    if (hasHydrated) document.documentElement.dataset.hydrated = 'true';
+  }, [hasHydrated]);
+
   const colorScheme = useRNColorScheme();
 
   if (hasHydrated) {

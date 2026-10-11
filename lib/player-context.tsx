@@ -41,7 +41,29 @@ const DEFAULT_VOLUME = 0.5;
 const FADE_IN_S = 0.8;
 const FADE_OUT_S = 5; // previews are 30 s clips: fade the tail instead of stopping dead
 
-export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
+// Static web rendering runs in Node, which has no <audio>: expo-audio threw there and every page
+// fell back to client-only rendering (an empty page until the bundle loaded, a flash on each F5).
+// The server gets an idle player; it renders the same children, so hydration still matches.
+const idlePlayer: PlayerContextType = {
+  trackId: null,
+  nowPlaying: null,
+  isPlaying: false,
+  loading: false,
+  play: async () => false,
+  pause: () => {},
+  toggle: async () => false,
+  volume: DEFAULT_VOLUME,
+  setVolume: () => {},
+};
+
+export const PlayerProvider = ({ children }: { children: React.ReactNode }) =>
+  typeof window === 'undefined' ? (
+    <PlayerContext.Provider value={idlePlayer}>{children}</PlayerContext.Provider>
+  ) : (
+    <AudioPlayerProvider>{children}</AudioPlayerProvider>
+  );
+
+const AudioPlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const player = useAudioPlayer(null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const [trackId, setTrackId] = useState<string | null>(null);
