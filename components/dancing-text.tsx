@@ -60,6 +60,7 @@ const SHEEN_PERIOD = SHEEN_IN_MS + SHEEN_OUT_MS + SHEEN_REST_MS;
 
 function useWebLetterMotion(
   ref: React.RefObject<unknown>,
+  inkRef: React.RefObject<unknown>,
   { index, delay, wave, color, glint, reducedMotion }: { index: number; delay: number; wave: boolean; color?: string; glint?: string; reducedMotion: boolean }
 ) {
   useEffect(() => {
@@ -67,32 +68,42 @@ function useWebLetterMotion(
     if (!el?.animate || reducedMotion) return;
     const start = delay + index * STAGGER_MS;
     const tilt = index % 2 ? 8 : -8;
+    // Chrome composites a transform animation only when it is the element's sole one and uses 'replace':
+    // the entrance ends at identity with no forward fill, and is removed before the wave is created.
+    const entrance = el.animate(
+      SPRING_FRAMES.map((e) => ({ transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})` })),
+      { duration: SPRING_MS, delay: start, fill: 'backwards' }
+    );
     const anims = [
-      el.animate(
-        SPRING_FRAMES.map((e) => ({
-          opacity: Math.min(e, 1),
-          transform: `translateY(${(1 - e) * 24}px) rotate(${(1 - e) * tilt}deg) scale(${0.85 + 0.15 * e})`,
-        })),
-        { duration: SPRING_MS, delay: start, fill: 'both' }
-      ),
+      el.animate(SPRING_FRAMES.map((e) => ({ opacity: Math.min(e, 1) })), { duration: SPRING_MS, delay: start, fill: 'both' }),
+      entrance,
     ];
     if (wave) {
       const up = WAVE_UP_MS / WAVE_PERIOD;
-      anims.push(
-        el.animate(
-          [
-            { transform: 'translateY(0px)', easing: SINE },
-            { transform: 'translateY(-5px)', offset: up, easing: SINE },
-            { transform: 'translateY(0px)', offset: up * 2 },
-            { transform: 'translateY(0px)' },
-          ],
-          { duration: WAVE_PERIOD, delay: start + 900 + index * 70, iterations: Infinity, composite: 'add' }
-        )
+      entrance.finished.then(
+        () => {
+          entrance.cancel();
+          anims.push(
+            el.animate(
+              [
+                { transform: 'translateY(0px)', easing: SINE },
+                { transform: 'translateY(-5px)', offset: up, easing: SINE },
+                { transform: 'translateY(0px)', offset: up * 2 },
+                { transform: 'translateY(0px)' },
+              ],
+              { duration: WAVE_PERIOD, delay: Math.max(900 - SPRING_MS, 0) + index * 70, iterations: Infinity }
+            )
+          );
+        },
+        () => {} // cancelled on unmount
       );
     }
-    if (color && glint) {
+    // The glint lives on the inner text: a colour animation re-styles its element every frame, which
+    // would keep Chrome from compositing the transforms if they shared it.
+    const ink = inkRef.current as HTMLElement | null;
+    if (ink && color && glint) {
       anims.push(
-        el.animate(
+        ink.animate(
           [
             { color, easing: SINE },
             { color: glint, offset: SHEEN_IN_MS / SHEEN_PERIOD, easing: SINE },
@@ -104,7 +115,7 @@ function useWebLetterMotion(
       );
     }
     return () => anims.forEach((a) => a.cancel());
-  }, [ref, index, delay, wave, color, glint, reducedMotion]);
+  }, [ref, inkRef, index, delay, wave, color, glint, reducedMotion]);
 }
 
 type Props = {
@@ -137,19 +148,26 @@ type LetterProps = {
 
 const WebLetter = memo(function WebLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
   const reducedMotion = useReducedMotion();
-  const ref = useRef<View & Text>(null);
-  useWebLetterMotion(ref, { index, delay, wave, color, glint: color && glint ? glint : undefined, reducedMotion });
+  const ref = useRef<View>(null);
+  const inkRef = useRef<Text>(null);
+  useWebLetterMotion(ref, inkRef, { index, delay, wave, color, glint: color && glint ? glint : undefined, reducedMotion });
   // Hidden until its entrance runs (the static HTML must not flash the whole title first).
+  const hidden = { opacity: reducedMotion ? 1 : 0 };
   if (record) {
     const { fontSize = 32, lineHeight = fontSize * 1.1 } = StyleSheet.flatten(style) ?? {};
     const size = Math.round(fontSize * 0.56);
     return (
-      <View ref={ref} style={{ opacity: reducedMotion ? 1 : 0, height: lineHeight, justifyContent: 'flex-end', paddingBottom: (lineHeight - fontSize) / 2 + fontSize * 0.2, marginHorizontal: fontSize * 0.03 }}>
+      <View ref={ref} style={{ ...hidden, height: lineHeight, justifyContent: 'flex-end', paddingBottom: (lineHeight - fontSize) / 2 + fontSize * 0.2, marginHorizontal: fontSize * 0.03 }}>
         <SpinningRecord size={size} />
       </View>
     );
   }
-  return <Text ref={ref} style={[style, color ? { color } : null, { opacity: reducedMotion ? 1 : 0 }]}>{char}</Text>;
+  // Motion on the box, colour on the text inside it.
+  return (
+    <View ref={ref} style={hidden}>
+      <Text ref={inkRef} style={[style, color ? { color } : null]}>{char}</Text>
+    </View>
+  );
 });
 
 const NativeLetter = memo(function NativeLetter({ char, index, color, glint, style, wave, delay, record }: LetterProps) {
