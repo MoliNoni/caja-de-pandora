@@ -168,10 +168,15 @@ export function MiniPlayer() {
   }, [collapsed, width, reducedMotion, slide]);
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: slide.value }] }));
 
-  if (!nowPlaying || !trackId || pathname === nowPlaying.href) return null;
+  const visible = !!nowPlaying && !!trackId && pathname !== nowPlaying.href;
   const playing = isPlaying || loading;
 
+  // The tucked-away pill sits mostly off-screen to the right; this full-screen clip layer keeps it from
+  // widening the page (on mobile web that zoomed the page out and left a blank area below the content).
+  // It stays mounted so the dock's exiting animation still runs.
   return (
+    <View style={styles.clip} pointerEvents="box-none">
+    {visible && nowPlaying && trackId ? (
     <Animated.View entering={SlideInDown.springify().damping(16)} exiting={SlideOutRight.duration(450)} style={styles.dock} pointerEvents="box-none">
       <Animated.View style={[styles.slider, slideStyle]} onLayout={(e) => (pillLeft.current = 12 + e.nativeEvent.layout.x)}>
       <Pressable
@@ -229,11 +234,14 @@ export function MiniPlayer() {
       </Pressable>
       </Animated.View>
     </Animated.View>
+    ) : null}
+    </View>
   );
 }
 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
+    clip: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
     dock: { position: 'absolute', left: 12, right: 12, bottom: 86, alignItems: 'center' },
     slider: { width: '100%', maxWidth: 520 },
     pill: {
